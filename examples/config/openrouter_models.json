@@ -1,0 +1,32 @@
+{
+  "model_mappings": {
+    "llama2": "meta-llama/llama-2-7b-chat",
+    "llama2:13b": "meta-llama/llama-2-13b-chat",
+    "llama2:70b": "meta-llama/llama-2-70b-chat",
+    "codellama": "meta-llama/codellama-34b-instruct",
+    "mistral": "mistralai/mistral-7b-instruct",
+    "mixtral": "mistralai/mixtral-8x7b-instruct",
+    "gemma": "google/gemma-2-9b-it:free",
+    "gemma:free": "google/gemma-2-9b-it:free",
+    "phi": "microsoft/phi-3-mini-128k-instruct:free",
+    "phi:free": "microsoft/phi-3-mini-128k-instruct:free",
+    "qwen": "qwen/qwen-2-7b-instruct:free",
+    "solar": "upstage/solar-10.7b-instruct:free",
+    "mythomax": "gryphe/mythomax-l2-13b:free",
+    "toppy": "undi95/toppy-m-7b:free",
+    "cinematika": "openrouter/cinematika-7b:free"
+  },
+  "default_model": "google/gemma-2-9b-it:free",
+  "free_models": [
+    "google/gemma-2-9b-it:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
+    "microsoft/phi-3-mini-128k-instruct:free",
+    "qwen/qwen-2-7b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+    "gryphe/mythomax-l2-13b:free",
+    "undi95/toppy-m-7b:free",
+    "openrouter/cinematika-7b:free",
+    "upstage/solar-10.7b-instruct:free",
+    "huggingfaceh4/zephyr-7b-beta:free"
+  ]
+}

@@ -1,0 +1,50 @@
+# Docker Compose Override Example
+# Place this file in the project root to override default settings
+
+version: '3.8'
+
+services:
+  ollama-proxy:
+    # Development overrides
+    environment:
+      - LOG_LEVEL=DEBUG
+      - DEBUG=true
+      - REQUEST_TIMEOUT=30
+      
+    # Mount additional volumes for development
+    volumes:
+      - ./src:/app/src:ro
+      - ./examples/config:/app/examples/config:ro
+      - ./logs:/app/logs
+      
+    # Development-specific health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      
+    # Resource limits for development
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+          
+    # Enable auto-restart on failure
+    restart: unless-stopped
+    
+    # Custom network for isolation
+    networks:
+      - ollama-net
+      
+networks:
+  ollama-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

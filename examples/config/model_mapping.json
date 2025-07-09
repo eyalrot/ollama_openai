@@ -1,0 +1,38 @@
+{
+  "model_mappings": {
+    "llama2": "meta-llama/Llama-2-7b-chat-hf",
+    "llama2:7b": "meta-llama/Llama-2-7b-chat-hf",
+    "llama2:13b": "meta-llama/Llama-2-13b-chat-hf",
+    "llama2:70b": "meta-llama/Llama-2-70b-chat-hf",
+    "codellama": "codellama/CodeLlama-7b-Instruct-hf",
+    "codellama:13b": "codellama/CodeLlama-13b-Instruct-hf",
+    "codellama:34b": "codellama/CodeLlama-34b-Instruct-hf",
+    "mistral": "mistralai/Mistral-7B-Instruct-v0.1",
+    "mistral:7b": "mistralai/Mistral-7B-Instruct-v0.1",
+    "mixtral": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "mixtral:8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "gemma": "google/gemma-7b-it",
+    "gemma:2b": "google/gemma-2b-it",
+    "gemma:7b": "google/gemma-7b-it",
+    "phi": "microsoft/phi-2",
+    "phi2": "microsoft/phi-2",
+    "phi3": "microsoft/Phi-3-mini-4k-instruct",
+    "vicuna": "lmsys/vicuna-7b-v1.5",
+    "vicuna:13b": "lmsys/vicuna-13b-v1.5",
+    "wizard": "WizardLM/WizardLM-7B-V1.0",
+    "wizard:13b": "WizardLM/WizardLM-13B-V1.2",
+    "solar": "upstage/SOLAR-10.7B-Instruct-v1.0",
+    "qwen": "Qwen/Qwen1.5-7B-Chat",
+    "qwen:14b": "Qwen/Qwen1.5-14B-Chat",
+    "qwen:72b": "Qwen/Qwen1.5-72B-Chat",
+    "deepseek": "deepseek-ai/deepseek-coder-6.7b-instruct",
+    "deepseek:33b": "deepseek-ai/deepseek-coder-33b-instruct"
+  },
+  "default_model": "gpt-3.5-turbo",
+  "model_aliases": {
+    "gpt3": "gpt-3.5-turbo",
+    "gpt4": "gpt-4",
+    "claude": "claude-3-opus-20240229",
+    "claude-instant": "claude-instant-1.2"
+  }
+}
