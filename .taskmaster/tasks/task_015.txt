@@ -1,0 +1,203 @@
+# Task ID: 15
+# Title: Performance Optimization and Monitoring
+# Status: pending
+# Dependencies: 14
+# Priority: low
+# Description: Add performance monitoring, optimize response handling, and implement basic metrics collection for production readiness
+# Details:
+Create src/utils/metrics.py:
+```python
+import time
+import asyncio
+from typing import Dict, Any
+from contextlib import asynccontextmanager
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class RequestMetrics:
+    endpoint: str
+    method: str
+    status_code: int = 0
+    duration_ms: float = 0
+    request_size: int = 0
+    response_size: int = 0
+    model: str = ""
+    error: Optional[str] = None
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+
+class MetricsCollector:
+    def __init__(self):
+        self.metrics: List[RequestMetrics] = []
+        self._lock = asyncio.Lock()
+        
+    async def record(self, metric: RequestMetrics):
+        async with self._lock:
+            self.metrics.append(metric)
+            # Keep only last 1000 metrics in memory
+            if len(self.metrics) > 1000:
+                self.metrics = self.metrics[-1000:]
+    
+    async def get_summary(self) -> Dict[str, Any]:
+        async with self._lock:
+            if not self.metrics:
+                return {"message": "No metrics available"}
+            
+            total_requests = len(self.metrics)
+            successful_requests = sum(1 for m in self.metrics if 200 <= m.status_code < 300)
+            failed_requests = total_requests - successful_requests
+            
+            avg_duration = sum(m.duration_ms for m in self.metrics) / total_requests
+            
+            endpoints = {}
+            for metric in self.metrics:
+                key = f"{metric.method} {metric.endpoint}"
+                if key not in endpoints:
+                    endpoints[key] = {"count": 0, "avg_duration_ms": 0}
+                endpoints[key]["count"] += 1
+                endpoints[key]["avg_duration_ms"] += metric.duration_ms
+            
+            for endpoint in endpoints.values():
+                endpoint["avg_duration_ms"] /= endpoint["count"]
+            
+            return {
+                "total_requests": total_requests,
+                "successful_requests": successful_requests,
+                "failed_requests": failed_requests,
+                "success_rate": successful_requests / total_requests,
+                "avg_duration_ms": avg_duration,
+                "endpoints": endpoints,
+                "period": {
+                    "start": self.metrics[0].timestamp.isoformat(),
+                    "end": self.metrics[-1].timestamp.isoformat()
+                }
+            }
+
+# Global metrics collector
+metrics_collector = MetricsCollector()
+
+@asynccontextmanager
+async def track_request(endpoint: str, method: str, model: str = ""):
+    """Context manager to track request metrics"""
+    start_time = time.time()
+    metric = RequestMetrics(endpoint=endpoint, method=method, model=model)
+    
+    try:
+        yield metric
+    except Exception as e:
+        metric.error = str(e)
+        raise
+    finally:
+        metric.duration_ms = (time.time() - start_time) * 1000
+        await metrics_collector.record(metric)
+```
+
+Add metrics endpoint to main.py:
+```python
+from .utils.metrics import metrics_collector
+
+@app.get("/metrics")
+async def get_metrics():
+    """Get performance metrics summary"""
+    return await metrics_collector.get_summary()
+```
+
+Integrate metrics tracking in routers:
+```python
+# In chat.py
+from ..utils.metrics import track_request
+
+@router.post("/generate")
+async def generate(request: OllamaGenerateRequest):
+    async with track_request("/api/generate", "POST", request.model) as metric:
+        try:
+            # ... existing code ...
+            metric.status_code = 200
+            return response
+        except HTTPException as e:
+            metric.status_code = e.status_code
+            raise
+```
+
+Optimize streaming with buffering:
+```python
+async def optimized_stream_response(client, openai_request, original_request):
+    """Optimized streaming with response buffering"""
+    buffer = []
+    buffer_size = 0
+    max_buffer_size = 1024  # bytes
+    
+    async with client.stream(...) as response:
+        async for line in response.aiter_lines():
+            if line.startswith("data: "):
+                # ... process line ...
+                chunk_json = json.dumps(ollama_chunk.dict()) + "\n"
+                buffer.append(chunk_json)
+                buffer_size += len(chunk_json)
+                
+                # Flush buffer when it reaches threshold
+                if buffer_size >= max_buffer_size:
+                    yield ''.join(buffer)
+                    buffer = []
+                    buffer_size = 0
+        
+        # Flush remaining buffer
+        if buffer:
+            yield ''.join(buffer)
+```
+
+# Test Strategy:
+Test metrics collection under load, verify memory usage stays bounded with metric limit, test metrics endpoint returns accurate statistics, benchmark streaming performance improvements, verify no performance regression in normal operations
+
+# Subtasks:
+## 1. Design metrics collection system architecture [pending]
+### Dependencies: None
+### Description: Design a lightweight, non-blocking metrics collection system that minimizes performance overhead
+### Details:
+Create interfaces for metric collectors, define metric types (counters, gauges, histograms), establish collection patterns that don't impact request processing, design in-memory storage with configurable retention policies
+
+## 2. Implement request tracking and instrumentation [pending]
+### Dependencies: 15.1
+### Description: Add request tracking middleware to capture key metrics without blocking request flow
+### Details:
+Track request count, duration, response size, model usage, token consumption, error rates. Use async patterns to ensure tracking doesn't add latency. Implement request ID generation for correlation
+
+## 3. Create metrics aggregation and endpoint [pending]
+### Dependencies: 15.2
+### Description: Build a /metrics endpoint that exposes collected metrics in standard formats
+### Details:
+Implement Prometheus-compatible metrics format, add JSON output option, ensure efficient serialization, include system metrics (CPU, memory usage), support metric filtering and time ranges
+
+## 4. Optimize streaming response monitoring [pending]
+### Dependencies: 15.2
+### Description: Implement efficient monitoring for streaming responses without buffering entire streams
+### Details:
+Track streaming metrics (first byte time, throughput, chunk sizes), implement sampling for large streams, ensure backpressure handling, monitor stream cancellations and timeouts
+
+## 5. Implement memory-efficient metric storage [pending]
+### Dependencies: 15.3
+### Description: Create circular buffers and time-window aggregations to prevent memory leaks
+### Details:
+Use ring buffers for recent metrics, implement automatic rollup for older data, add configurable retention policies, ensure proper cleanup of expired metrics, implement memory usage limits
+
+## 6. Add performance benchmarking suite [pending]
+### Dependencies: 15.4, 15.5
+### Description: Create benchmarks to measure monitoring overhead and ensure minimal impact
+### Details:
+Benchmark request processing with/without monitoring, measure memory overhead of metric collection, test under various load conditions, establish performance regression tests
+
+## 7. Write monitoring integration documentation [pending]
+### Dependencies: 15.3, 15.6
+### Description: Document monitoring setup, metric definitions, and integration with external systems
+### Details:
+Document available metrics and their meanings, provide Grafana dashboard examples, explain Prometheus scraping configuration, include alerting rule examples, add troubleshooting guide
+
+## 8. Implement load testing with monitoring validation [pending]
+### Dependencies: 15.6, 15.7
+### Description: Create load tests that verify monitoring accuracy under high load
+### Details:
+Test metric accuracy at 1K, 10K, 100K requests/sec, verify no metric loss under load, ensure monitoring doesn't degrade performance, test memory stability during extended runs
+

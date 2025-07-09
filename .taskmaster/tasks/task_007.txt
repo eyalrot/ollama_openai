@@ -1,0 +1,146 @@
+# Task ID: 7
+# Title: Create FastAPI Application Core
+# Status: pending
+# Dependencies: 6
+# Priority: high
+# Description: Set up the main FastAPI application with middleware, error handlers, and application lifecycle management
+# Details:
+Implement src/main.py:
+```python
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import logging
+import uuid
+from contextlib import asynccontextmanager
+from .config import settings
+from .utils.logging import setup_logging
+from .utils.exceptions import ProxyException, UpstreamError
+from .routers import chat, models, embeddings
+
+# Setup logging
+setup_logging(settings.log_level)
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting Ollama-OpenAI Proxy", extra={
+        "config": {
+            "proxy_port": settings.proxy_port,
+            "target_url": settings.openai_api_base_url,
+            "log_level": settings.log_level
+        }
+    })
+    yield
+    # Shutdown
+    logger.info("Shutting down Ollama-OpenAI Proxy")
+
+app = FastAPI(
+    title="Ollama-OpenAI Proxy",
+    description="Proxy service to translate Ollama API calls to OpenAI format",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    
+    # Add request_id to all logs in this request
+    import logging
+    logger = logging.getLogger()
+    for handler in logger.handlers:
+        handler.addFilter(lambda record: setattr(record, 'request_id', request_id) or True)
+    
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+# Error handlers
+@app.exception_handler(ProxyException)
+async def proxy_exception_handler(request: Request, exc: ProxyException):
+    return JSONResponse(
+        status_code=400,
+        content={"error": {"message": str(exc), "type": exc.__class__.__name__}}
+    )
+
+@app.exception_handler(UpstreamError)
+async def upstream_error_handler(request: Request, exc: UpstreamError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"message": str(exc), "type": "upstream_error"}}
+    )
+
+# Include routers
+app.include_router(chat.router, prefix="/api")
+app.include_router(models.router, prefix="/api")
+app.include_router(embeddings.router, prefix="/api")
+
+# Health check
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "ollama-openai-proxy"}
+```
+
+# Test Strategy:
+Test FastAPI application starts correctly, verify middleware adds request IDs to all requests, test CORS headers are properly set, verify error handlers return correct status codes and formats, test health check endpoint returns 200 OK
+
+# Subtasks:
+## 1. Application initialization and basic setup [pending]
+### Dependencies: None
+### Description: Create the main FastAPI application instance and configure basic settings
+### Details:
+Initialize FastAPI app with proper title, version, and description. Configure OpenAPI documentation settings and basic application metadata.
+
+## 2. CORS middleware configuration [pending]
+### Dependencies: 7.1
+### Description: Implement and configure CORS middleware for cross-origin request handling
+### Details:
+Add CORSMiddleware to the application with configurable allowed origins, methods, headers, and credentials. Support both development and production CORS configurations.
+
+## 3. Request ID middleware implementation [pending]
+### Dependencies: 7.1
+### Description: Create middleware to generate and track unique request IDs for logging and debugging
+### Details:
+Implement middleware that generates a unique UUID for each request, adds it to request headers, and ensures it's propagated through the response for request tracing.
+
+## 4. Global error handler implementation [pending]
+### Dependencies: 7.1, 7.3
+### Description: Create comprehensive error handling middleware for consistent error responses
+### Details:
+Implement exception handlers for common HTTP exceptions, validation errors, and unexpected errors. Ensure error responses include request IDs and follow a consistent format.
+
+## 5. Router integration and API versioning [pending]
+### Dependencies: 7.1, 7.2, 7.3, 7.4
+### Description: Set up API routers with proper versioning and route organization
+### Details:
+Create router structure for API versioning (e.g., /api/v1/), integrate all endpoint routers, and ensure proper route prefixing and tagging for OpenAPI documentation.
+
+## 6. Health check endpoint implementation [pending]
+### Dependencies: 7.5
+### Description: Create health check and readiness endpoints for monitoring
+### Details:
+Implement /health and /ready endpoints that check application status, database connectivity, and external service availability. Return structured health status responses.
+
+## 7. Lifespan management setup [pending]
+### Dependencies: 7.1
+### Description: Configure application startup and shutdown event handlers
+### Details:
+Implement lifespan context manager for proper resource initialization and cleanup. Handle database connections, background tasks, and external service connections during startup/shutdown.
+
+## 8. Integration testing for main application [pending]
+### Dependencies: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7
+### Description: Create comprehensive integration tests for the main application setup
+### Details:
+Write tests to verify middleware functionality, error handling, CORS configuration, health endpoints, and proper application lifecycle management. Include tests for request ID propagation and error response formats.
+

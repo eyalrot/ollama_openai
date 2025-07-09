@@ -1,0 +1,132 @@
+# Task ID: 10
+# Title: Create Docker Configuration
+# Status: pending
+# Dependencies: 9
+# Priority: medium
+# Description: Implement production-ready Dockerfile with multi-stage build and docker-compose configuration for easy deployment
+# Details:
+Create docker/Dockerfile:
+```dockerfile
+# Build stage
+FROM python:3.9-slim as builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Runtime stage
+FROM python:3.9-slim
+
+# Create non-root user
+RUN useradd -m -u 1000 proxyuser
+
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /home/proxyuser/.local
+
+# Copy application code
+COPY --chown=proxyuser:proxyuser src/ ./src/
+
+# Set environment variables
+ENV PATH=/home/proxyuser/.local/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+
+# Switch to non-root user
+USER proxyuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import httpx; exit(0 if httpx.get('http://localhost:${PROXY_PORT:-11434}/health').status_code == 200 else 1)"
+
+# Expose port
+EXPOSE 11434
+
+# Run the application
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "11434"]
+```
+
+Create docker/docker-compose.yml:
+```yaml
+version: '3.8'
+
+services:
+  ollama-proxy:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ollama-openai-proxy:latest
+    container_name: ollama-proxy
+    ports:
+      - "${PROXY_PORT:-11434}:11434"
+    environment:
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROXY_PORT=${PROXY_PORT:-11434}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
+    volumes:
+      - ./config:/config:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; exit(0 if httpx.get('http://localhost:11434/health').status_code == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+```
+
+# Test Strategy:
+Build Docker image and verify it's under 200MB, test container starts with valid environment variables, verify health check passes when service is running, test graceful shutdown on SIGTERM, verify non-root user permissions work correctly
+
+# Subtasks:
+## 1. Create Multi-Stage Dockerfile [pending]
+### Dependencies: None
+### Description: Build an optimized multi-stage Dockerfile for the application
+### Details:
+Create a multi-stage Dockerfile with separate build and runtime stages. Use appropriate base images (e.g., node:alpine for build, distroless or minimal alpine for runtime). Implement proper layer caching, minimize image size, and ensure efficient dependency installation. Include proper COPY instructions and WORKDIR setup.
+
+## 2. Implement Security Hardening [pending]
+### Dependencies: 10.1
+### Description: Configure non-root user and apply security best practices
+### Details:
+Create a non-root user in the Dockerfile using appropriate USER directives. Set proper file permissions, remove unnecessary packages, scan for vulnerabilities using tools like Trivy or Snyk. Implement least privilege principles and ensure the container runs with minimal required permissions.
+
+## 3. Add Health Check Implementation [pending]
+### Dependencies: 10.1
+### Description: Configure container health checks for monitoring
+### Details:
+Implement HEALTHCHECK instruction in Dockerfile with appropriate intervals, timeouts, and retry settings. Create health check endpoint in the application if needed. Configure proper start period and ensure health checks accurately reflect application readiness and liveness states.
+
+## 4. Configure Docker Compose [pending]
+### Dependencies: 10.1, 10.2, 10.3
+### Description: Create production-ready docker-compose.yml configuration
+### Details:
+Create docker-compose.yml with proper service definitions, networking configuration, environment variables, and resource limits. Include restart policies, logging configuration, and proper service dependencies. Consider adding support for multiple environments (dev, staging, prod) using override files.
+
+## 5. Setup Volume Mapping [pending]
+### Dependencies: 10.4
+### Description: Configure persistent storage and volume mappings
+### Details:
+Define appropriate volume mappings for persistent data, configuration files, and logs. Ensure proper permissions for mounted volumes with non-root user. Configure named volumes for data persistence and bind mounts for development. Document volume requirements and backup strategies.
+
+## 6. Container Testing Suite [pending]
+### Dependencies: 10.1, 10.2, 10.3, 10.4, 10.5
+### Description: Implement comprehensive container testing
+### Details:
+Create container testing scripts to verify image builds correctly, security scanning passes, health checks work properly, and services start successfully. Test volume persistence, environment variable injection, and inter-container communication. Include smoke tests for application functionality within containers.
+

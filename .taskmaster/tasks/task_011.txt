@@ -1,0 +1,163 @@
+# Task ID: 11
+# Title: Implement Retry Logic and Connection Pooling
+# Status: pending
+# Dependencies: 10
+# Priority: medium
+# Description: Add robust retry mechanisms for transient failures and implement connection pooling for better performance and reliability
+# Details:
+Create src/utils/http_client.py:
+```python
+import httpx
+import asyncio
+import logging
+from typing import Optional, Dict, Any, Callable
+from ..config import settings
+
+logger = logging.getLogger(__name__)
+
+class RetryClient:
+    def __init__(self, max_retries: int = None, timeout: int = None):
+        self.max_retries = max_retries or settings.max_retries
+        self.timeout = timeout or settings.request_timeout
+        self.client = httpx.AsyncClient(
+            timeout=httpx.Timeout(self.timeout),
+            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20)
+        )
+        
+    async def __aenter__(self):
+        return self
+        
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.aclose()
+        
+    async def request_with_retry(
+        self,
+        method: str,
+        url: str,
+        retry_on: Optional[Callable[[httpx.Response], bool]] = None,
+        **kwargs
+    ) -> httpx.Response:
+        """Make HTTP request with exponential backoff retry"""
+        retry_on = retry_on or self._should_retry
+        
+        for attempt in range(self.max_retries):
+            try:
+                response = await self.client.request(method, url, **kwargs)
+                
+                if not retry_on(response):
+                    return response
+                    
+                if attempt < self.max_retries - 1:
+                    delay = 2 ** attempt  # Exponential backoff
+                    logger.warning(
+                        f"Request failed with status {response.status_code}, "
+                        f"retrying in {delay}s (attempt {attempt + 1}/{self.max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                    
+            except httpx.TimeoutException as e:
+                if attempt < self.max_retries - 1:
+                    delay = 2 ** attempt
+                    logger.warning(
+                        f"Request timed out, retrying in {delay}s "
+                        f"(attempt {attempt + 1}/{self.max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    raise
+            except httpx.NetworkError as e:
+                if attempt < self.max_retries - 1:
+                    delay = 2 ** attempt
+                    logger.warning(
+                        f"Network error: {e}, retrying in {delay}s "
+                        f"(attempt {attempt + 1}/{self.max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    raise
+                    
+        return response
+        
+    def _should_retry(self, response: httpx.Response) -> bool:
+        """Determine if request should be retried based on status code"""
+        # Retry on 5xx errors and specific 4xx errors
+        return response.status_code >= 500 or response.status_code in [429, 408]
+
+# Global client instance
+_retry_client: Optional[RetryClient] = None
+
+async def get_retry_client() -> RetryClient:
+    """Get or create global retry client"""
+    global _retry_client
+    if _retry_client is None:
+        _retry_client = RetryClient()
+    return _retry_client
+```
+
+Update chat.py to use retry client:
+```python
+# Replace httpx.AsyncClient with RetryClient
+from ..utils.http_client import RetryClient
+
+# In generate/chat endpoints:
+async with RetryClient() as client:
+    response = await client.request_with_retry(
+        "POST",
+        f"{settings.openai_api_base_url}/chat/completions",
+        json=openai_request.dict(),
+        headers={"Authorization": f"Bearer {settings.openai_api_key}"}
+    )
+```
+
+# Test Strategy:
+Test retry logic with simulated failures, verify exponential backoff timing, test connection pooling limits are respected, verify timeout handling works correctly, test that successful requests don't retry
+
+# Subtasks:
+## 1. Design and implement base retry client class [pending]
+### Dependencies: None
+### Description: Create the foundational retry client class with async support and configurable retry policies
+### Details:
+Design a base RetryClient class that supports async operations, accepts configuration for retry attempts, and provides hooks for different retry strategies. Include proper TypeScript types and interfaces for configuration options.
+
+## 2. Implement exponential backoff algorithm [pending]
+### Dependencies: 11.1
+### Description: Create the exponential backoff logic with jitter for distributed retry scenarios
+### Details:
+Implement exponential backoff with configurable base delay, max delay, and multiplier. Add jitter to prevent thundering herd issues. Support both fixed and random jitter strategies.
+
+## 3. Configure connection pool management [pending]
+### Dependencies: 11.1
+### Description: Set up connection pooling with proper resource management and limits
+### Details:
+Implement connection pool with configurable size, timeout settings, and connection reuse. Ensure proper cleanup of idle connections and handle pool exhaustion scenarios gracefully.
+
+## 4. Implement comprehensive timeout handling [pending]
+### Dependencies: 11.1, 11.3
+### Description: Add timeout mechanisms for connection, request, and total operation timeouts
+### Details:
+Implement multiple timeout layers: connection timeout, request timeout, and total retry timeout. Ensure timeouts are properly cancelled and resources cleaned up on timeout events.
+
+## 5. Create network error classification and handling [pending]
+### Dependencies: 11.1, 11.2
+### Description: Implement error classification to determine retryable vs non-retryable errors
+### Details:
+Create error classification system that identifies transient network errors (timeouts, connection resets) vs permanent errors (4xx client errors). Implement appropriate retry strategies for each error type.
+
+## 6. Integrate retry client with existing API endpoints [pending]
+### Dependencies: 11.1, 11.2, 11.3, 11.4, 11.5
+### Description: Replace current HTTP clients with retry-enabled clients across all endpoints
+### Details:
+Systematically integrate the retry client with existing API endpoints. Ensure backward compatibility and minimal changes to existing interfaces. Add configuration per endpoint type based on criticality.
+
+## 7. Implement performance testing suite [pending]
+### Dependencies: 11.6
+### Description: Create comprehensive performance tests to validate retry behavior under load
+### Details:
+Develop load tests simulating various failure scenarios: network timeouts, server errors, and connection failures. Measure impact on latency, throughput, and resource usage. Include tests for concurrent retry scenarios.
+
+## 8. Handle edge cases and circuit breaker integration [pending]
+### Dependencies: 11.6, 11.7
+### Description: Implement circuit breaker pattern and handle complex edge cases
+### Details:
+Add circuit breaker to prevent retry storms during extended outages. Handle edge cases like retry budget exhaustion, partial request failures, and idempotency concerns. Implement proper logging and metrics for monitoring.
+

@@ -1,0 +1,79 @@
+# Task ID: 2
+# Title: Implement Configuration Management
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create a robust configuration system that loads and validates environment variables, provides runtime configuration access, and handles configuration errors gracefully
+# Details:
+Implement src/config.py with:
+```python
+from pydantic import BaseSettings, validator
+from typing import Optional
+import os
+
+class Settings(BaseSettings):
+    openai_api_base_url: str
+    openai_api_key: str
+    proxy_port: int = 11434
+    log_level: str = 'INFO'
+    request_timeout: int = 60
+    max_retries: int = 3
+    model_mapping_file: Optional[str] = None
+    
+    @validator('openai_api_base_url')
+    def validate_url(cls, v):
+        if not v.startswith(('http://', 'https://')):
+            raise ValueError('Invalid URL format')
+        return v.rstrip('/')
+    
+    class Config:
+        env_file = '.env'
+        case_sensitive = False
+
+settings = Settings()
+```
+- Add validation for all required fields
+- Implement configuration loading on startup
+- Add model mapping file loader if specified
+- Create singleton pattern for global access
+
+# Test Strategy:
+Write unit tests to verify configuration loads correctly from environment variables, test validation rules for URLs and numeric ranges, test error handling for missing required variables, test model mapping file loading when specified
+
+# Subtasks:
+## 1. Create Pydantic settings model [pending]
+### Dependencies: None
+### Description: Define a Pydantic BaseSettings model with fields for all configuration parameters including API keys, base URLs, and model mappings
+### Details:
+Create a Settings class inheriting from BaseSettings that includes: API key fields for each provider (OpenAI, Anthropic, etc.), base URL fields with defaults, model mapping dictionary field, and validation decorators for required fields
+
+## 2. Implement environment variable validation [pending]
+### Dependencies: 2.1
+### Description: Add field validators to ensure environment variables are properly loaded and validated on model instantiation
+### Details:
+Use Pydantic's @field_validator decorators to check for: non-empty API keys when required, proper format for API keys, environment variable prefix handling (e.g., OLLAMA_), and custom error messages for missing required variables
+
+## 3. Implement URL validation logic [pending]
+### Dependencies: 2.1
+### Description: Create validators for base URLs to ensure they are properly formatted and accessible
+### Details:
+Add URL validation that: checks URL format using Pydantic's HttpUrl type, ensures URLs end with proper path separators, validates localhost URLs for Ollama, and provides fallback to default URLs when not specified
+
+## 4. Create model mapping loader [pending]
+### Dependencies: 2.1, 2.2
+### Description: Implement logic to load and parse model mappings from environment variables or configuration files
+### Details:
+Build a model mapping system that: parses JSON model mappings from environment variables, supports provider-specific model aliases, validates model names against known providers, and provides default mappings for common models
+
+## 5. Implement singleton pattern [pending]
+### Dependencies: 2.1, 2.2, 2.3, 2.4
+### Description: Create a singleton pattern to ensure only one instance of the settings configuration exists throughout the application
+### Details:
+Implement singleton using: module-level instance with lazy loading, thread-safe initialization, method to get the singleton instance, and ability to reset for testing purposes
+
+## 6. Create comprehensive tests [pending]
+### Dependencies: 2.5
+### Description: Write unit and integration tests for all configuration functionality including validation, loading, and error handling
+### Details:
+Test coverage should include: valid configuration loading, missing required variables handling, URL validation edge cases, model mapping parsing, singleton behavior, and environment variable override functionality
+

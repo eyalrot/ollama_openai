@@ -1,0 +1,1509 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Initialize Project Structure",
+        "description": "Set up the foundational Python project structure with all necessary directories, configuration files, and development environment setup",
+        "details": "Create the complete directory structure as specified in the PRD:\n- Create src/ directory with __init__.py, main.py, config.py, models.py\n- Create routers/ subdirectory with chat.py, models.py, embeddings.py\n- Create translators/ subdirectory with base.py, chat.py, embeddings.py\n- Create utils/ subdirectory with logging.py, exceptions.py\n- Create tests/ directory structure\n- Create docker/ directory with Dockerfile and docker-compose.yml\n- Initialize requirements.txt with core dependencies: fastapi==0.104.1, uvicorn[standard]==0.24.0, httpx==0.25.0, langchain-openai==0.0.5, pydantic==2.5.0, python-dotenv==1.0.0\n- Create requirements-dev.txt with pytest, pytest-asyncio, pytest-cov, black, flake8\n- Create .env.example and .env.test files with all required environment variables\n- Initialize git repository with .gitignore for Python projects",
+        "testStrategy": "Verify project structure by checking all directories and files exist, validate that Python virtual environment can be created and all dependencies install without conflicts, ensure .env.example contains all required variables",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create project directory structure",
+            "description": "Set up the main project directory and essential subdirectories",
+            "dependencies": [],
+            "details": "Create the root project directory and organize subdirectories for source code (src/), tests (tests/), configuration (config/), documentation (docs/), and any other necessary folders based on project type",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Initialize package manager and dependencies",
+            "description": "Set up package.json/requirements.txt and install initial dependencies",
+            "dependencies": [
+              1
+            ],
+            "details": "Run npm init or pip init to create package manifest file, configure basic metadata (name, version, description, author), and install essential dependencies for the project type",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Configure environment variables",
+            "description": "Create .env files and set up environment configuration",
+            "dependencies": [
+              1
+            ],
+            "details": "Create .env.example with template variables, create .env file for local development, add .env to .gitignore, and document all required environment variables with descriptions",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Initialize Git repository",
+            "description": "Set up version control with Git and configure essential files",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Run git init, create .gitignore file with appropriate patterns for the project type, create initial README.md, make initial commit with all base files",
+            "status": "in-progress",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Validate project setup",
+            "description": "Verify all components are properly configured and working",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Test that dependencies install correctly, verify environment variables load properly, ensure Git is tracking files correctly, run any initial scripts or commands to confirm setup is complete",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Create GitHub repository",
+            "description": "Create a new GitHub repository named 'ollama_openai' and configure it with appropriate settings, description, and initial files",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              4
+            ],
+            "parentTaskId": 1
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Implement Configuration Management",
+        "description": "Create a robust configuration system that loads and validates environment variables, provides runtime configuration access, and handles configuration errors gracefully",
+        "details": "Implement src/config.py with:\n```python\nfrom pydantic import BaseSettings, validator\nfrom typing import Optional\nimport os\n\nclass Settings(BaseSettings):\n    openai_api_base_url: str\n    openai_api_key: str\n    proxy_port: int = 11434\n    log_level: str = 'INFO'\n    request_timeout: int = 60\n    max_retries: int = 3\n    model_mapping_file: Optional[str] = None\n    \n    @validator('openai_api_base_url')\n    def validate_url(cls, v):\n        if not v.startswith(('http://', 'https://')):\n            raise ValueError('Invalid URL format')\n        return v.rstrip('/')\n    \n    class Config:\n        env_file = '.env'\n        case_sensitive = False\n\nsettings = Settings()\n```\n- Add validation for all required fields\n- Implement configuration loading on startup\n- Add model mapping file loader if specified\n- Create singleton pattern for global access",
+        "testStrategy": "Write unit tests to verify configuration loads correctly from environment variables, test validation rules for URLs and numeric ranges, test error handling for missing required variables, test model mapping file loading when specified",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Pydantic settings model",
+            "description": "Define a Pydantic BaseSettings model with fields for all configuration parameters including API keys, base URLs, and model mappings",
+            "dependencies": [],
+            "details": "Create a Settings class inheriting from BaseSettings that includes: API key fields for each provider (OpenAI, Anthropic, etc.), base URL fields with defaults, model mapping dictionary field, and validation decorators for required fields",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement environment variable validation",
+            "description": "Add field validators to ensure environment variables are properly loaded and validated on model instantiation",
+            "dependencies": [
+              1
+            ],
+            "details": "Use Pydantic's @field_validator decorators to check for: non-empty API keys when required, proper format for API keys, environment variable prefix handling (e.g., OLLAMA_), and custom error messages for missing required variables",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement URL validation logic",
+            "description": "Create validators for base URLs to ensure they are properly formatted and accessible",
+            "dependencies": [
+              1
+            ],
+            "details": "Add URL validation that: checks URL format using Pydantic's HttpUrl type, ensures URLs end with proper path separators, validates localhost URLs for Ollama, and provides fallback to default URLs when not specified",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create model mapping loader",
+            "description": "Implement logic to load and parse model mappings from environment variables or configuration files",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Build a model mapping system that: parses JSON model mappings from environment variables, supports provider-specific model aliases, validates model names against known providers, and provides default mappings for common models",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement singleton pattern",
+            "description": "Create a singleton pattern to ensure only one instance of the settings configuration exists throughout the application",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Implement singleton using: module-level instance with lazy loading, thread-safe initialization, method to get the singleton instance, and ability to reset for testing purposes",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Create comprehensive tests",
+            "description": "Write unit and integration tests for all configuration functionality including validation, loading, and error handling",
+            "dependencies": [
+              5
+            ],
+            "details": "Test coverage should include: valid configuration loading, missing required variables handling, URL validation edge cases, model mapping parsing, singleton behavior, and environment variable override functionality",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Setup Logging and Exception Handling",
+        "description": "Implement comprehensive logging system with structured JSON output and custom exception classes for proper error handling throughout the application",
+        "details": "Create src/utils/logging.py:\n```python\nimport logging\nimport json\nimport sys\nfrom datetime import datetime\n\nclass JSONFormatter(logging.Formatter):\n    def format(self, record):\n        log_obj = {\n            'timestamp': datetime.utcnow().isoformat(),\n            'level': record.levelname,\n            'message': record.getMessage(),\n            'module': record.module,\n            'function': record.funcName,\n            'request_id': getattr(record, 'request_id', None)\n        }\n        if record.exc_info:\n            log_obj['exception'] = self.formatException(record.exc_info)\n        return json.dumps(log_obj)\n\ndef setup_logging(level: str):\n    handler = logging.StreamHandler(sys.stdout)\n    handler.setFormatter(JSONFormatter())\n    logging.basicConfig(handlers=[handler], level=level)\n```\n\nCreate src/utils/exceptions.py:\n```python\nclass ProxyException(Exception):\n    pass\n\nclass ConfigurationError(ProxyException):\n    pass\n\nclass TranslationError(ProxyException):\n    pass\n\nclass UpstreamError(ProxyException):\n    def __init__(self, status_code: int, message: str):\n        self.status_code = status_code\n        super().__init__(message)\n```",
+        "testStrategy": "Test JSON logging output format is valid and contains all required fields, verify log levels work correctly, test exception inheritance and custom properties, ensure request ID propagation works in logs",
+        "priority": "high",
+        "dependencies": [
+          "16"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement JSON Log Formatter",
+            "description": "Create a custom JSON formatter class that structures log messages in JSON format with configurable fields",
+            "dependencies": [],
+            "details": "Develop a custom logging formatter that inherits from Python's logging.Formatter class. The formatter should output logs as JSON objects with fields like timestamp, level, message, logger_name, and any extra fields. Include support for exception information serialization and custom field mapping.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create Centralized Logging Setup Function",
+            "description": "Build a configuration function that initializes logging with JSON formatter, appropriate handlers, and log levels",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a setup_logging() function that configures the root logger and application-specific loggers. Include file rotation handler, console handler with pretty-printing option for development, and configurable log levels per module. Support environment-based configuration for different deployment scenarios.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Design Custom Exception Hierarchy",
+            "description": "Implement a structured exception hierarchy with base exceptions and specific error types for different failure scenarios",
+            "dependencies": [],
+            "details": "Create a base ApplicationException class with attributes for error codes, user messages, and internal details. Derive specific exceptions like ValidationError, AuthenticationError, DatabaseError, and ExternalServiceError. Each exception should include serialization methods for consistent error logging and API responses.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Request ID Generation and Propagation",
+            "description": "Create a system for generating unique request IDs and propagating them through the application context",
+            "dependencies": [],
+            "details": "Implement request ID generation using UUID or similar mechanism. Create context variables using Python's contextvars to store and propagate request IDs across async operations. Include utilities for injecting request IDs into log records and extracting them from incoming requests.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Integrate Logging with FastAPI Middleware",
+            "description": "Develop FastAPI middleware that automatically logs requests, responses, and errors with proper context",
+            "dependencies": [
+              1,
+              2,
+              4
+            ],
+            "details": "Create middleware that captures request details (method, path, headers), response status and timing, and any exceptions. Integrate request ID propagation, ensure sensitive data is masked in logs, and implement configurable verbosity levels. Include correlation between request/response logs using request IDs.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement Comprehensive Testing Suite",
+            "description": "Create unit and integration tests for all logging components, exception handling, and middleware functionality",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Write unit tests for JSON formatter output validation, exception serialization, and request ID propagation. Create integration tests for middleware behavior, log file generation, and error handling flows. Include performance tests for logging overhead and test cases for different configuration scenarios.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Create Pydantic Models",
+        "description": "Define all Pydantic models for request/response validation, including Ollama and OpenAI format models for proper type safety and validation",
+        "details": "Implement src/models.py with comprehensive data models:\n```python\nfrom pydantic import BaseModel, Field\nfrom typing import Optional, List, Dict, Any, Union\nfrom datetime import datetime\n\n# Ollama Models\nclass OllamaOptions(BaseModel):\n    temperature: Optional[float] = 0.7\n    top_p: Optional[float] = 1.0\n    top_k: Optional[int] = None\n    num_predict: Optional[int] = None\n    stop: Optional[List[str]] = None\n\nclass OllamaGenerateRequest(BaseModel):\n    model: str\n    prompt: str\n    stream: bool = False\n    options: Optional[OllamaOptions] = None\n    context: Optional[List[int]] = None\n\nclass OllamaChatMessage(BaseModel):\n    role: str\n    content: str\n    images: Optional[List[str]] = None\n\nclass OllamaChatRequest(BaseModel):\n    model: str\n    messages: List[OllamaChatMessage]\n    stream: bool = False\n    options: Optional[OllamaOptions] = None\n    tools: Optional[List[Dict[str, Any]]] = None\n    tool_choice: Optional[Union[str, Dict[str, Any]]] = None\n\n# OpenAI Models\nclass OpenAIMessage(BaseModel):\n    role: str\n    content: Union[str, List[Dict[str, Any]]]\n\nclass OpenAIChatRequest(BaseModel):\n    model: str\n    messages: List[OpenAIMessage]\n    temperature: Optional[float] = None\n    top_p: Optional[float] = None\n    max_tokens: Optional[int] = None\n    stream: bool = False\n    tools: Optional[List[Dict[str, Any]]] = None\n    tool_choice: Optional[Union[str, Dict[str, Any]]] = None\n\n# Response Models\nclass OllamaResponse(BaseModel):\n    model: str\n    created_at: str\n    response: str\n    done: bool\n    context: Optional[List[int]] = None\n    total_duration: Optional[int] = None\n    eval_count: Optional[int] = None\n```",
+        "testStrategy": "Create unit tests for model validation, test optional fields with None values, verify type coercion works correctly, test serialization/deserialization, validate that all Ollama API fields are covered",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Ollama Request Models",
+            "description": "Create TypeScript interfaces and classes for all Ollama API request payloads",
+            "dependencies": [],
+            "details": "Define models for chat completion requests, embedding requests, model management requests (pull, push, create, copy, delete), and generation requests. Include proper type definitions for all parameters like model, prompt, messages, options, format, stream, keep_alive, etc.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Define Ollama Response Models",
+            "description": "Create TypeScript interfaces and classes for all Ollama API response structures",
+            "dependencies": [],
+            "details": "Define models for chat completion responses, embedding responses, model listing responses, model information responses, and streaming response chunks. Include proper handling of optional fields and response metadata like created_at, done, total_duration, etc.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Define OpenAI Request Models",
+            "description": "Create TypeScript interfaces and classes for OpenAI-compatible request formats",
+            "dependencies": [],
+            "details": "Define models for OpenAI chat completion requests, including messages array structure, model selection, temperature, max_tokens, stream, and other OpenAI-specific parameters. Ensure compatibility with OpenAI API v1 specification.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Define OpenAI Response Models",
+            "description": "Create TypeScript interfaces and classes for OpenAI-compatible response formats",
+            "dependencies": [],
+            "details": "Define models for OpenAI chat completion responses, including choices array, usage statistics, finish_reason, and model metadata. Handle both streaming and non-streaming response formats according to OpenAI API specification.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement Streaming Models",
+            "description": "Create specialized models for handling streaming responses from both APIs",
+            "dependencies": [
+              2,
+              4
+            ],
+            "details": "Define streaming chunk models for both Ollama and OpenAI formats, including proper type unions for different chunk types, delta handling, and stream termination indicators. Implement proper TypeScript discriminated unions for type safety.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement Model Validation Rules",
+            "description": "Create validation logic and decorators for all request and response models",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Implement validation rules using class-validator or similar library. Define constraints for required fields, string formats, number ranges, enum values, and custom validation for complex fields. Ensure proper error messages for validation failures.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Create Comprehensive Model Tests",
+            "description": "Write unit tests for all models, validation rules, and edge cases",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "Create test suites for model instantiation, serialization/deserialization, validation rules, optional field handling, and type conversions. Test edge cases like empty responses, malformed data, and streaming chunk assembly. Ensure 100% code coverage for all models.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Implement Base Translator Architecture",
+        "description": "Create the base translator class and abstract interface for request/response translation between Ollama and OpenAI formats",
+        "details": "Create src/translators/base.py:\n```python\nfrom abc import ABC, abstractmethod\nfrom typing import TypeVar, Generic, Dict, Any\nimport logging\n\nOllamaRequest = TypeVar('OllamaRequest')\nOpenAIRequest = TypeVar('OpenAIRequest')\nOpenAIResponse = TypeVar('OpenAIResponse')\nOllamaResponse = TypeVar('OllamaResponse')\n\nclass BaseTranslator(ABC, Generic[OllamaRequest, OpenAIRequest, OpenAIResponse, OllamaResponse]):\n    def __init__(self):\n        self.logger = logging.getLogger(self.__class__.__name__)\n        \n    @abstractmethod\n    def translate_request(self, ollama_request: OllamaRequest) -> OpenAIRequest:\n        \"\"\"Translate Ollama request to OpenAI format\"\"\"\n        pass\n        \n    @abstractmethod\n    def translate_response(self, openai_response: OpenAIResponse, original_request: OllamaRequest) -> OllamaResponse:\n        \"\"\"Translate OpenAI response back to Ollama format\"\"\"\n        pass\n    \n    def map_model_name(self, ollama_model: str, mappings: Dict[str, str]) -> str:\n        \"\"\"Map Ollama model name to OpenAI model name\"\"\"\n        return mappings.get(ollama_model, ollama_model)\n    \n    def extract_options(self, options: Dict[str, Any]) -> Dict[str, Any]:\n        \"\"\"Extract and map Ollama options to OpenAI parameters\"\"\"\n        mapping = {\n            'temperature': 'temperature',\n            'top_p': 'top_p',\n            'top_k': 'top_k',\n            'num_predict': 'max_tokens'\n        }\n        result = {}\n        for ollama_key, openai_key in mapping.items():\n            if ollama_key in options:\n                result[openai_key] = options[ollama_key]\n        return result\n```",
+        "testStrategy": "Test abstract base class inheritance, verify model name mapping works with and without mappings, test options extraction preserves correct types, ensure logging is properly initialized",
+        "priority": "high",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Abstract Base Class Structure",
+            "description": "Create the abstract base translator class with core properties and abstract methods",
+            "dependencies": [],
+            "details": "Define BaseTranslator abstract class with properties for model mapping, options handling, and translation methods. Include abstract methods like translate(), getModelName(), and validateOptions()",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Generic Type System",
+            "description": "Design and implement generic types for input/output schemas and options",
+            "dependencies": [
+              1
+            ],
+            "details": "Create generic interfaces and types for TInput, TOutput, and TOptions. Ensure type safety across the translation pipeline with proper TypeScript generics",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Model Name Mapping Logic",
+            "description": "Implement the model name translation system between different providers",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Build a flexible mapping system that can translate model names (e.g., 'gpt-4' to 'claude-3-opus'). Include configuration options and fallback mechanisms",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Build Options Extraction Method",
+            "description": "Develop methods to extract and transform provider-specific options",
+            "dependencies": [
+              2
+            ],
+            "details": "Create extractOptions() method that can handle different option formats, validate them against schemas, and transform them to the target format",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement Error Handling Patterns",
+            "description": "Design comprehensive error handling for translation failures",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create custom error classes for translation errors, validation errors, and mapping errors. Implement try-catch patterns and error recovery mechanisms",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Write Unit Tests for Base Functionality",
+            "description": "Create comprehensive unit tests for all base translator features",
+            "dependencies": [
+              3,
+              4,
+              5
+            ],
+            "details": "Write tests for abstract class inheritance, generic type handling, model mapping accuracy, options extraction, and error scenarios. Use mocking for abstract methods",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Implement Chat Translation Layer (Phase 1)",
+        "description": "Create the text-only chat request/response translator for basic chat and generate endpoints without tool calling or image support",
+        "details": "Implement src/translators/chat.py for Phase 1 text-only support:\n```python\nfrom typing import Dict, Any, List\nfrom datetime import datetime\nimport json\nfrom .base import BaseTranslator\nfrom ..models import (\n    OllamaGenerateRequest, OllamaChatRequest,\n    OpenAIChatRequest, OllamaResponse,\n    OpenAIMessage, OllamaChatMessage\n)\nfrom ..utils.exceptions import TranslationError\n\nclass ChatTranslator(BaseTranslator):\n    def translate_request(self, ollama_request: Union[OllamaGenerateRequest, OllamaChatRequest]) -> OpenAIChatRequest:\n        # Phase 1: Reject requests with tools or images\n        if isinstance(ollama_request, OllamaChatRequest):\n            if ollama_request.tools:\n                raise TranslationError(\"Tool calling not supported in Phase 1\")\n            for msg in ollama_request.messages:\n                if msg.images:\n                    raise TranslationError(\"Image inputs not supported in Phase 1\")\n        \n        # Convert to messages format\n        if isinstance(ollama_request, OllamaGenerateRequest):\n            messages = [OpenAIMessage(role=\"user\", content=ollama_request.prompt)]\n        else:\n            messages = [\n                OpenAIMessage(role=msg.role, content=msg.content)\n                for msg in ollama_request.messages\n            ]\n        \n        # Build OpenAI request\n        openai_request = {\n            \"model\": self.map_model_name(ollama_request.model, {}),\n            \"messages\": [msg.dict() for msg in messages],\n            \"stream\": ollama_request.stream\n        }\n        \n        # Add options\n        if ollama_request.options:\n            openai_request.update(self.extract_options(ollama_request.options.dict()))\n        \n        return OpenAIChatRequest(**openai_request)\n    \n    def translate_response(self, openai_response: Dict[str, Any], original_request) -> OllamaResponse:\n        # Handle streaming vs non-streaming\n        if original_request.stream:\n            # For streaming, translate each chunk\n            if 'choices' in openai_response and openai_response['choices']:\n                delta = openai_response['choices'][0].get('delta', {})\n                content = delta.get('content', '')\n                return OllamaResponse(\n                    model=openai_response.get('model', original_request.model),\n                    created_at=datetime.utcnow().isoformat(),\n                    response=content,\n                    done=openai_response.get('choices', [{}])[0].get('finish_reason') is not None\n                )\n        else:\n            # Non-streaming response\n            content = openai_response['choices'][0]['message']['content']\n            return OllamaResponse(\n                model=openai_response.get('model', original_request.model),\n                created_at=datetime.utcnow().isoformat(),\n                response=content,\n                done=True,\n                eval_count=openai_response.get('usage', {}).get('total_tokens')\n            )\n```",
+        "testStrategy": "Test translation of generate requests to chat format, verify chat message conversion preserves roles and content, test error handling for unsupported features (tools/images), verify streaming response translation, test non-streaming response translation with token counts",
+        "priority": "high",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement request validation layer",
+            "description": "Create validation logic to check incoming OpenAI API requests for required fields and proper format",
+            "dependencies": [],
+            "details": "Validate request structure, check for required fields (model, messages), validate message format, ensure request meets OpenAI API spec requirements. Return appropriate error responses for invalid requests.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Build generate-to-chat conversion logic",
+            "description": "Convert Ollama generate API responses to OpenAI chat completion format",
+            "dependencies": [
+              1
+            ],
+            "details": "Map Ollama's generate endpoint response fields to OpenAI's chat completion response structure. Handle model name mapping, usage statistics conversion, and response metadata formatting.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create message format translation",
+            "description": "Translate OpenAI message format to Ollama prompt format",
+            "dependencies": [
+              1
+            ],
+            "details": "Convert OpenAI's role-based messages (system, user, assistant) to Ollama's prompt format. Handle conversation history concatenation and proper formatting for Ollama API.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement options mapping",
+            "description": "Map OpenAI request parameters to Ollama options",
+            "dependencies": [
+              1
+            ],
+            "details": "Translate OpenAI parameters (temperature, max_tokens, top_p, etc.) to corresponding Ollama options. Handle parameter name differences and value range conversions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Build streaming response handler",
+            "description": "Handle SSE streaming responses for real-time chat completions",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Implement Server-Sent Events (SSE) streaming for OpenAI-compatible responses. Convert Ollama's streaming format to OpenAI's delta format, handle chunk creation and proper SSE formatting.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Create non-streaming response handler",
+            "description": "Handle standard JSON responses for non-streaming requests",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Build logic to accumulate complete responses from Ollama and format them as OpenAI chat completion objects. Handle response assembly and final formatting.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Implement error handling for unsupported features",
+            "description": "Create comprehensive error responses for Phase 1 limitations",
+            "dependencies": [
+              1
+            ],
+            "details": "Return appropriate error codes and messages for unsupported features: function calling, response format, logprobs, n>1, presence/frequency penalties. Use OpenAI-compatible error format.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Build token count mapping",
+            "description": "Map Ollama token statistics to OpenAI usage format",
+            "dependencies": [
+              2
+            ],
+            "details": "Convert Ollama's token counting (eval_count, prompt_eval_count) to OpenAI's usage object format (prompt_tokens, completion_tokens, total_tokens). Ensure accurate token counting.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Create comprehensive test suite",
+            "description": "Build unit and integration tests for all translation scenarios",
+            "dependencies": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "details": "Write tests covering all translation paths, streaming/non-streaming modes, error cases, parameter mapping, and edge cases. Include fixtures for various request/response scenarios.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 10,
+            "title": "Handle edge cases and special scenarios",
+            "description": "Address corner cases in the translation layer",
+            "dependencies": [
+              9
+            ],
+            "details": "Handle empty messages, long conversations, special characters in prompts, timeout scenarios, partial streaming responses, and unexpected Ollama API responses. Ensure graceful degradation.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Create FastAPI Application Core",
+        "description": "Set up the main FastAPI application with middleware, error handlers, and application lifecycle management",
+        "details": "Implement src/main.py:\n```python\nfrom fastapi import FastAPI, Request\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom fastapi.responses import JSONResponse\nimport logging\nimport uuid\nfrom contextlib import asynccontextmanager\nfrom .config import settings\nfrom .utils.logging import setup_logging\nfrom .utils.exceptions import ProxyException, UpstreamError\nfrom .routers import chat, models, embeddings\n\n# Setup logging\nsetup_logging(settings.log_level)\nlogger = logging.getLogger(__name__)\n\n@asynccontextmanager\nasync def lifespan(app: FastAPI):\n    # Startup\n    logger.info(\"Starting Ollama-OpenAI Proxy\", extra={\n        \"config\": {\n            \"proxy_port\": settings.proxy_port,\n            \"target_url\": settings.openai_api_base_url,\n            \"log_level\": settings.log_level\n        }\n    })\n    yield\n    # Shutdown\n    logger.info(\"Shutting down Ollama-OpenAI Proxy\")\n\napp = FastAPI(\n    title=\"Ollama-OpenAI Proxy\",\n    description=\"Proxy service to translate Ollama API calls to OpenAI format\",\n    version=\"1.0.0\",\n    lifespan=lifespan\n)\n\n# Middleware\napp.add_middleware(\n    CORSMiddleware,\n    allow_origins=[\"*\"],\n    allow_methods=[\"*\"],\n    allow_headers=[\"*\"],\n)\n\n@app.middleware(\"http\")\nasync def add_request_id(request: Request, call_next):\n    request_id = str(uuid.uuid4())\n    request.state.request_id = request_id\n    \n    # Add request_id to all logs in this request\n    import logging\n    logger = logging.getLogger()\n    for handler in logger.handlers:\n        handler.addFilter(lambda record: setattr(record, 'request_id', request_id) or True)\n    \n    response = await call_next(request)\n    response.headers[\"X-Request-ID\"] = request_id\n    return response\n\n# Error handlers\n@app.exception_handler(ProxyException)\nasync def proxy_exception_handler(request: Request, exc: ProxyException):\n    return JSONResponse(\n        status_code=400,\n        content={\"error\": {\"message\": str(exc), \"type\": exc.__class__.__name__}}\n    )\n\n@app.exception_handler(UpstreamError)\nasync def upstream_error_handler(request: Request, exc: UpstreamError):\n    return JSONResponse(\n        status_code=exc.status_code,\n        content={\"error\": {\"message\": str(exc), \"type\": \"upstream_error\"}}\n    )\n\n# Include routers\napp.include_router(chat.router, prefix=\"/api\")\napp.include_router(models.router, prefix=\"/api\")\napp.include_router(embeddings.router, prefix=\"/api\")\n\n# Health check\n@app.get(\"/health\")\nasync def health_check():\n    return {\"status\": \"healthy\", \"service\": \"ollama-openai-proxy\"}\n```",
+        "testStrategy": "Test FastAPI application starts correctly, verify middleware adds request IDs to all requests, test CORS headers are properly set, verify error handlers return correct status codes and formats, test health check endpoint returns 200 OK",
+        "priority": "high",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Application initialization and basic setup",
+            "description": "Create the main FastAPI application instance and configure basic settings",
+            "dependencies": [],
+            "details": "Initialize FastAPI app with proper title, version, and description. Configure OpenAPI documentation settings and basic application metadata.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "CORS middleware configuration",
+            "description": "Implement and configure CORS middleware for cross-origin request handling",
+            "dependencies": [
+              1
+            ],
+            "details": "Add CORSMiddleware to the application with configurable allowed origins, methods, headers, and credentials. Support both development and production CORS configurations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Request ID middleware implementation",
+            "description": "Create middleware to generate and track unique request IDs for logging and debugging",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement middleware that generates a unique UUID for each request, adds it to request headers, and ensures it's propagated through the response for request tracing.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Global error handler implementation",
+            "description": "Create comprehensive error handling middleware for consistent error responses",
+            "dependencies": [
+              1,
+              3
+            ],
+            "details": "Implement exception handlers for common HTTP exceptions, validation errors, and unexpected errors. Ensure error responses include request IDs and follow a consistent format.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Router integration and API versioning",
+            "description": "Set up API routers with proper versioning and route organization",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Create router structure for API versioning (e.g., /api/v1/), integrate all endpoint routers, and ensure proper route prefixing and tagging for OpenAPI documentation.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Health check endpoint implementation",
+            "description": "Create health check and readiness endpoints for monitoring",
+            "dependencies": [
+              5
+            ],
+            "details": "Implement /health and /ready endpoints that check application status, database connectivity, and external service availability. Return structured health status responses.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Lifespan management setup",
+            "description": "Configure application startup and shutdown event handlers",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement lifespan context manager for proper resource initialization and cleanup. Handle database connections, background tasks, and external service connections during startup/shutdown.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Integration testing for main application",
+            "description": "Create comprehensive integration tests for the main application setup",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "details": "Write tests to verify middleware functionality, error handling, CORS configuration, health endpoints, and proper application lifecycle management. Include tests for request ID propagation and error response formats.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Implement Chat/Generate Endpoints (Phase 1)",
+        "description": "Create the text-only chat and generate API endpoints with proper request forwarding to OpenAI backend and response translation",
+        "details": "Create src/routers/chat.py for Phase 1:\n```python\nfrom fastapi import APIRouter, Request, HTTPException\nfrom fastapi.responses import StreamingResponse\nimport httpx\nimport json\nimport logging\nfrom typing import AsyncGenerator\nfrom ..models import OllamaGenerateRequest, OllamaChatRequest\nfrom ..translators.chat import ChatTranslator\nfrom ..config import settings\nfrom ..utils.exceptions import UpstreamError, TranslationError\n\nrouter = APIRouter()\nlogger = logging.getLogger(__name__)\ntranslator = ChatTranslator()\n\n@router.post(\"/generate\")\nasync def generate(request: OllamaGenerateRequest):\n    \"\"\"Handle Ollama generate requests (text-only in Phase 1)\"\"\"\n    try:\n        # Translate to OpenAI format\n        openai_request = translator.translate_request(request)\n        \n        # Forward to OpenAI\n        async with httpx.AsyncClient(timeout=settings.request_timeout) as client:\n            if request.stream:\n                return StreamingResponse(\n                    stream_response(client, openai_request, request),\n                    media_type=\"application/x-ndjson\"\n                )\n            else:\n                response = await client.post(\n                    f\"{settings.openai_api_base_url}/chat/completions\",\n                    json=openai_request.dict(),\n                    headers={\"Authorization\": f\"Bearer {settings.openai_api_key}\"}\n                )\n                \n                if response.status_code != 200:\n                    raise UpstreamError(response.status_code, response.text)\n                \n                # Translate response\n                ollama_response = translator.translate_response(response.json(), request)\n                return ollama_response\n                \n    except TranslationError as e:\n        logger.error(f\"Translation error: {e}\")\n        raise HTTPException(status_code=400, detail=str(e))\n    except Exception as e:\n        logger.error(f\"Unexpected error: {e}\")\n        raise HTTPException(status_code=500, detail=\"Internal server error\")\n\n@router.post(\"/chat\")\nasync def chat(request: OllamaChatRequest):\n    \"\"\"Handle Ollama chat requests (text-only in Phase 1)\"\"\"\n    # Reuse generate logic as implementation is the same\n    return await generate(request)\n\nasync def stream_response(client: httpx.AsyncClient, openai_request, original_request) -> AsyncGenerator:\n    \"\"\"Stream responses from OpenAI and translate them\"\"\"\n    async with client.stream(\n        \"POST\",\n        f\"{settings.openai_api_base_url}/chat/completions\",\n        json=openai_request.dict(),\n        headers={\"Authorization\": f\"Bearer {settings.openai_api_key}\"}\n    ) as response:\n        async for line in response.aiter_lines():\n            if line.startswith(\"data: \"):\n                if line == \"data: [DONE]\":\n                    break\n                try:\n                    data = json.loads(line[6:])\n                    ollama_chunk = translator.translate_response(data, original_request)\n                    yield json.dumps(ollama_chunk.dict()) + \"\\n\"\n                except json.JSONDecodeError:\n                    continue\n```",
+        "testStrategy": "Test generate endpoint with various prompts, verify streaming responses work correctly, test chat endpoint with message history, verify error handling for invalid requests, test timeout handling, verify API key is properly passed",
+        "priority": "high",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "HTTP client setup",
+            "description": "Configure and initialize HTTP client with proper timeouts and connection pooling",
+            "dependencies": [],
+            "details": "Set up axios or node-fetch with connection pooling, keep-alive, proper timeout configuration (30s default, configurable), and request/response interceptors for logging",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Generate endpoint implementation",
+            "description": "Implement /v1/completions endpoint to handle non-streaming completion requests",
+            "dependencies": [
+              1
+            ],
+            "details": "Parse incoming OpenAI format requests, validate required fields (model, prompt), transform to OpenRouter format, handle response transformation back to OpenAI format",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Chat endpoint implementation",
+            "description": "Implement /v1/chat/completions endpoint for chat-based completions",
+            "dependencies": [
+              1
+            ],
+            "details": "Handle messages array format, support both streaming and non-streaming modes based on stream parameter, validate chat-specific fields, maintain conversation context",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Non-streaming response handler",
+            "description": "Create handler for standard JSON responses from OpenRouter",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Parse OpenRouter JSON response, extract completion text/choices, calculate token usage, format response to match OpenAI API structure including id, object type, created timestamp",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Streaming response handler",
+            "description": "Implement SSE streaming handler for real-time responses",
+            "dependencies": [
+              3
+            ],
+            "details": "Set up Server-Sent Events (SSE) with proper headers, parse streaming chunks from OpenRouter, transform to OpenAI streaming format with data: prefix, handle stream termination with [DONE] signal",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Error handling for upstream failures",
+            "description": "Implement comprehensive error handling for OpenRouter API failures",
+            "dependencies": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Map OpenRouter error codes to OpenAI error format, handle rate limits (429), authentication errors (401), model availability issues, network timeouts, and malformed responses",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Timeout handling",
+            "description": "Add configurable timeout management for long-running requests",
+            "dependencies": [
+              1,
+              6
+            ],
+            "details": "Implement request timeout with graceful cancellation, streaming timeout handling, configurable timeout values per endpoint, proper cleanup of hanging connections",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Retry integration",
+            "description": "Add intelligent retry logic for transient failures",
+            "dependencies": [
+              6,
+              7
+            ],
+            "details": "Implement exponential backoff for retries, configurable retry attempts (default 3), retry only on specific error codes (500, 502, 503, 504), maintain request context across retries",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Request/response logging",
+            "description": "Add comprehensive logging for debugging and monitoring",
+            "dependencies": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Log incoming requests with sanitized headers, log outgoing OpenRouter requests, capture response times and status codes, implement log levels (debug, info, error), rotate logs based on size",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 10,
+            "title": "Performance optimization",
+            "description": "Optimize proxy performance for production use",
+            "dependencies": [
+              1,
+              4,
+              5
+            ],
+            "details": "Implement response caching for identical requests, connection pooling optimization, minimize JSON parsing overhead, stream processing optimization, memory usage monitoring",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 11,
+            "title": "OpenRouter integration testing",
+            "description": "Create integration tests specifically for OpenRouter API",
+            "dependencies": [
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "details": "Test various OpenRouter models, verify request transformation accuracy, test streaming with different models, validate error response handling, test rate limit behavior",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 12,
+            "title": "Comprehensive testing",
+            "description": "Implement full test suite for proxy functionality",
+            "dependencies": [
+              11
+            ],
+            "details": "Unit tests for request/response transformers, integration tests with mock OpenRouter, load testing for concurrent requests, error scenario testing, streaming reliability tests",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement Model Management Endpoints",
+        "description": "Create model listing endpoint that queries VLLM backend and error responses for unsupported model management operations",
+        "details": "Create src/routers/models.py:\n```python\nfrom fastapi import APIRouter, HTTPException\nfrom fastapi.responses import JSONResponse\nimport httpx\nimport logging\nfrom datetime import datetime\nfrom typing import List, Dict, Any\nfrom ..config import settings\nfrom ..utils.exceptions import UpstreamError\n\nrouter = APIRouter()\nlogger = logging.getLogger(__name__)\n\n@router.get(\"/tags\")\nasync def list_models():\n    \"\"\"List available models from VLLM backend\"\"\"\n    try:\n        async with httpx.AsyncClient(timeout=settings.request_timeout) as client:\n            response = await client.get(\n                f\"{settings.openai_api_base_url}/models\",\n                headers={\"Authorization\": f\"Bearer {settings.openai_api_key}\"}\n            )\n            \n            if response.status_code != 200:\n                raise UpstreamError(response.status_code, response.text)\n            \n            # Transform OpenAI model list to Ollama format\n            openai_models = response.json().get('data', [])\n            ollama_models = []\n            \n            for model in openai_models:\n                ollama_models.append({\n                    \"name\": model['id'],\n                    \"modified_at\": datetime.utcnow().isoformat(),\n                    \"size\": 0,  # Size not available from OpenAI API\n                    \"digest\": f\"sha256:{model['id']}\",  # Placeholder digest\n                    \"details\": {\n                        \"format\": \"gguf\",\n                        \"family\": model.get('owned_by', 'unknown'),\n                        \"parameter_size\": \"unknown\",\n                        \"quantization_level\": \"unknown\"\n                    }\n                })\n            \n            return {\"models\": ollama_models}\n            \n    except UpstreamError:\n        raise\n    except Exception as e:\n        logger.error(f\"Error listing models: {e}\")\n        raise HTTPException(status_code=500, detail=\"Failed to list models\")\n\n@router.post(\"/pull\")\nasync def pull_model(body: Dict[str, Any]):\n    \"\"\"Model pulling not supported - return appropriate error\"\"\"\n    return JSONResponse(\n        status_code=501,\n        content={\n            \"error\": {\n                \"code\": 501,\n                \"message\": \"Model management operations (pull/push/delete) are not supported by the VLLM backend\",\n                \"type\": \"not_implemented\"\n            }\n        }\n    )\n\n@router.post(\"/push\")\nasync def push_model(body: Dict[str, Any]):\n    \"\"\"Model pushing not supported - return appropriate error\"\"\"\n    return JSONResponse(\n        status_code=501,\n        content={\n            \"error\": {\n                \"code\": 501,\n                \"message\": \"Model management operations (pull/push/delete) are not supported by the VLLM backend\",\n                \"type\": \"not_implemented\"\n            }\n        }\n    )\n\n@router.delete(\"/delete\")\nasync def delete_model(body: Dict[str, Any]):\n    \"\"\"Model deletion not supported - return appropriate error\"\"\"\n    return JSONResponse(\n        status_code=501,\n        content={\n            \"error\": {\n                \"code\": 501,\n                \"message\": \"Model management operations (pull/push/delete) are not supported by the VLLM backend\",\n                \"type\": \"not_implemented\"\n            }\n        }\n    )\n\n@router.get(\"/version\")\nasync def get_version():\n    \"\"\"Return API version information\"\"\"\n    return {\n        \"version\": \"0.1.105\",  # Ollama version we're emulating\n        \"proxy_version\": \"1.0.0\",\n        \"backend\": settings.openai_api_base_url\n    }\n\n@router.post(\"/show\")\nasync def show_model(body: Dict[str, Any]):\n    \"\"\"Show model information\"\"\"\n    model_name = body.get('name', '')\n    \n    # For now, return basic info since OpenAI doesn't provide detailed model info\n    return {\n        \"license\": \"See model provider\",\n        \"modelfile\": f\"FROM {model_name}\",\n        \"parameters\": \"temperature 0.7\\ntop_p 0.9\",\n        \"template\": \"{{ .Prompt }}\",\n        \"details\": {\n            \"format\": \"gguf\",\n            \"family\": \"unknown\",\n            \"parameter_size\": \"unknown\"\n        }\n    }\n```",
+        "testStrategy": "Test model listing returns correct Ollama format, verify 501 errors for pull/push/delete operations, test version endpoint returns correct format, verify show endpoint returns valid model info, test error handling for upstream failures",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Model Listing Endpoint",
+            "description": "Create the /api/tags endpoint to list available models from Ollama",
+            "dependencies": [],
+            "details": "Implement GET /api/tags endpoint that calls Ollama's /api/tags endpoint, retrieves the model list, and returns it in the expected format. Handle connection errors and empty model lists gracefully.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create Format Transformation Logic",
+            "description": "Build utility functions to transform Ollama model data to OpenAI-compatible format",
+            "dependencies": [],
+            "details": "Create transformation functions that convert Ollama model objects to OpenAI model format, including mapping model names, adding required fields like 'object', 'created', and 'owned_by', and handling any format differences.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Pull Operation Handler",
+            "description": "Create endpoint handler for model pull requests with appropriate error response",
+            "dependencies": [],
+            "details": "Implement POST /api/pull endpoint that returns a 501 Not Implemented status with a clear error message indicating that model pulling is not supported in this OpenAI-compatible interface.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Push and Delete Handlers",
+            "description": "Create endpoint handlers for push and delete operations with error responses",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement POST /api/push and DELETE /api/delete endpoints that return 501 Not Implemented status with appropriate error messages. Ensure consistent error format across all unsupported operations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create Version Information Endpoint",
+            "description": "Implement the version endpoint to return Ollama version information",
+            "dependencies": [],
+            "details": "Create GET /api/version endpoint that queries Ollama's version endpoint and returns the version information. Add middleware version info if needed for debugging purposes.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement Model Show Endpoint",
+            "description": "Create endpoint to show detailed information about a specific model",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement POST /api/show endpoint that accepts a model name, queries Ollama for detailed model information, transforms it to OpenAI-compatible format, and returns the result. Handle cases where the model doesn't exist.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Add Comprehensive Error Handling and Testing",
+            "description": "Implement error handling middleware and create tests for all endpoints",
+            "dependencies": [
+              1,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "Add global error handling for network failures, invalid requests, and Ollama service unavailability. Create unit and integration tests for all endpoints, including success cases, error cases, and edge cases like malformed requests.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Create Docker Configuration",
+        "description": "Implement production-ready Dockerfile with multi-stage build and docker-compose configuration for easy deployment",
+        "details": "Create docker/Dockerfile:\n```dockerfile\n# Build stage\nFROM python:3.9-slim as builder\n\nWORKDIR /build\n\n# Install build dependencies\nRUN apt-get update && apt-get install -y \\\n    gcc \\\n    && rm -rf /var/lib/apt/lists/*\n\n# Copy requirements and install dependencies\nCOPY requirements.txt .\nRUN pip install --user --no-cache-dir -r requirements.txt\n\n# Runtime stage\nFROM python:3.9-slim\n\n# Create non-root user\nRUN useradd -m -u 1000 proxyuser\n\nWORKDIR /app\n\n# Copy installed packages from builder\nCOPY --from=builder /root/.local /home/proxyuser/.local\n\n# Copy application code\nCOPY --chown=proxyuser:proxyuser src/ ./src/\n\n# Set environment variables\nENV PATH=/home/proxyuser/.local/bin:$PATH\nENV PYTHONUNBUFFERED=1\n\n# Switch to non-root user\nUSER proxyuser\n\n# Health check\nHEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \\\n    CMD python -c \"import httpx; exit(0 if httpx.get('http://localhost:${PROXY_PORT:-11434}/health').status_code == 200 else 1)\"\n\n# Expose port\nEXPOSE 11434\n\n# Run the application\nCMD [\"python\", \"-m\", \"uvicorn\", \"src.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"11434\"]\n```\n\nCreate docker/docker-compose.yml:\n```yaml\nversion: '3.8'\n\nservices:\n  ollama-proxy:\n    build:\n      context: ..\n      dockerfile: docker/Dockerfile\n    image: ollama-openai-proxy:latest\n    container_name: ollama-proxy\n    ports:\n      - \"${PROXY_PORT:-11434}:11434\"\n    environment:\n      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}\n      - OPENAI_API_KEY=${OPENAI_API_KEY}\n      - PROXY_PORT=${PROXY_PORT:-11434}\n      - LOG_LEVEL=${LOG_LEVEL:-INFO}\n      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}\n      - MAX_RETRIES=${MAX_RETRIES:-3}\n      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}\n    volumes:\n      - ./config:/config:ro\n    restart: unless-stopped\n    logging:\n      driver: json-file\n      options:\n        max-size: \"10m\"\n        max-file: \"3\"\n    healthcheck:\n      test: [\"CMD\", \"python\", \"-c\", \"import httpx; exit(0 if httpx.get('http://localhost:11434/health').status_code == 200 else 1)\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n      start_period: 10s\n```",
+        "testStrategy": "Build Docker image and verify it's under 200MB, test container starts with valid environment variables, verify health check passes when service is running, test graceful shutdown on SIGTERM, verify non-root user permissions work correctly",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Multi-Stage Dockerfile",
+            "description": "Build an optimized multi-stage Dockerfile for the application",
+            "dependencies": [],
+            "details": "Create a multi-stage Dockerfile with separate build and runtime stages. Use appropriate base images (e.g., node:alpine for build, distroless or minimal alpine for runtime). Implement proper layer caching, minimize image size, and ensure efficient dependency installation. Include proper COPY instructions and WORKDIR setup.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Security Hardening",
+            "description": "Configure non-root user and apply security best practices",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a non-root user in the Dockerfile using appropriate USER directives. Set proper file permissions, remove unnecessary packages, scan for vulnerabilities using tools like Trivy or Snyk. Implement least privilege principles and ensure the container runs with minimal required permissions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add Health Check Implementation",
+            "description": "Configure container health checks for monitoring",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement HEALTHCHECK instruction in Dockerfile with appropriate intervals, timeouts, and retry settings. Create health check endpoint in the application if needed. Configure proper start period and ensure health checks accurately reflect application readiness and liveness states.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Configure Docker Compose",
+            "description": "Create production-ready docker-compose.yml configuration",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create docker-compose.yml with proper service definitions, networking configuration, environment variables, and resource limits. Include restart policies, logging configuration, and proper service dependencies. Consider adding support for multiple environments (dev, staging, prod) using override files.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Setup Volume Mapping",
+            "description": "Configure persistent storage and volume mappings",
+            "dependencies": [
+              4
+            ],
+            "details": "Define appropriate volume mappings for persistent data, configuration files, and logs. Ensure proper permissions for mounted volumes with non-root user. Configure named volumes for data persistence and bind mounts for development. Document volume requirements and backup strategies.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Container Testing Suite",
+            "description": "Implement comprehensive container testing",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Create container testing scripts to verify image builds correctly, security scanning passes, health checks work properly, and services start successfully. Test volume persistence, environment variable injection, and inter-container communication. Include smoke tests for application functionality within containers.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Implement Retry Logic and Connection Pooling",
+        "description": "Add robust retry mechanisms for transient failures and implement connection pooling for better performance and reliability",
+        "details": "Create src/utils/http_client.py:\n```python\nimport httpx\nimport asyncio\nimport logging\nfrom typing import Optional, Dict, Any, Callable\nfrom ..config import settings\n\nlogger = logging.getLogger(__name__)\n\nclass RetryClient:\n    def __init__(self, max_retries: int = None, timeout: int = None):\n        self.max_retries = max_retries or settings.max_retries\n        self.timeout = timeout or settings.request_timeout\n        self.client = httpx.AsyncClient(\n            timeout=httpx.Timeout(self.timeout),\n            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20)\n        )\n        \n    async def __aenter__(self):\n        return self\n        \n    async def __aexit__(self, exc_type, exc_val, exc_tb):\n        await self.client.aclose()\n        \n    async def request_with_retry(\n        self,\n        method: str,\n        url: str,\n        retry_on: Optional[Callable[[httpx.Response], bool]] = None,\n        **kwargs\n    ) -> httpx.Response:\n        \"\"\"Make HTTP request with exponential backoff retry\"\"\"\n        retry_on = retry_on or self._should_retry\n        \n        for attempt in range(self.max_retries):\n            try:\n                response = await self.client.request(method, url, **kwargs)\n                \n                if not retry_on(response):\n                    return response\n                    \n                if attempt < self.max_retries - 1:\n                    delay = 2 ** attempt  # Exponential backoff\n                    logger.warning(\n                        f\"Request failed with status {response.status_code}, \"\n                        f\"retrying in {delay}s (attempt {attempt + 1}/{self.max_retries})\"\n                    )\n                    await asyncio.sleep(delay)\n                    \n            except httpx.TimeoutException as e:\n                if attempt < self.max_retries - 1:\n                    delay = 2 ** attempt\n                    logger.warning(\n                        f\"Request timed out, retrying in {delay}s \"\n                        f\"(attempt {attempt + 1}/{self.max_retries})\"\n                    )\n                    await asyncio.sleep(delay)\n                else:\n                    raise\n            except httpx.NetworkError as e:\n                if attempt < self.max_retries - 1:\n                    delay = 2 ** attempt\n                    logger.warning(\n                        f\"Network error: {e}, retrying in {delay}s \"\n                        f\"(attempt {attempt + 1}/{self.max_retries})\"\n                    )\n                    await asyncio.sleep(delay)\n                else:\n                    raise\n                    \n        return response\n        \n    def _should_retry(self, response: httpx.Response) -> bool:\n        \"\"\"Determine if request should be retried based on status code\"\"\"\n        # Retry on 5xx errors and specific 4xx errors\n        return response.status_code >= 500 or response.status_code in [429, 408]\n\n# Global client instance\n_retry_client: Optional[RetryClient] = None\n\nasync def get_retry_client() -> RetryClient:\n    \"\"\"Get or create global retry client\"\"\"\n    global _retry_client\n    if _retry_client is None:\n        _retry_client = RetryClient()\n    return _retry_client\n```\n\nUpdate chat.py to use retry client:\n```python\n# Replace httpx.AsyncClient with RetryClient\nfrom ..utils.http_client import RetryClient\n\n# In generate/chat endpoints:\nasync with RetryClient() as client:\n    response = await client.request_with_retry(\n        \"POST\",\n        f\"{settings.openai_api_base_url}/chat/completions\",\n        json=openai_request.dict(),\n        headers={\"Authorization\": f\"Bearer {settings.openai_api_key}\"}\n    )\n```",
+        "testStrategy": "Test retry logic with simulated failures, verify exponential backoff timing, test connection pooling limits are respected, verify timeout handling works correctly, test that successful requests don't retry",
+        "priority": "medium",
+        "dependencies": [
+          10
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design and implement base retry client class",
+            "description": "Create the foundational retry client class with async support and configurable retry policies",
+            "dependencies": [],
+            "details": "Design a base RetryClient class that supports async operations, accepts configuration for retry attempts, and provides hooks for different retry strategies. Include proper TypeScript types and interfaces for configuration options.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement exponential backoff algorithm",
+            "description": "Create the exponential backoff logic with jitter for distributed retry scenarios",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement exponential backoff with configurable base delay, max delay, and multiplier. Add jitter to prevent thundering herd issues. Support both fixed and random jitter strategies.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Configure connection pool management",
+            "description": "Set up connection pooling with proper resource management and limits",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement connection pool with configurable size, timeout settings, and connection reuse. Ensure proper cleanup of idle connections and handle pool exhaustion scenarios gracefully.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement comprehensive timeout handling",
+            "description": "Add timeout mechanisms for connection, request, and total operation timeouts",
+            "dependencies": [
+              1,
+              3
+            ],
+            "details": "Implement multiple timeout layers: connection timeout, request timeout, and total retry timeout. Ensure timeouts are properly cancelled and resources cleaned up on timeout events.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create network error classification and handling",
+            "description": "Implement error classification to determine retryable vs non-retryable errors",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create error classification system that identifies transient network errors (timeouts, connection resets) vs permanent errors (4xx client errors). Implement appropriate retry strategies for each error type.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Integrate retry client with existing API endpoints",
+            "description": "Replace current HTTP clients with retry-enabled clients across all endpoints",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Systematically integrate the retry client with existing API endpoints. Ensure backward compatibility and minimal changes to existing interfaces. Add configuration per endpoint type based on criticality.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Implement performance testing suite",
+            "description": "Create comprehensive performance tests to validate retry behavior under load",
+            "dependencies": [
+              6
+            ],
+            "details": "Develop load tests simulating various failure scenarios: network timeouts, server errors, and connection failures. Measure impact on latency, throughput, and resource usage. Include tests for concurrent retry scenarios.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Handle edge cases and circuit breaker integration",
+            "description": "Implement circuit breaker pattern and handle complex edge cases",
+            "dependencies": [
+              6,
+              7
+            ],
+            "details": "Add circuit breaker to prevent retry storms during extended outages. Handle edge cases like retry budget exhaustion, partial request failures, and idempotency concerns. Implement proper logging and metrics for monitoring.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Create Comprehensive Test Suite (Phase 1)",
+        "description": "Implement unit and integration tests for all Phase 1 functionality including text generation, model listing, and error handling",
+        "details": "Create tests/test_chat.py:\n```python\nimport pytest\nfrom fastapi.testclient import TestClient\nfrom unittest.mock import patch, AsyncMock\nimport json\nfrom src.main import app\nfrom src.models import OllamaGenerateRequest, OllamaChatRequest\n\nclient = TestClient(app)\n\nclass TestChatEndpoints:\n    @pytest.mark.asyncio\n    async def test_generate_text_only(self):\n        \"\"\"Test basic text generation\"\"\"\n        request = {\n            \"model\": \"llama2\",\n            \"prompt\": \"Hello, world!\",\n            \"stream\": False\n        }\n        \n        mock_response = {\n            \"choices\": [{\n                \"message\": {\"content\": \"Hello! How can I help you?\"},\n                \"finish_reason\": \"stop\"\n            }],\n            \"model\": \"llama2\",\n            \"usage\": {\"total_tokens\": 10}\n        }\n        \n        with patch('httpx.AsyncClient.post', new_callable=AsyncMock) as mock_post:\n            mock_post.return_value.status_code = 200\n            mock_post.return_value.json.return_value = mock_response\n            \n            response = client.post(\"/api/generate\", json=request)\n            \n            assert response.status_code == 200\n            data = response.json()\n            assert data[\"response\"] == \"Hello! How can I help you?\"\n            assert data[\"done\"] is True\n            assert data[\"eval_count\"] == 10\n    \n    def test_generate_with_tools_rejected(self):\n        \"\"\"Test that tool requests are rejected in Phase 1\"\"\"\n        request = {\n            \"model\": \"llama2\",\n            \"messages\": [{\"role\": \"user\", \"content\": \"test\"}],\n            \"tools\": [{\"type\": \"function\", \"function\": {\"name\": \"test\"}}]\n        }\n        \n        response = client.post(\"/api/chat\", json=request)\n        assert response.status_code == 400\n        assert \"Tool calling not supported in Phase 1\" in response.json()[\"detail\"]\n    \n    def test_generate_with_images_rejected(self):\n        \"\"\"Test that image requests are rejected in Phase 1\"\"\"\n        request = {\n            \"model\": \"llava\",\n            \"messages\": [{\n                \"role\": \"user\",\n                \"content\": \"What's this?\",\n                \"images\": [\"base64_data\"]\n            }]\n        }\n        \n        response = client.post(\"/api/chat\", json=request)\n        assert response.status_code == 400\n        assert \"Image inputs not supported in Phase 1\" in response.json()[\"detail\"]\n    \n    @pytest.mark.asyncio\n    async def test_streaming_response(self):\n        \"\"\"Test streaming text generation\"\"\"\n        request = {\n            \"model\": \"llama2\",\n            \"prompt\": \"Count to 3\",\n            \"stream\": True\n        }\n        \n        # Mock streaming response\n        mock_chunks = [\n            'data: {\"choices\": [{\"delta\": {\"content\": \"One\"}}]}\\n',\n            'data: {\"choices\": [{\"delta\": {\"content\": \", two\"}}]}\\n',\n            'data: {\"choices\": [{\"delta\": {\"content\": \", three!\"}, \"finish_reason\": \"stop\"}]}\\n',\n            'data: [DONE]\\n'\n        ]\n        \n        with patch('httpx.AsyncClient.stream') as mock_stream:\n            # Complex mock setup for streaming\n            # ...\n            pass\n```\n\nCreate tests/test_openrouter_integration.py:\n```python\nimport pytest\nimport os\nfrom fastapi.testclient import TestClient\nfrom src.main import app\n\n# Skip if no OpenRouter key\npytestmark = pytest.mark.skipif(\n    not os.getenv('OPENROUTER_API_KEY'),\n    reason=\"OpenRouter API key not available\"\n)\n\nclass TestOpenRouterIntegration:\n    def setup_method(self):\n        os.environ['OPENAI_API_BASE_URL'] = 'https://openrouter.ai/api/v1'\n        os.environ['OPENAI_API_KEY'] = os.getenv('OPENROUTER_API_KEY', '')\n        self.client = TestClient(app)\n    \n    def test_free_model_generation(self):\n        \"\"\"Test with OpenRouter free model\"\"\"\n        request = {\n            \"model\": \"google/gemma-2-9b-it:free\",\n            \"prompt\": \"Say 'test successful' and nothing else\",\n            \"stream\": False,\n            \"options\": {\"temperature\": 0}\n        }\n        \n        response = self.client.post(\"/api/generate\", json=request)\n        assert response.status_code == 200\n        assert \"test successful\" in response.json()[\"response\"].lower()\n```",
+        "testStrategy": "Run pytest with coverage to ensure >80% code coverage, test all error paths and edge cases, verify mocked OpenAI responses work correctly, integration test with OpenRouter free models when API key available, test streaming and non-streaming modes",
+        "priority": "medium",
+        "dependencies": [
+          11
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Unit Test Setup",
+            "description": "Create the base testing infrastructure with Jest/Vitest configuration, test utilities, and mock factories",
+            "dependencies": [],
+            "details": "Set up testing framework (Jest or Vitest), configure TypeScript support, create test utilities for mocking Express requests/responses, establish test database connections if needed, and create mock factories for common data structures",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Chat Endpoint Tests",
+            "description": "Implement comprehensive unit tests for the /v1/chat/completions endpoint",
+            "dependencies": [
+              1
+            ],
+            "details": "Test successful chat completions, parameter validation, request/response transformation, authentication, rate limiting, and proper handling of various model parameters. Include tests for both Ollama and OpenRouter backends",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Generate Endpoint Tests",
+            "description": "Create unit tests for the /api/generate endpoint specific to Ollama compatibility",
+            "dependencies": [
+              1
+            ],
+            "details": "Test the generate endpoint with various prompts, model selection, context handling, and parameter configurations. Ensure proper transformation between Ollama and OpenAI formats",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Streaming Tests",
+            "description": "Implement tests for Server-Sent Events (SSE) streaming functionality",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create tests for streaming responses, proper SSE formatting, chunk handling, stream interruption, error handling during streams, and proper cleanup. Mock streaming responses from both Ollama and OpenRouter",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Error Case Tests",
+            "description": "Develop comprehensive error handling and edge case tests",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Test invalid requests, malformed JSON, missing required fields, invalid model names, authentication failures, rate limit exceeded scenarios, upstream API errors, timeout handling, and network failures",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Model Endpoint Tests",
+            "description": "Create tests for model listing and information endpoints",
+            "dependencies": [
+              1
+            ],
+            "details": "Test /v1/models and /api/tags endpoints, model availability checks, proper merging of Ollama and OpenRouter models, model metadata transformation, and filtering capabilities",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Integration Test Framework",
+            "description": "Set up integration testing infrastructure for end-to-end testing",
+            "dependencies": [
+              1
+            ],
+            "details": "Create integration test setup with test containers or mock servers, configure separate test environment, implement helpers for spinning up test instances, and create utilities for testing full request/response cycles",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "OpenRouter Integration Tests",
+            "description": "Implement integration tests specifically for OpenRouter proxy functionality",
+            "dependencies": [
+              7
+            ],
+            "details": "Test actual API calls to OpenRouter (with test API keys), verify proper request transformation, response handling, error propagation, and rate limiting. Include tests for various OpenRouter-specific models",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Coverage Configuration",
+            "description": "Set up code coverage reporting and ensure comprehensive test coverage",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "Configure coverage tools (Jest coverage or c8), set coverage thresholds (aim for >80%), identify uncovered code paths, create coverage reports in multiple formats, and integrate with code quality tools",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 10,
+            "title": "CI/CD Integration",
+            "description": "Integrate testing suite into continuous integration pipeline",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "details": "Create GitHub Actions workflow for running tests, configure test matrix for different Node.js versions, set up automated testing on pull requests, integrate coverage reporting with PR comments, and configure test result notifications",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Add Model Name Mapping Support",
+        "description": "Implement configurable model name mapping to translate Ollama model names to appropriate OpenAI/VLLM model identifiers",
+        "details": "Enhance configuration to load model mappings:\n```python\n# Update src/config.py\nimport json\nfrom pathlib import Path\n\nclass Settings(BaseSettings):\n    # ... existing fields ...\n    \n    _model_mappings: Dict[str, str] = {}\n    _default_model: Optional[str] = None\n    \n    def __init__(self, **kwargs):\n        super().__init__(**kwargs)\n        self._load_model_mappings()\n    \n    def _load_model_mappings(self):\n        \"\"\"Load model mappings from file if specified\"\"\"\n        if self.model_mapping_file and Path(self.model_mapping_file).exists():\n            try:\n                with open(self.model_mapping_file, 'r') as f:\n                    data = json.load(f)\n                    self._model_mappings = data.get('model_mappings', {})\n                    self._default_model = data.get('default_model')\n                    logger.info(f\"Loaded {len(self._model_mappings)} model mappings\")\n            except Exception as e:\n                logger.error(f\"Failed to load model mappings: {e}\")\n    \n    def get_model_mapping(self, ollama_model: str) -> str:\n        \"\"\"Get OpenAI model name for Ollama model\"\"\"\n        return self._model_mappings.get(ollama_model, self._default_model or ollama_model)\n```\n\nUpdate translators to use mapping:\n```python\n# In src/translators/chat.py\ndef translate_request(self, ollama_request, settings):\n    # Use settings to map model name\n    openai_model = settings.get_model_mapping(ollama_request.model)\n    # ... rest of translation\n```\n\nCreate example mapping file:\n```json\n// config/model_map.json\n{\n  \"model_mappings\": {\n    \"llama2\": \"meta-llama/Llama-2-7b-chat-hf\",\n    \"llama2:13b\": \"meta-llama/Llama-2-13b-chat-hf\",\n    \"codellama\": \"codellama/CodeLlama-7b-Python-hf\",\n    \"mistral\": \"mistralai/Mistral-7B-Instruct-v0.1\",\n    \"mixtral\": \"mistralai/Mixtral-8x7B-Instruct-v0.1\"\n  },\n  \"default_model\": \"meta-llama/Llama-2-7b-chat-hf\"\n}\n```",
+        "testStrategy": "Test model mapping loads correctly from file, verify unmapped models use default or pass through, test invalid mapping file handling, verify mappings work in actual requests",
+        "priority": "low",
+        "dependencies": [
+          12
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create configuration enhancement for custom mapping file",
+            "description": "Add configuration option to specify custom character mapping file path",
+            "dependencies": [],
+            "details": "Extend existing configuration structure to include an optional mapping file path parameter. This should support both absolute and relative paths, with appropriate validation to ensure the file exists and is readable.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement mapping file loader module",
+            "description": "Create a module to load and parse custom character mapping files",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop a file loader that reads mapping files in a structured format (e.g., JSON, YAML, or CSV), validates the content structure, and converts it into the internal mapping format used by the translator. Include error handling for malformed files.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Integrate custom mappings with translator",
+            "description": "Modify the existing translator to use custom mappings when provided",
+            "dependencies": [
+              2
+            ],
+            "details": "Update the translation logic to check for custom mapping configuration and use the loaded mappings instead of default ones when available. Ensure fallback to default mappings if custom file is not specified or fails to load.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create example mapping file with documentation",
+            "description": "Develop a comprehensive example mapping file showing various use cases",
+            "dependencies": [
+              3
+            ],
+            "details": "Create a well-documented example mapping file that demonstrates different character mappings, including special characters, unicode mappings, and language-specific transformations. Include inline comments explaining the format and usage.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Test with various mapping scenarios",
+            "description": "Implement comprehensive tests for custom mapping functionality",
+            "dependencies": [
+              4
+            ],
+            "details": "Create test cases covering different mapping file formats, edge cases (empty files, invalid mappings), performance with large mapping files, and integration with the existing translation pipeline. Include tests for error scenarios and fallback behavior.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Create Documentation and Examples",
+        "description": "Write comprehensive README, deployment guides, and usage examples for easy adoption and troubleshooting",
+        "details": "Create comprehensive README.md:\n```markdown\n# Ollama to OpenAI Proxy\n\nA transparent proxy service that allows legacy applications using the Ollama Python SDK to seamlessly work with OpenAI-compatible LLM servers like VLLM.\n\n## Features\n\n- ✅ Drop-in replacement for Ollama server\n- ✅ Zero changes required to existing code\n- ✅ Supports text generation and chat endpoints\n- ✅ Streaming and non-streaming responses\n- ✅ Model listing from backend\n- ✅ Configurable model name mapping\n- ✅ Docker and standalone deployment\n- ⚠️ Phase 1: Text-only (no tools/images)\n- 🚧 Phase 2: Tool calling support (coming soon)\n- 🚧 Phase 2: Image input support (coming soon)\n\n## Quick Start\n\n### Using Docker\n\n1. Clone the repository\n2. Copy `.env.example` to `.env` and configure\n3. Run with docker-compose:\n\n```bash\ndocker-compose up -d\n```\n\n### Using Python\n\n```bash\npip install -r requirements.txt\npython -m uvicorn src.main:app --host 0.0.0.0 --port 11434\n```\n\n## Configuration\n\n### Required Environment Variables\n\n- `OPENAI_API_BASE_URL`: URL of your OpenAI-compatible server\n- `OPENAI_API_KEY`: API key for authentication\n\n### Optional Configuration\n\n- `PROXY_PORT`: Port to run proxy on (default: 11434)\n- `LOG_LEVEL`: Logging verbosity (default: INFO)\n- `REQUEST_TIMEOUT`: Request timeout in seconds (default: 60)\n- `MAX_RETRIES`: Maximum retry attempts (default: 3)\n- `MODEL_MAPPING_FILE`: Path to model mapping JSON\n\n## Testing with OpenRouter\n\nFor testing without your own VLLM server:\n\n```env\nOPENAI_API_BASE_URL=https://openrouter.ai/api/v1\nOPENAI_API_KEY=your-openrouter-key\n```\n\nFree models for testing:\n- `google/gemma-2-9b-it:free`\n- `meta-llama/llama-3.2-3b-instruct:free`\n\n## Model Mapping\n\nCreate a mapping file to translate Ollama model names:\n\n```json\n{\n  \"model_mappings\": {\n    \"llama2\": \"meta-llama/Llama-2-7b-chat-hf\",\n    \"codellama\": \"codellama/CodeLlama-7b-Python-hf\"\n  },\n  \"default_model\": \"meta-llama/Llama-2-7b-chat-hf\"\n}\n```\n\n## API Compatibility\n\n### Supported Endpoints\n\n- ✅ `POST /api/generate` - Text generation\n- ✅ `POST /api/chat` - Chat completion (text only)\n- ✅ `GET /api/tags` - List available models\n- ✅ `GET /api/version` - Version information\n- ❌ `POST /api/pull` - Not supported (returns 501)\n- ❌ `POST /api/push` - Not supported (returns 501)\n- ❌ `DELETE /api/delete` - Not supported (returns 501)\n\n## Troubleshooting\n\n### Common Issues\n\n1. **Connection refused**: Check OPENAI_API_BASE_URL is accessible\n2. **Authentication failed**: Verify OPENAI_API_KEY is correct\n3. **Model not found**: Add model mapping or use exact model name\n4. **Timeout errors**: Increase REQUEST_TIMEOUT for slow models\n\n### Debug Mode\n\nEnable debug logging:\n```env\nLOG_LEVEL=DEBUG\n```\n\n## Development\n\n### Running Tests\n\n```bash\npip install -r requirements-dev.txt\npytest tests/ -v\n```\n\n### Integration Tests\n\n```bash\n# With OpenRouter API key\nOPENROUTER_API_KEY=your-key pytest tests/test_openrouter_integration.py\n```\n```\n\nCreate deployment guide, API migration guide, and troubleshooting docs in docs/ directory.",
+        "testStrategy": "Verify all examples in documentation work correctly, test quick start instructions on clean system, ensure environment variable examples are accurate, validate JSON examples are properly formatted",
+        "priority": "low",
+        "dependencies": [
+          13
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create comprehensive README with project overview",
+            "description": "Develop a detailed README.md file that introduces the Ollama OpenAI compatibility layer, its purpose, key features, and project structure",
+            "dependencies": [],
+            "details": "Include project description, features list, requirements, installation instructions overview, contribution guidelines, and license information. Add badges for build status, version, and documentation links",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Write quick start guide with step-by-step setup",
+            "description": "Create a quick start section or separate file with clear, concise instructions to get users running the compatibility layer within minutes",
+            "dependencies": [
+              1
+            ],
+            "details": "Include minimal prerequisites, one-line installation commands, basic configuration example, and a simple test request to verify setup. Add common use cases with curl/Python examples",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Document detailed configuration options",
+            "description": "Create comprehensive documentation for all configuration parameters, environment variables, and customization options",
+            "dependencies": [
+              1
+            ],
+            "details": "Document each config option with description, type, default value, and examples. Include sections for model mapping, endpoint configuration, authentication setup, and performance tuning parameters",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Build OpenAI API compatibility matrix",
+            "description": "Create a detailed compatibility matrix showing which OpenAI endpoints are supported, partially supported, or not implemented",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a table mapping OpenAI API endpoints to Ollama equivalents, note any differences in parameters or behavior, document supported models and their mappings, include version compatibility information",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Develop comprehensive troubleshooting guide",
+            "description": "Write a troubleshooting section addressing common issues, error messages, and their solutions",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Include common connection issues, model compatibility problems, performance optimization tips, debugging steps, FAQ section, and links to support channels. Add error code reference with solutions",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Create example scripts and configuration templates",
+            "description": "Develop a collection of example scripts and configuration files demonstrating various use cases and integrations",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Include Python/JavaScript client examples, Docker compose configurations, nginx reverse proxy setup, model aliasing examples, batch processing scripts, and integration examples with popular frameworks like LangChain",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Performance Optimization and Monitoring",
+        "description": "Add performance monitoring, optimize response handling, and implement basic metrics collection for production readiness",
+        "details": "Create src/utils/metrics.py:\n```python\nimport time\nimport asyncio\nfrom typing import Dict, Any\nfrom contextlib import asynccontextmanager\nimport logging\nfrom dataclasses import dataclass, field\nfrom datetime import datetime\n\nlogger = logging.getLogger(__name__)\n\n@dataclass\nclass RequestMetrics:\n    endpoint: str\n    method: str\n    status_code: int = 0\n    duration_ms: float = 0\n    request_size: int = 0\n    response_size: int = 0\n    model: str = \"\"\n    error: Optional[str] = None\n    timestamp: datetime = field(default_factory=datetime.utcnow)\n\nclass MetricsCollector:\n    def __init__(self):\n        self.metrics: List[RequestMetrics] = []\n        self._lock = asyncio.Lock()\n        \n    async def record(self, metric: RequestMetrics):\n        async with self._lock:\n            self.metrics.append(metric)\n            # Keep only last 1000 metrics in memory\n            if len(self.metrics) > 1000:\n                self.metrics = self.metrics[-1000:]\n    \n    async def get_summary(self) -> Dict[str, Any]:\n        async with self._lock:\n            if not self.metrics:\n                return {\"message\": \"No metrics available\"}\n            \n            total_requests = len(self.metrics)\n            successful_requests = sum(1 for m in self.metrics if 200 <= m.status_code < 300)\n            failed_requests = total_requests - successful_requests\n            \n            avg_duration = sum(m.duration_ms for m in self.metrics) / total_requests\n            \n            endpoints = {}\n            for metric in self.metrics:\n                key = f\"{metric.method} {metric.endpoint}\"\n                if key not in endpoints:\n                    endpoints[key] = {\"count\": 0, \"avg_duration_ms\": 0}\n                endpoints[key][\"count\"] += 1\n                endpoints[key][\"avg_duration_ms\"] += metric.duration_ms\n            \n            for endpoint in endpoints.values():\n                endpoint[\"avg_duration_ms\"] /= endpoint[\"count\"]\n            \n            return {\n                \"total_requests\": total_requests,\n                \"successful_requests\": successful_requests,\n                \"failed_requests\": failed_requests,\n                \"success_rate\": successful_requests / total_requests,\n                \"avg_duration_ms\": avg_duration,\n                \"endpoints\": endpoints,\n                \"period\": {\n                    \"start\": self.metrics[0].timestamp.isoformat(),\n                    \"end\": self.metrics[-1].timestamp.isoformat()\n                }\n            }\n\n# Global metrics collector\nmetrics_collector = MetricsCollector()\n\n@asynccontextmanager\nasync def track_request(endpoint: str, method: str, model: str = \"\"):\n    \"\"\"Context manager to track request metrics\"\"\"\n    start_time = time.time()\n    metric = RequestMetrics(endpoint=endpoint, method=method, model=model)\n    \n    try:\n        yield metric\n    except Exception as e:\n        metric.error = str(e)\n        raise\n    finally:\n        metric.duration_ms = (time.time() - start_time) * 1000\n        await metrics_collector.record(metric)\n```\n\nAdd metrics endpoint to main.py:\n```python\nfrom .utils.metrics import metrics_collector\n\n@app.get(\"/metrics\")\nasync def get_metrics():\n    \"\"\"Get performance metrics summary\"\"\"\n    return await metrics_collector.get_summary()\n```\n\nIntegrate metrics tracking in routers:\n```python\n# In chat.py\nfrom ..utils.metrics import track_request\n\n@router.post(\"/generate\")\nasync def generate(request: OllamaGenerateRequest):\n    async with track_request(\"/api/generate\", \"POST\", request.model) as metric:\n        try:\n            # ... existing code ...\n            metric.status_code = 200\n            return response\n        except HTTPException as e:\n            metric.status_code = e.status_code\n            raise\n```\n\nOptimize streaming with buffering:\n```python\nasync def optimized_stream_response(client, openai_request, original_request):\n    \"\"\"Optimized streaming with response buffering\"\"\"\n    buffer = []\n    buffer_size = 0\n    max_buffer_size = 1024  # bytes\n    \n    async with client.stream(...) as response:\n        async for line in response.aiter_lines():\n            if line.startswith(\"data: \"):\n                # ... process line ...\n                chunk_json = json.dumps(ollama_chunk.dict()) + \"\\n\"\n                buffer.append(chunk_json)\n                buffer_size += len(chunk_json)\n                \n                # Flush buffer when it reaches threshold\n                if buffer_size >= max_buffer_size:\n                    yield ''.join(buffer)\n                    buffer = []\n                    buffer_size = 0\n        \n        # Flush remaining buffer\n        if buffer:\n            yield ''.join(buffer)\n```",
+        "testStrategy": "Test metrics collection under load, verify memory usage stays bounded with metric limit, test metrics endpoint returns accurate statistics, benchmark streaming performance improvements, verify no performance regression in normal operations",
+        "priority": "low",
+        "dependencies": [
+          14
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design metrics collection system architecture",
+            "description": "Design a lightweight, non-blocking metrics collection system that minimizes performance overhead",
+            "dependencies": [],
+            "details": "Create interfaces for metric collectors, define metric types (counters, gauges, histograms), establish collection patterns that don't impact request processing, design in-memory storage with configurable retention policies",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement request tracking and instrumentation",
+            "description": "Add request tracking middleware to capture key metrics without blocking request flow",
+            "dependencies": [
+              1
+            ],
+            "details": "Track request count, duration, response size, model usage, token consumption, error rates. Use async patterns to ensure tracking doesn't add latency. Implement request ID generation for correlation",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create metrics aggregation and endpoint",
+            "description": "Build a /metrics endpoint that exposes collected metrics in standard formats",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement Prometheus-compatible metrics format, add JSON output option, ensure efficient serialization, include system metrics (CPU, memory usage), support metric filtering and time ranges",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Optimize streaming response monitoring",
+            "description": "Implement efficient monitoring for streaming responses without buffering entire streams",
+            "dependencies": [
+              2
+            ],
+            "details": "Track streaming metrics (first byte time, throughput, chunk sizes), implement sampling for large streams, ensure backpressure handling, monitor stream cancellations and timeouts",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement memory-efficient metric storage",
+            "description": "Create circular buffers and time-window aggregations to prevent memory leaks",
+            "dependencies": [
+              3
+            ],
+            "details": "Use ring buffers for recent metrics, implement automatic rollup for older data, add configurable retention policies, ensure proper cleanup of expired metrics, implement memory usage limits",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Add performance benchmarking suite",
+            "description": "Create benchmarks to measure monitoring overhead and ensure minimal impact",
+            "dependencies": [
+              4,
+              5
+            ],
+            "details": "Benchmark request processing with/without monitoring, measure memory overhead of metric collection, test under various load conditions, establish performance regression tests",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Write monitoring integration documentation",
+            "description": "Document monitoring setup, metric definitions, and integration with external systems",
+            "dependencies": [
+              3,
+              6
+            ],
+            "details": "Document available metrics and their meanings, provide Grafana dashboard examples, explain Prometheus scraping configuration, include alerting rule examples, add troubleshooting guide",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Implement load testing with monitoring validation",
+            "description": "Create load tests that verify monitoring accuracy under high load",
+            "dependencies": [
+              6,
+              7
+            ],
+            "details": "Test metric accuracy at 1K, 10K, 100K requests/sec, verify no metric loss under load, ensure monitoring doesn't degrade performance, test memory stability during extended runs",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Create GitHub CI/CD Actions Workflow",
+        "description": "Implement comprehensive GitHub Actions workflows for automated testing, linting, type checking, and Docker image building for both pull requests and main branch pushes",
+        "details": "Create .github/workflows/ci.yml for pull request checks:\n```yaml\nname: CI Pipeline\n\non:\n  pull_request:\n    branches: [ main, develop ]\n  push:\n    branches: [ main ]\n\njobs:\n  lint-and-type-check:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        python-version: ['3.9', '3.10', '3.11']\n    \n    steps:\n    - uses: actions/checkout@v4\n    \n    - name: Set up Python ${{ matrix.python-version }}\n      uses: actions/setup-python@v5\n      with:\n        python-version: ${{ matrix.python-version }}\n    \n    - name: Cache pip dependencies\n      uses: actions/cache@v4\n      with:\n        path: ~/.cache/pip\n        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}\n        restore-keys: |\n          ${{ runner.os }}-pip-\n    \n    - name: Install dependencies\n      run: |\n        python -m pip install --upgrade pip\n        pip install -r requirements.txt\n        pip install -r requirements-dev.txt\n    \n    - name: Run ruff linter\n      run: |\n        pip install ruff\n        ruff check src/ tests/ --format=github\n    \n    - name: Run black formatter check\n      run: |\n        pip install black\n        black --check src/ tests/\n    \n    - name: Run mypy type checker\n      run: |\n        pip install mypy\n        mypy src/ --strict --ignore-missing-imports\n\n  test:\n    runs-on: ubuntu-latest\n    needs: lint-and-type-check\n    strategy:\n      matrix:\n        python-version: ['3.9', '3.10', '3.11']\n    \n    steps:\n    - uses: actions/checkout@v4\n    \n    - name: Set up Python ${{ matrix.python-version }}\n      uses: actions/setup-python@v5\n      with:\n        python-version: ${{ matrix.python-version }}\n    \n    - name: Install dependencies\n      run: |\n        python -m pip install --upgrade pip\n        pip install -r requirements.txt\n        pip install -r requirements-dev.txt\n    \n    - name: Run pytest with coverage\n      run: |\n        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term-missing\n      env:\n        OPENAI_API_BASE_URL: ${{ secrets.TEST_OPENAI_API_BASE_URL }}\n        OPENAI_API_KEY: ${{ secrets.TEST_OPENAI_API_KEY }}\n    \n    - name: Upload coverage reports\n      uses: codecov/codecov-action@v4\n      with:\n        file: ./coverage.xml\n        fail_ci_if_error: true\n        token: ${{ secrets.CODECOV_TOKEN }}\n\n  integration-test:\n    runs-on: ubuntu-latest\n    needs: test\n    \n    steps:\n    - uses: actions/checkout@v4\n    \n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.9'\n    \n    - name: Start mock OpenAI server\n      run: |\n        docker run -d --name mock-openai -p 8080:8080 \\\n          -e MOCK_RESPONSES=true \\\n          mockserver/mockserver:latest\n    \n    - name: Run integration tests\n      run: |\n        pip install -r requirements.txt\n        pip install -r requirements-dev.txt\n        pytest tests/integration/ -v\n      env:\n        OPENAI_API_BASE_URL: http://localhost:8080\n        OPENAI_API_KEY: mock-key\n    \n    - name: Stop mock server\n      if: always()\n      run: docker stop mock-openai && docker rm mock-openai\n\n  docker-build:\n    runs-on: ubuntu-latest\n    needs: [test, integration-test]\n    \n    steps:\n    - uses: actions/checkout@v4\n    \n    - name: Set up Docker Buildx\n      uses: docker/setup-buildx-action@v3\n    \n    - name: Build Docker image\n      uses: docker/build-push-action@v5\n      with:\n        context: .\n        file: ./docker/Dockerfile\n        push: false\n        tags: ollama-openai-proxy:test\n        cache-from: type=gha\n        cache-to: type=gha,mode=max\n    \n    - name: Test Docker image\n      run: |\n        docker run --rm -e OPENAI_API_BASE_URL=http://test.com -e OPENAI_API_KEY=test \\\n          ollama-openai-proxy:test python -c \"import src; print('Import successful')\"\n```\n\nCreate .github/workflows/release.yml for main branch deployments:\n```yaml\nname: Release Pipeline\n\non:\n  push:\n    branches: [ main ]\n    tags:\n      - 'v*'\n\njobs:\n  release:\n    runs-on: ubuntu-latest\n    \n    steps:\n    - uses: actions/checkout@v4\n    \n    - name: Set up QEMU\n      uses: docker/setup-qemu-action@v3\n    \n    - name: Set up Docker Buildx\n      uses: docker/setup-buildx-action@v3\n    \n    - name: Log in to Docker Hub\n      uses: docker/login-action@v3\n      with:\n        username: ${{ secrets.DOCKER_USERNAME }}\n        password: ${{ secrets.DOCKER_TOKEN }}\n    \n    - name: Extract metadata\n      id: meta\n      uses: docker/metadata-action@v5\n      with:\n        images: ${{ secrets.DOCKER_USERNAME }}/ollama-openai-proxy\n        tags: |\n          type=ref,event=branch\n          type=ref,event=pr\n          type=semver,pattern={{version}}\n          type=semver,pattern={{major}}.{{minor}}\n          type=raw,value=latest,enable={{is_default_branch}}\n    \n    - name: Build and push Docker image\n      uses: docker/build-push-action@v5\n      with:\n        context: .\n        file: ./docker/Dockerfile\n        platforms: linux/amd64,linux/arm64\n        push: true\n        tags: ${{ steps.meta.outputs.tags }}\n        labels: ${{ steps.meta.outputs.labels }}\n        cache-from: type=gha\n        cache-to: type=gha,mode=max\n```\n\nCreate .github/dependabot.yml for dependency updates:\n```yaml\nversion: 2\nupdates:\n  - package-ecosystem: \"pip\"\n    directory: \"/\"\n    schedule:\n      interval: \"weekly\"\n    open-pull-requests-limit: 5\n    \n  - package-ecosystem: \"docker\"\n    directory: \"/docker\"\n    schedule:\n      interval: \"weekly\"\n    \n  - package-ecosystem: \"github-actions\"\n    directory: \"/\"\n    schedule:\n      interval: \"weekly\"\n```\n\nCreate requirements-dev.txt for development dependencies:\n```\npytest>=7.4.0\npytest-asyncio>=0.21.0\npytest-cov>=4.1.0\npytest-mock>=3.11.0\nruff>=0.1.0\nblack>=23.0.0\nmypy>=1.5.0\ntypes-requests\nhttpx\n```",
+        "testStrategy": "Verify GitHub Actions workflows by creating a test pull request and ensuring all checks pass (linting, type checking, unit tests, integration tests, Docker build), confirm coverage reports are generated and uploaded to Codecov, test that workflow fails appropriately when tests fail or linting errors exist, verify Docker images are built for multiple platforms on release, check that dependabot creates PRs for outdated dependencies, ensure secrets are properly masked in logs, verify caching reduces build times on subsequent runs",
+        "status": "pending",
+        "dependencies": [
+          "2"
+        ],
+        "priority": "high",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-09T10:50:08.658Z",
+      "updated": "2025-07-09T11:21:27.862Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

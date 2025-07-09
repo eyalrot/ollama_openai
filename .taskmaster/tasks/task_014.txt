@@ -1,0 +1,174 @@
+# Task ID: 14
+# Title: Create Documentation and Examples
+# Status: pending
+# Dependencies: 13
+# Priority: low
+# Description: Write comprehensive README, deployment guides, and usage examples for easy adoption and troubleshooting
+# Details:
+Create comprehensive README.md:
+```markdown
+# Ollama to OpenAI Proxy
+
+A transparent proxy service that allows legacy applications using the Ollama Python SDK to seamlessly work with OpenAI-compatible LLM servers like VLLM.
+
+## Features
+
+- ✅ Drop-in replacement for Ollama server
+- ✅ Zero changes required to existing code
+- ✅ Supports text generation and chat endpoints
+- ✅ Streaming and non-streaming responses
+- ✅ Model listing from backend
+- ✅ Configurable model name mapping
+- ✅ Docker and standalone deployment
+- ⚠️ Phase 1: Text-only (no tools/images)
+- 🚧 Phase 2: Tool calling support (coming soon)
+- 🚧 Phase 2: Image input support (coming soon)
+
+## Quick Start
+
+### Using Docker
+
+1. Clone the repository
+2. Copy `.env.example` to `.env` and configure
+3. Run with docker-compose:
+
+```bash
+docker-compose up -d
+```
+
+### Using Python
+
+```bash
+pip install -r requirements.txt
+python -m uvicorn src.main:app --host 0.0.0.0 --port 11434
+```
+
+## Configuration
+
+### Required Environment Variables
+
+- `OPENAI_API_BASE_URL`: URL of your OpenAI-compatible server
+- `OPENAI_API_KEY`: API key for authentication
+
+### Optional Configuration
+
+- `PROXY_PORT`: Port to run proxy on (default: 11434)
+- `LOG_LEVEL`: Logging verbosity (default: INFO)
+- `REQUEST_TIMEOUT`: Request timeout in seconds (default: 60)
+- `MAX_RETRIES`: Maximum retry attempts (default: 3)
+- `MODEL_MAPPING_FILE`: Path to model mapping JSON
+
+## Testing with OpenRouter
+
+For testing without your own VLLM server:
+
+```env
+OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_API_KEY=your-openrouter-key
+```
+
+Free models for testing:
+- `google/gemma-2-9b-it:free`
+- `meta-llama/llama-3.2-3b-instruct:free`
+
+## Model Mapping
+
+Create a mapping file to translate Ollama model names:
+
+```json
+{
+  "model_mappings": {
+    "llama2": "meta-llama/Llama-2-7b-chat-hf",
+    "codellama": "codellama/CodeLlama-7b-Python-hf"
+  },
+  "default_model": "meta-llama/Llama-2-7b-chat-hf"
+}
+```
+
+## API Compatibility
+
+### Supported Endpoints
+
+- ✅ `POST /api/generate` - Text generation
+- ✅ `POST /api/chat` - Chat completion (text only)
+- ✅ `GET /api/tags` - List available models
+- ✅ `GET /api/version` - Version information
+- ❌ `POST /api/pull` - Not supported (returns 501)
+- ❌ `POST /api/push` - Not supported (returns 501)
+- ❌ `DELETE /api/delete` - Not supported (returns 501)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Connection refused**: Check OPENAI_API_BASE_URL is accessible
+2. **Authentication failed**: Verify OPENAI_API_KEY is correct
+3. **Model not found**: Add model mapping or use exact model name
+4. **Timeout errors**: Increase REQUEST_TIMEOUT for slow models
+
+### Debug Mode
+
+Enable debug logging:
+```env
+LOG_LEVEL=DEBUG
+```
+
+## Development
+
+### Running Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
+```
+
+### Integration Tests
+
+```bash
+# With OpenRouter API key
+OPENROUTER_API_KEY=your-key pytest tests/test_openrouter_integration.py
+```
+```
+
+Create deployment guide, API migration guide, and troubleshooting docs in docs/ directory.
+
+# Test Strategy:
+Verify all examples in documentation work correctly, test quick start instructions on clean system, ensure environment variable examples are accurate, validate JSON examples are properly formatted
+
+# Subtasks:
+## 1. Create comprehensive README with project overview [pending]
+### Dependencies: None
+### Description: Develop a detailed README.md file that introduces the Ollama OpenAI compatibility layer, its purpose, key features, and project structure
+### Details:
+Include project description, features list, requirements, installation instructions overview, contribution guidelines, and license information. Add badges for build status, version, and documentation links
+
+## 2. Write quick start guide with step-by-step setup [pending]
+### Dependencies: 14.1
+### Description: Create a quick start section or separate file with clear, concise instructions to get users running the compatibility layer within minutes
+### Details:
+Include minimal prerequisites, one-line installation commands, basic configuration example, and a simple test request to verify setup. Add common use cases with curl/Python examples
+
+## 3. Document detailed configuration options [pending]
+### Dependencies: 14.1
+### Description: Create comprehensive documentation for all configuration parameters, environment variables, and customization options
+### Details:
+Document each config option with description, type, default value, and examples. Include sections for model mapping, endpoint configuration, authentication setup, and performance tuning parameters
+
+## 4. Build OpenAI API compatibility matrix [pending]
+### Dependencies: 14.1
+### Description: Create a detailed compatibility matrix showing which OpenAI endpoints are supported, partially supported, or not implemented
+### Details:
+Create a table mapping OpenAI API endpoints to Ollama equivalents, note any differences in parameters or behavior, document supported models and their mappings, include version compatibility information
+
+## 5. Develop comprehensive troubleshooting guide [pending]
+### Dependencies: 14.2, 14.3, 14.4
+### Description: Write a troubleshooting section addressing common issues, error messages, and their solutions
+### Details:
+Include common connection issues, model compatibility problems, performance optimization tips, debugging steps, FAQ section, and links to support channels. Add error code reference with solutions
+
+## 6. Create example scripts and configuration templates [pending]
+### Dependencies: 14.2, 14.3
+### Description: Develop a collection of example scripts and configuration files demonstrating various use cases and integrations
+### Details:
+Include Python/JavaScript client examples, Docker compose configurations, nginx reverse proxy setup, model aliasing examples, batch processing scripts, and integration examples with popular frameworks like LangChain
+

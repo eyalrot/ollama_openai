@@ -1,0 +1,98 @@
+# Task ID: 13
+# Title: Add Model Name Mapping Support
+# Status: pending
+# Dependencies: 12
+# Priority: low
+# Description: Implement configurable model name mapping to translate Ollama model names to appropriate OpenAI/VLLM model identifiers
+# Details:
+Enhance configuration to load model mappings:
+```python
+# Update src/config.py
+import json
+from pathlib import Path
+
+class Settings(BaseSettings):
+    # ... existing fields ...
+    
+    _model_mappings: Dict[str, str] = {}
+    _default_model: Optional[str] = None
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._load_model_mappings()
+    
+    def _load_model_mappings(self):
+        """Load model mappings from file if specified"""
+        if self.model_mapping_file and Path(self.model_mapping_file).exists():
+            try:
+                with open(self.model_mapping_file, 'r') as f:
+                    data = json.load(f)
+                    self._model_mappings = data.get('model_mappings', {})
+                    self._default_model = data.get('default_model')
+                    logger.info(f"Loaded {len(self._model_mappings)} model mappings")
+            except Exception as e:
+                logger.error(f"Failed to load model mappings: {e}")
+    
+    def get_model_mapping(self, ollama_model: str) -> str:
+        """Get OpenAI model name for Ollama model"""
+        return self._model_mappings.get(ollama_model, self._default_model or ollama_model)
+```
+
+Update translators to use mapping:
+```python
+# In src/translators/chat.py
+def translate_request(self, ollama_request, settings):
+    # Use settings to map model name
+    openai_model = settings.get_model_mapping(ollama_request.model)
+    # ... rest of translation
+```
+
+Create example mapping file:
+```json
+// config/model_map.json
+{
+  "model_mappings": {
+    "llama2": "meta-llama/Llama-2-7b-chat-hf",
+    "llama2:13b": "meta-llama/Llama-2-13b-chat-hf",
+    "codellama": "codellama/CodeLlama-7b-Python-hf",
+    "mistral": "mistralai/Mistral-7B-Instruct-v0.1",
+    "mixtral": "mistralai/Mixtral-8x7B-Instruct-v0.1"
+  },
+  "default_model": "meta-llama/Llama-2-7b-chat-hf"
+}
+```
+
+# Test Strategy:
+Test model mapping loads correctly from file, verify unmapped models use default or pass through, test invalid mapping file handling, verify mappings work in actual requests
+
+# Subtasks:
+## 1. Create configuration enhancement for custom mapping file [pending]
+### Dependencies: None
+### Description: Add configuration option to specify custom character mapping file path
+### Details:
+Extend existing configuration structure to include an optional mapping file path parameter. This should support both absolute and relative paths, with appropriate validation to ensure the file exists and is readable.
+
+## 2. Implement mapping file loader module [pending]
+### Dependencies: 13.1
+### Description: Create a module to load and parse custom character mapping files
+### Details:
+Develop a file loader that reads mapping files in a structured format (e.g., JSON, YAML, or CSV), validates the content structure, and converts it into the internal mapping format used by the translator. Include error handling for malformed files.
+
+## 3. Integrate custom mappings with translator [pending]
+### Dependencies: 13.2
+### Description: Modify the existing translator to use custom mappings when provided
+### Details:
+Update the translation logic to check for custom mapping configuration and use the loaded mappings instead of default ones when available. Ensure fallback to default mappings if custom file is not specified or fails to load.
+
+## 4. Create example mapping file with documentation [pending]
+### Dependencies: 13.3
+### Description: Develop a comprehensive example mapping file showing various use cases
+### Details:
+Create a well-documented example mapping file that demonstrates different character mappings, including special characters, unicode mappings, and language-specific transformations. Include inline comments explaining the format and usage.
+
+## 5. Test with various mapping scenarios [pending]
+### Dependencies: 13.4
+### Description: Implement comprehensive tests for custom mapping functionality
+### Details:
+Create test cases covering different mapping file formats, edge cases (empty files, invalid mappings), performance with large mapping files, and integration with the existing translation pipeline. Include tests for error scenarios and fallback behavior.
+

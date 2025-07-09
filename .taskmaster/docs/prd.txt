@@ -1,0 +1,465 @@
+# Ollama to OpenAI-like Proxy Service PRD
+
+## Project Overview
+
+### Context
+We have extensive legacy code that uses the Ollama Python SDK with Ollama server. As we migrate to OpenAI-like LLM servers (such as VLLM), we need a transparent proxy service that maintains the Ollama API interface while forwarding requests to OpenAI-compatible endpoints. This approach allows us to migrate without modifying existing code.
+
+### Project Goals
+- Create a drop-in replacement for Ollama server that proxies requests to OpenAI-like servers
+- Maintain full compatibility with existing Ollama Python SDK clients
+- Enable seamless migration to VLLM or other OpenAI-compatible LLM servers
+- Provide both Docker and standalone Python deployment options
+
+### Success Criteria
+- Zero changes required in legacy code using Ollama SDK
+- All existing Ollama API endpoints function correctly through the proxy
+- Response formats match Ollama's expected structure
+- Support for streaming responses
+
+## User Personas and Flows
+
+### Primary Users
+1. **DevOps Engineers**: Deploy and configure the proxy service
+2. **Backend Developers**: Debug and monitor the proxy during development
+3. **Legacy Systems**: Existing applications using Ollama SDK
+
+### User Flows
+
+#### Deployment Flow
+1. DevOps engineer configures environment variables for target OpenAI-like server
+2. Deploys proxy via Docker or Python command
+3. Updates legacy services to point to proxy endpoint
+4. Monitors logs for successful request forwarding
+
+#### Development Flow
+1. Developer runs proxy locally with debug logging
+2. Tests legacy code against local proxy
+3. Verifies request translation and response mapping
+4. Debugs any compatibility issues
+
+## Technical Architecture
+
+### System Architecture
+```
+[Legacy App] --> [Ollama SDK] --> [Proxy Service] --> [OpenAI-like Server (VLLM)]
+                                        |
+                                   [Translation Layer]
+```
+
+### Core Components
+
+#### 1. FastAPI Application
+- Implements Ollama API endpoints
+- Handles request routing and validation
+- Manages async request processing
+
+#### 2. Translation Layer
+- Converts Ollama API requests to OpenAI format
+- Maps model names between systems
+- Transforms responses back to Ollama format
+
+#### 3. Configuration Manager
+- Loads environment variables
+- Validates configuration on startup
+- Provides runtime configuration access
+
+### API Endpoints to Implement
+
+#### Chat/Completion Endpoints
+- `POST /api/generate` - Text generation endpoint
+- `POST /api/chat` - Chat completion endpoint
+
+#### Model Management
+- `GET /api/tags` - List available models from VLLM backend
+- `POST /api/pull` - Returns "Not Supported" error (501)
+- `POST /api/push` - Returns "Not Supported" error (501)
+- `DELETE /api/delete` - Returns "Not Supported" error (501)
+
+#### Embeddings
+- `POST /api/embeddings` - Generate embeddings
+
+#### System
+- `GET /api/version` - API version information
+- `POST /api/show` - Model information
+
+### Environment Variables
+
+```env
+# Required
+OPENAI_API_BASE_URL=http://vllm-server:8000/v1  # Target OpenAI-like server URL
+OPENAI_API_KEY=your-api-key                      # Authentication for target server
+
+# Testing Configuration (OpenRouter)
+# For testing, use: OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
+# Example no-cost models for testing:
+# - google/gemma-2-9b-it:free
+# - meta-llama/llama-3.2-3b-instruct:free
+# - microsoft/phi-3-mini-128k-instruct:free
+# - qwen/qwen-2.5-7b-instruct:free
+
+# Optional
+PROXY_PORT=11434                                 # Proxy server port (default: 11434)
+LOG_LEVEL=INFO                                   # Logging level (DEBUG, INFO, WARNING, ERROR)
+REQUEST_TIMEOUT=60                               # Request timeout in seconds
+MAX_RETRIES=3                                    # Maximum retry attempts
+MODEL_MAPPING_FILE=/config/model_map.json        # Optional model name mapping file
+```
+
+### Data Models
+
+#### Request Translation Map - Phase 1 (Text Only)
+```python
+{
+    "ollama_field": "openai_field",
+    "prompt": "messages[].content",
+    "model": "model",
+    "stream": "stream",
+    "options.temperature": "temperature",
+    "options.top_p": "top_p",
+    "options.top_k": "top_k",
+    "options.num_predict": "max_tokens"
+}
+```
+
+#### Request Translation Map - Phase 2 (With Tools & Images)
+```python
+{
+    # Basic fields (Phase 1)
+    "prompt": "messages[].content",
+    "model": "model",
+    "stream": "stream",
+    "options.*": "parameters",
+    
+    # Tool calling fields (Phase 2)
+    "tools": "tools",
+    "tool_choice": "tool_choice",
+    
+    # Image fields (Phase 2)
+    "images": "messages[].content[].image_url.url",
+    "image_data": "messages[].content[].image_url.detail"
+}
+```
+
+#### Response Translation Map
+```python
+{
+    "openai_field": "ollama_field",
+    "choices[0].message.content": "response",
+    "model": "model",
+    "created": "created_at",
+    "usage.total_tokens": "eval_count"
+}
+```
+
+## Development Requirements
+
+### Technology Stack
+- **Language**: Python 3.9+
+- **Web Framework**: FastAPI
+- **ASGI Server**: Uvicorn
+- **HTTP Client**: httpx (async)
+- **OpenAI Client**: langchain-openai
+- **Containerization**: Docker with multi-stage build
+
+### Project Structure
+```
+ollama-openai-proxy/
+├── src/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI application entry
+│   ├── config.py            # Configuration management
+│   ├── models.py            # Pydantic models
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── chat.py          # Chat/generation endpoints
+│   │   ├── models.py        # Model management endpoints
+│   │   └── embeddings.py    # Embedding endpoints
+│   ├── translators/
+│   │   ├── __init__.py
+│   │   ├── base.py          # Base translator class
+│   │   ├── chat.py          # Chat request/response translation
+│   │   └── embeddings.py    # Embedding translation
+│   └── utils/
+│       ├── __init__.py
+│       ├── logging.py       # Logging configuration
+│       └── exceptions.py    # Custom exceptions
+├── tests/
+│   ├── __init__.py
+│   ├── test_chat.py
+│   ├── test_models.py
+│   ├── test_translation.py
+│   └── test_openrouter_integration.py
+├── docker/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── requirements.txt
+├── requirements-dev.txt
+├── README.md
+├── .env.example
+└── .env.test           # OpenRouter test configuration
+```
+
+### Docker Configuration
+
+#### Dockerfile Requirements
+- Multi-stage build for minimal image size
+- Non-root user for security
+- Health check endpoint
+- Graceful shutdown handling
+
+#### Docker Compose
+- Service definition with environment variables
+- Volume mounts for configuration
+- Network configuration
+- Logging driver setup
+
+## Implementation Phases
+
+### Phase 1: Foundation (MVP) - Basic Text Generation
+1. **Setup Project Structure**
+   - Initialize Python project with dependencies
+   - Create directory structure
+   - Setup logging and configuration
+
+2. **Implement Basic Text-Only Proxy**
+   - Create FastAPI application
+   - Implement `/api/generate` endpoint (text-only)
+   - Implement `/api/chat` endpoint (text-only, no tool calling)
+   - Basic request forwarding to OpenAI endpoint
+   - Simple response transformation
+   - **Explicitly exclude**: Tool calling, function calling, image inputs
+
+3. **Docker Support**
+   - Create Dockerfile
+   - Add docker-compose configuration
+   - Test container deployment
+
+### Phase 2: Advanced Features - Tool Calling & Multimodal
+1. **Tool Calling Support**
+   - Extend `/api/chat` to support tool/function definitions
+   - Translate Ollama tool format to OpenAI function calling format
+   - Handle tool call responses and results
+   - Support for parallel tool calls
+   - Implement proper tool call ID mapping
+
+2. **Image Support**
+   - Add image handling to `/api/chat` endpoint
+   - Support base64 encoded images in requests
+   - Implement image URL support
+   - Handle multi-modal messages (text + images)
+   - Validate image formats and sizes
+
+3. **Complete API Coverage**
+   - Add `/api/tags` for model listing from VLLM
+   - Create error responses for unsupported model management endpoints
+   - Implement streaming for tool calls and image responses
+
+3. **Configuration Enhancement**
+   - Add model name mapping support
+   - Implement retry logic
+   - Add request/response logging
+
+### Phase 3: Production Ready
+1. **Embeddings Support**
+   - Implement `/api/embeddings` endpoint
+   - Add embedding-specific translation
+
+2. **Monitoring and Health**
+   - Add health check endpoint
+   - Implement metrics collection
+   - Create performance monitoring
+
+3. **Testing and Documentation**
+   - Comprehensive unit tests
+   - Integration tests with OpenRouter free models
+   - API documentation
+   - Deployment guide
+   - Testing guide with OpenRouter configuration
+
+## Non-Functional Requirements
+
+### Performance
+- Best-effort response times (no strict latency requirements)
+- Basic concurrent connection support
+- No specific memory or startup time constraints
+
+### Reliability
+- Graceful error handling with clear error messages
+- Basic retry logic for transient failures
+- Proper error response mapping between Ollama and OpenAI formats
+
+### Security
+- API key validation
+- Request/response sanitization
+- No credential logging
+- Secure environment variable handling
+
+### Observability
+- Structured JSON logging
+- Request ID tracking for debugging
+- Basic error logging
+
+## Risk Mitigation
+
+### Technical Risks
+1. **API Incompatibility**
+   - Risk: Ollama features without OpenAI equivalents
+   - Mitigation: Implement compatibility layer with sensible defaults
+
+2. **Performance Degradation**
+   - Risk: Proxy adds latency (not critical)
+   - Mitigation: Use async processing for better throughput
+
+3. **Breaking Changes**
+   - Risk: Ollama or OpenAI API changes
+   - Mitigation: Version pinning, comprehensive tests
+
+### Operational Risks
+1. **Configuration Errors**
+   - Risk: Misconfigured environment variables
+   - Mitigation: Validation on startup, clear error messages
+
+2. **Resource Exhaustion**
+   - Risk: Memory leaks or connection exhaustion
+   - Mitigation: Resource limits, connection pooling
+
+## Dependencies and Constraints
+
+### External Dependencies
+- Target OpenAI-like server must be accessible
+- Network connectivity between proxy and target
+- Valid API credentials for target server
+
+### Technical Constraints
+- Must maintain Ollama API compatibility
+- Cannot modify legacy application code
+- Must support both streaming and non-streaming responses
+- Python 3.9+ requirement for modern async features
+
+## Acceptance Criteria
+
+### Acceptance Criteria
+
+#### Phase 1 - Basic Functionality
+- [ ] All legacy Ollama SDK text generation calls work without modification
+- [ ] Successful request forwarding to VLLM server for text-only requests
+- [ ] Proper response format transformation for text responses
+- [ ] Model listing reflects available VLLM models
+- [ ] Streaming responses work correctly for text
+- [ ] Clear error messages when tool calling or images are attempted
+
+#### Phase 2 - Advanced Features
+- [ ] Tool calling requests properly translated to OpenAI function format
+- [ ] Tool call results correctly mapped back to Ollama format
+- [ ] Image inputs (base64 and URLs) properly forwarded
+- [ ] Multi-modal responses handled correctly
+- [ ] Streaming works with tool calls and image responses
+- [ ] Legacy code using tools/images works without modification
+
+### Operational Criteria
+- [ ] Docker image builds and runs successfully
+- [ ] Python CLI works for local development
+- [ ] Environment variables properly configured
+- [ ] Logs provide sufficient debugging information
+- [ ] Health check endpoint responds correctly
+
+## Appendix
+
+### Example Model Mapping Configuration
+```json
+{
+  "model_mappings": {
+    "llama2": "meta-llama/llama-3.2-3b-instruct:free",
+    "codellama": "qwen/qwen-2.5-7b-instruct:free",
+    "mistral": "microsoft/phi-3-mini-128k-instruct:free",
+    "gemma": "google/gemma-2-9b-it:free"
+  },
+  "default_model": "meta-llama/llama-3.2-3b-instruct:free"
+}
+```
+
+### Testing Configuration for OpenRouter
+```env
+# .env.test
+OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
+OPENAI_API_KEY=your-openrouter-api-key
+PROXY_PORT=11434
+LOG_LEVEL=DEBUG
+
+# Test with free models to avoid costs
+TEST_MODELS=google/gemma-2-9b-it:free,meta-llama/llama-3.2-3b-instruct:free
+```
+
+### Sample Error Response for Unsupported Operations
+```json
+{
+  "error": {
+    "code": 501,
+    "message": "Model management operations (pull/push/delete) are not supported by the VLLM backend",
+    "type": "not_implemented"
+  }
+}
+```
+
+### Sample Request Translation
+```python
+# Phase 1 - Basic Ollama Request (Text Only)
+{
+  "model": "llama2",
+  "prompt": "What is the capital of France?",
+  "stream": false,
+  "options": {
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "num_predict": 100
+  }
+}
+
+# Translated OpenAI Request (Phase 1)
+{
+  "model": "meta-llama/Llama-2-7b-chat-hf",
+  "messages": [
+    {"role": "user", "content": "What is the capital of France?"}
+  ],
+  "stream": false,
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "max_tokens": 100
+}
+
+# Phase 2 - Ollama Request with Tools
+{
+  "model": "llama2",
+  "messages": [
+    {"role": "user", "content": "What's the weather in Paris?"}
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get weather for a location",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {"type": "string"}
+          }
+        }
+      }
+    }
+  ]
+}
+
+# Phase 2 - Ollama Request with Image
+{
+  "model": "llava",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What's in this image?",
+      "images": ["base64_encoded_image_data"]
+    }
+  ]
+}
+```

@@ -1,0 +1,161 @@
+# Task ID: 8
+# Title: Implement Chat/Generate Endpoints (Phase 1)
+# Status: pending
+# Dependencies: 7
+# Priority: high
+# Description: Create the text-only chat and generate API endpoints with proper request forwarding to OpenAI backend and response translation
+# Details:
+Create src/routers/chat.py for Phase 1:
+```python
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import StreamingResponse
+import httpx
+import json
+import logging
+from typing import AsyncGenerator
+from ..models import OllamaGenerateRequest, OllamaChatRequest
+from ..translators.chat import ChatTranslator
+from ..config import settings
+from ..utils.exceptions import UpstreamError, TranslationError
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+translator = ChatTranslator()
+
+@router.post("/generate")
+async def generate(request: OllamaGenerateRequest):
+    """Handle Ollama generate requests (text-only in Phase 1)"""
+    try:
+        # Translate to OpenAI format
+        openai_request = translator.translate_request(request)
+        
+        # Forward to OpenAI
+        async with httpx.AsyncClient(timeout=settings.request_timeout) as client:
+            if request.stream:
+                return StreamingResponse(
+                    stream_response(client, openai_request, request),
+                    media_type="application/x-ndjson"
+                )
+            else:
+                response = await client.post(
+                    f"{settings.openai_api_base_url}/chat/completions",
+                    json=openai_request.dict(),
+                    headers={"Authorization": f"Bearer {settings.openai_api_key}"}
+                )
+                
+                if response.status_code != 200:
+                    raise UpstreamError(response.status_code, response.text)
+                
+                # Translate response
+                ollama_response = translator.translate_response(response.json(), request)
+                return ollama_response
+                
+    except TranslationError as e:
+        logger.error(f"Translation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/chat")
+async def chat(request: OllamaChatRequest):
+    """Handle Ollama chat requests (text-only in Phase 1)"""
+    # Reuse generate logic as implementation is the same
+    return await generate(request)
+
+async def stream_response(client: httpx.AsyncClient, openai_request, original_request) -> AsyncGenerator:
+    """Stream responses from OpenAI and translate them"""
+    async with client.stream(
+        "POST",
+        f"{settings.openai_api_base_url}/chat/completions",
+        json=openai_request.dict(),
+        headers={"Authorization": f"Bearer {settings.openai_api_key}"}
+    ) as response:
+        async for line in response.aiter_lines():
+            if line.startswith("data: "):
+                if line == "data: [DONE]":
+                    break
+                try:
+                    data = json.loads(line[6:])
+                    ollama_chunk = translator.translate_response(data, original_request)
+                    yield json.dumps(ollama_chunk.dict()) + "\n"
+                except json.JSONDecodeError:
+                    continue
+```
+
+# Test Strategy:
+Test generate endpoint with various prompts, verify streaming responses work correctly, test chat endpoint with message history, verify error handling for invalid requests, test timeout handling, verify API key is properly passed
+
+# Subtasks:
+## 1. HTTP client setup [pending]
+### Dependencies: None
+### Description: Configure and initialize HTTP client with proper timeouts and connection pooling
+### Details:
+Set up axios or node-fetch with connection pooling, keep-alive, proper timeout configuration (30s default, configurable), and request/response interceptors for logging
+
+## 2. Generate endpoint implementation [pending]
+### Dependencies: 8.1
+### Description: Implement /v1/completions endpoint to handle non-streaming completion requests
+### Details:
+Parse incoming OpenAI format requests, validate required fields (model, prompt), transform to OpenRouter format, handle response transformation back to OpenAI format
+
+## 3. Chat endpoint implementation [pending]
+### Dependencies: 8.1
+### Description: Implement /v1/chat/completions endpoint for chat-based completions
+### Details:
+Handle messages array format, support both streaming and non-streaming modes based on stream parameter, validate chat-specific fields, maintain conversation context
+
+## 4. Non-streaming response handler [pending]
+### Dependencies: 8.2, 8.3
+### Description: Create handler for standard JSON responses from OpenRouter
+### Details:
+Parse OpenRouter JSON response, extract completion text/choices, calculate token usage, format response to match OpenAI API structure including id, object type, created timestamp
+
+## 5. Streaming response handler [pending]
+### Dependencies: 8.3
+### Description: Implement SSE streaming handler for real-time responses
+### Details:
+Set up Server-Sent Events (SSE) with proper headers, parse streaming chunks from OpenRouter, transform to OpenAI streaming format with data: prefix, handle stream termination with [DONE] signal
+
+## 6. Error handling for upstream failures [pending]
+### Dependencies: 8.2, 8.3, 8.4, 8.5
+### Description: Implement comprehensive error handling for OpenRouter API failures
+### Details:
+Map OpenRouter error codes to OpenAI error format, handle rate limits (429), authentication errors (401), model availability issues, network timeouts, and malformed responses
+
+## 7. Timeout handling [pending]
+### Dependencies: 8.1, 8.6
+### Description: Add configurable timeout management for long-running requests
+### Details:
+Implement request timeout with graceful cancellation, streaming timeout handling, configurable timeout values per endpoint, proper cleanup of hanging connections
+
+## 8. Retry integration [pending]
+### Dependencies: 8.6, 8.7
+### Description: Add intelligent retry logic for transient failures
+### Details:
+Implement exponential backoff for retries, configurable retry attempts (default 3), retry only on specific error codes (500, 502, 503, 504), maintain request context across retries
+
+## 9. Request/response logging [pending]
+### Dependencies: 8.2, 8.3, 8.4, 8.5
+### Description: Add comprehensive logging for debugging and monitoring
+### Details:
+Log incoming requests with sanitized headers, log outgoing OpenRouter requests, capture response times and status codes, implement log levels (debug, info, error), rotate logs based on size
+
+## 10. Performance optimization [pending]
+### Dependencies: 8.1, 8.4, 8.5
+### Description: Optimize proxy performance for production use
+### Details:
+Implement response caching for identical requests, connection pooling optimization, minimize JSON parsing overhead, stream processing optimization, memory usage monitoring
+
+## 11. OpenRouter integration testing [pending]
+### Dependencies: 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8
+### Description: Create integration tests specifically for OpenRouter API
+### Details:
+Test various OpenRouter models, verify request transformation accuracy, test streaming with different models, validate error response handling, test rate limit behavior
+
+## 12. Comprehensive testing [pending]
+### Dependencies: 8.11
+### Description: Implement full test suite for proxy functionality
+### Details:
+Unit tests for request/response transformers, integration tests with mock OpenRouter, load testing for concurrent requests, error scenario testing, streaming reliability tests
+

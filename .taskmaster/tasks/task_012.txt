@@ -1,0 +1,196 @@
+# Task ID: 12
+# Title: Create Comprehensive Test Suite (Phase 1)
+# Status: pending
+# Dependencies: 11
+# Priority: medium
+# Description: Implement unit and integration tests for all Phase 1 functionality including text generation, model listing, and error handling
+# Details:
+Create tests/test_chat.py:
+```python
+import pytest
+from fastapi.testclient import TestClient
+from unittest.mock import patch, AsyncMock
+import json
+from src.main import app
+from src.models import OllamaGenerateRequest, OllamaChatRequest
+
+client = TestClient(app)
+
+class TestChatEndpoints:
+    @pytest.mark.asyncio
+    async def test_generate_text_only(self):
+        """Test basic text generation"""
+        request = {
+            "model": "llama2",
+            "prompt": "Hello, world!",
+            "stream": False
+        }
+        
+        mock_response = {
+            "choices": [{
+                "message": {"content": "Hello! How can I help you?"},
+                "finish_reason": "stop"
+            }],
+            "model": "llama2",
+            "usage": {"total_tokens": 10}
+        }
+        
+        with patch('httpx.AsyncClient.post', new_callable=AsyncMock) as mock_post:
+            mock_post.return_value.status_code = 200
+            mock_post.return_value.json.return_value = mock_response
+            
+            response = client.post("/api/generate", json=request)
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["response"] == "Hello! How can I help you?"
+            assert data["done"] is True
+            assert data["eval_count"] == 10
+    
+    def test_generate_with_tools_rejected(self):
+        """Test that tool requests are rejected in Phase 1"""
+        request = {
+            "model": "llama2",
+            "messages": [{"role": "user", "content": "test"}],
+            "tools": [{"type": "function", "function": {"name": "test"}}]
+        }
+        
+        response = client.post("/api/chat", json=request)
+        assert response.status_code == 400
+        assert "Tool calling not supported in Phase 1" in response.json()["detail"]
+    
+    def test_generate_with_images_rejected(self):
+        """Test that image requests are rejected in Phase 1"""
+        request = {
+            "model": "llava",
+            "messages": [{
+                "role": "user",
+                "content": "What's this?",
+                "images": ["base64_data"]
+            }]
+        }
+        
+        response = client.post("/api/chat", json=request)
+        assert response.status_code == 400
+        assert "Image inputs not supported in Phase 1" in response.json()["detail"]
+    
+    @pytest.mark.asyncio
+    async def test_streaming_response(self):
+        """Test streaming text generation"""
+        request = {
+            "model": "llama2",
+            "prompt": "Count to 3",
+            "stream": True
+        }
+        
+        # Mock streaming response
+        mock_chunks = [
+            'data: {"choices": [{"delta": {"content": "One"}}]}\n',
+            'data: {"choices": [{"delta": {"content": ", two"}}]}\n',
+            'data: {"choices": [{"delta": {"content": ", three!"}, "finish_reason": "stop"}]}\n',
+            'data: [DONE]\n'
+        ]
+        
+        with patch('httpx.AsyncClient.stream') as mock_stream:
+            # Complex mock setup for streaming
+            # ...
+            pass
+```
+
+Create tests/test_openrouter_integration.py:
+```python
+import pytest
+import os
+from fastapi.testclient import TestClient
+from src.main import app
+
+# Skip if no OpenRouter key
+pytestmark = pytest.mark.skipif(
+    not os.getenv('OPENROUTER_API_KEY'),
+    reason="OpenRouter API key not available"
+)
+
+class TestOpenRouterIntegration:
+    def setup_method(self):
+        os.environ['OPENAI_API_BASE_URL'] = 'https://openrouter.ai/api/v1'
+        os.environ['OPENAI_API_KEY'] = os.getenv('OPENROUTER_API_KEY', '')
+        self.client = TestClient(app)
+    
+    def test_free_model_generation(self):
+        """Test with OpenRouter free model"""
+        request = {
+            "model": "google/gemma-2-9b-it:free",
+            "prompt": "Say 'test successful' and nothing else",
+            "stream": False,
+            "options": {"temperature": 0}
+        }
+        
+        response = self.client.post("/api/generate", json=request)
+        assert response.status_code == 200
+        assert "test successful" in response.json()["response"].lower()
+```
+
+# Test Strategy:
+Run pytest with coverage to ensure >80% code coverage, test all error paths and edge cases, verify mocked OpenAI responses work correctly, integration test with OpenRouter free models when API key available, test streaming and non-streaming modes
+
+# Subtasks:
+## 1. Unit Test Setup [pending]
+### Dependencies: None
+### Description: Create the base testing infrastructure with Jest/Vitest configuration, test utilities, and mock factories
+### Details:
+Set up testing framework (Jest or Vitest), configure TypeScript support, create test utilities for mocking Express requests/responses, establish test database connections if needed, and create mock factories for common data structures
+
+## 2. Chat Endpoint Tests [pending]
+### Dependencies: 12.1
+### Description: Implement comprehensive unit tests for the /v1/chat/completions endpoint
+### Details:
+Test successful chat completions, parameter validation, request/response transformation, authentication, rate limiting, and proper handling of various model parameters. Include tests for both Ollama and OpenRouter backends
+
+## 3. Generate Endpoint Tests [pending]
+### Dependencies: 12.1
+### Description: Create unit tests for the /api/generate endpoint specific to Ollama compatibility
+### Details:
+Test the generate endpoint with various prompts, model selection, context handling, and parameter configurations. Ensure proper transformation between Ollama and OpenAI formats
+
+## 4. Streaming Tests [pending]
+### Dependencies: 12.1, 12.2, 12.3
+### Description: Implement tests for Server-Sent Events (SSE) streaming functionality
+### Details:
+Create tests for streaming responses, proper SSE formatting, chunk handling, stream interruption, error handling during streams, and proper cleanup. Mock streaming responses from both Ollama and OpenRouter
+
+## 5. Error Case Tests [pending]
+### Dependencies: 12.1, 12.2, 12.3
+### Description: Develop comprehensive error handling and edge case tests
+### Details:
+Test invalid requests, malformed JSON, missing required fields, invalid model names, authentication failures, rate limit exceeded scenarios, upstream API errors, timeout handling, and network failures
+
+## 6. Model Endpoint Tests [pending]
+### Dependencies: 12.1
+### Description: Create tests for model listing and information endpoints
+### Details:
+Test /v1/models and /api/tags endpoints, model availability checks, proper merging of Ollama and OpenRouter models, model metadata transformation, and filtering capabilities
+
+## 7. Integration Test Framework [pending]
+### Dependencies: 12.1
+### Description: Set up integration testing infrastructure for end-to-end testing
+### Details:
+Create integration test setup with test containers or mock servers, configure separate test environment, implement helpers for spinning up test instances, and create utilities for testing full request/response cycles
+
+## 8. OpenRouter Integration Tests [pending]
+### Dependencies: 12.7
+### Description: Implement integration tests specifically for OpenRouter proxy functionality
+### Details:
+Test actual API calls to OpenRouter (with test API keys), verify proper request transformation, response handling, error propagation, and rate limiting. Include tests for various OpenRouter-specific models
+
+## 9. Coverage Configuration [pending]
+### Dependencies: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6
+### Description: Set up code coverage reporting and ensure comprehensive test coverage
+### Details:
+Configure coverage tools (Jest coverage or c8), set coverage thresholds (aim for >80%), identify uncovered code paths, create coverage reports in multiple formats, and integrate with code quality tools
+
+## 10. CI/CD Integration [pending]
+### Dependencies: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7, 12.8, 12.9
+### Description: Integrate testing suite into continuous integration pipeline
+### Details:
+Create GitHub Actions workflow for running tests, configure test matrix for different Node.js versions, set up automated testing on pull requests, integrate coverage reporting with PR comments, and configure test result notifications
+

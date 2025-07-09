@@ -1,0 +1,141 @@
+# Task ID: 6
+# Title: Implement Chat Translation Layer (Phase 1)
+# Status: pending
+# Dependencies: 5
+# Priority: high
+# Description: Create the text-only chat request/response translator for basic chat and generate endpoints without tool calling or image support
+# Details:
+Implement src/translators/chat.py for Phase 1 text-only support:
+```python
+from typing import Dict, Any, List
+from datetime import datetime
+import json
+from .base import BaseTranslator
+from ..models import (
+    OllamaGenerateRequest, OllamaChatRequest,
+    OpenAIChatRequest, OllamaResponse,
+    OpenAIMessage, OllamaChatMessage
+)
+from ..utils.exceptions import TranslationError
+
+class ChatTranslator(BaseTranslator):
+    def translate_request(self, ollama_request: Union[OllamaGenerateRequest, OllamaChatRequest]) -> OpenAIChatRequest:
+        # Phase 1: Reject requests with tools or images
+        if isinstance(ollama_request, OllamaChatRequest):
+            if ollama_request.tools:
+                raise TranslationError("Tool calling not supported in Phase 1")
+            for msg in ollama_request.messages:
+                if msg.images:
+                    raise TranslationError("Image inputs not supported in Phase 1")
+        
+        # Convert to messages format
+        if isinstance(ollama_request, OllamaGenerateRequest):
+            messages = [OpenAIMessage(role="user", content=ollama_request.prompt)]
+        else:
+            messages = [
+                OpenAIMessage(role=msg.role, content=msg.content)
+                for msg in ollama_request.messages
+            ]
+        
+        # Build OpenAI request
+        openai_request = {
+            "model": self.map_model_name(ollama_request.model, {}),
+            "messages": [msg.dict() for msg in messages],
+            "stream": ollama_request.stream
+        }
+        
+        # Add options
+        if ollama_request.options:
+            openai_request.update(self.extract_options(ollama_request.options.dict()))
+        
+        return OpenAIChatRequest(**openai_request)
+    
+    def translate_response(self, openai_response: Dict[str, Any], original_request) -> OllamaResponse:
+        # Handle streaming vs non-streaming
+        if original_request.stream:
+            # For streaming, translate each chunk
+            if 'choices' in openai_response and openai_response['choices']:
+                delta = openai_response['choices'][0].get('delta', {})
+                content = delta.get('content', '')
+                return OllamaResponse(
+                    model=openai_response.get('model', original_request.model),
+                    created_at=datetime.utcnow().isoformat(),
+                    response=content,
+                    done=openai_response.get('choices', [{}])[0].get('finish_reason') is not None
+                )
+        else:
+            # Non-streaming response
+            content = openai_response['choices'][0]['message']['content']
+            return OllamaResponse(
+                model=openai_response.get('model', original_request.model),
+                created_at=datetime.utcnow().isoformat(),
+                response=content,
+                done=True,
+                eval_count=openai_response.get('usage', {}).get('total_tokens')
+            )
+```
+
+# Test Strategy:
+Test translation of generate requests to chat format, verify chat message conversion preserves roles and content, test error handling for unsupported features (tools/images), verify streaming response translation, test non-streaming response translation with token counts
+
+# Subtasks:
+## 1. Implement request validation layer [pending]
+### Dependencies: None
+### Description: Create validation logic to check incoming OpenAI API requests for required fields and proper format
+### Details:
+Validate request structure, check for required fields (model, messages), validate message format, ensure request meets OpenAI API spec requirements. Return appropriate error responses for invalid requests.
+
+## 2. Build generate-to-chat conversion logic [pending]
+### Dependencies: 6.1
+### Description: Convert Ollama generate API responses to OpenAI chat completion format
+### Details:
+Map Ollama's generate endpoint response fields to OpenAI's chat completion response structure. Handle model name mapping, usage statistics conversion, and response metadata formatting.
+
+## 3. Create message format translation [pending]
+### Dependencies: 6.1
+### Description: Translate OpenAI message format to Ollama prompt format
+### Details:
+Convert OpenAI's role-based messages (system, user, assistant) to Ollama's prompt format. Handle conversation history concatenation and proper formatting for Ollama API.
+
+## 4. Implement options mapping [pending]
+### Dependencies: 6.1
+### Description: Map OpenAI request parameters to Ollama options
+### Details:
+Translate OpenAI parameters (temperature, max_tokens, top_p, etc.) to corresponding Ollama options. Handle parameter name differences and value range conversions.
+
+## 5. Build streaming response handler [pending]
+### Dependencies: 6.2, 6.3, 6.4
+### Description: Handle SSE streaming responses for real-time chat completions
+### Details:
+Implement Server-Sent Events (SSE) streaming for OpenAI-compatible responses. Convert Ollama's streaming format to OpenAI's delta format, handle chunk creation and proper SSE formatting.
+
+## 6. Create non-streaming response handler [pending]
+### Dependencies: 6.2, 6.3, 6.4
+### Description: Handle standard JSON responses for non-streaming requests
+### Details:
+Build logic to accumulate complete responses from Ollama and format them as OpenAI chat completion objects. Handle response assembly and final formatting.
+
+## 7. Implement error handling for unsupported features [pending]
+### Dependencies: 6.1
+### Description: Create comprehensive error responses for Phase 1 limitations
+### Details:
+Return appropriate error codes and messages for unsupported features: function calling, response format, logprobs, n>1, presence/frequency penalties. Use OpenAI-compatible error format.
+
+## 8. Build token count mapping [pending]
+### Dependencies: 6.2
+### Description: Map Ollama token statistics to OpenAI usage format
+### Details:
+Convert Ollama's token counting (eval_count, prompt_eval_count) to OpenAI's usage object format (prompt_tokens, completion_tokens, total_tokens). Ensure accurate token counting.
+
+## 9. Create comprehensive test suite [pending]
+### Dependencies: 6.5, 6.6, 6.7, 6.8
+### Description: Build unit and integration tests for all translation scenarios
+### Details:
+Write tests covering all translation paths, streaming/non-streaming modes, error cases, parameter mapping, and edge cases. Include fixtures for various request/response scenarios.
+
+## 10. Handle edge cases and special scenarios [pending]
+### Dependencies: 6.9
+### Description: Address corner cases in the translation layer
+### Details:
+Handle empty messages, long conversations, special characters in prompts, timeout scenarios, partial streaming responses, and unexpected Ollama API responses. Ensure graceful degradation.
+

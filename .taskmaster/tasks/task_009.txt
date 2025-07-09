@@ -1,0 +1,176 @@
+# Task ID: 9
+# Title: Implement Model Management Endpoints
+# Status: pending
+# Dependencies: 8
+# Priority: medium
+# Description: Create model listing endpoint that queries VLLM backend and error responses for unsupported model management operations
+# Details:
+Create src/routers/models.py:
+```python
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
+import httpx
+import logging
+from datetime import datetime
+from typing import List, Dict, Any
+from ..config import settings
+from ..utils.exceptions import UpstreamError
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+@router.get("/tags")
+async def list_models():
+    """List available models from VLLM backend"""
+    try:
+        async with httpx.AsyncClient(timeout=settings.request_timeout) as client:
+            response = await client.get(
+                f"{settings.openai_api_base_url}/models",
+                headers={"Authorization": f"Bearer {settings.openai_api_key}"}
+            )
+            
+            if response.status_code != 200:
+                raise UpstreamError(response.status_code, response.text)
+            
+            # Transform OpenAI model list to Ollama format
+            openai_models = response.json().get('data', [])
+            ollama_models = []
+            
+            for model in openai_models:
+                ollama_models.append({
+                    "name": model['id'],
+                    "modified_at": datetime.utcnow().isoformat(),
+                    "size": 0,  # Size not available from OpenAI API
+                    "digest": f"sha256:{model['id']}",  # Placeholder digest
+                    "details": {
+                        "format": "gguf",
+                        "family": model.get('owned_by', 'unknown'),
+                        "parameter_size": "unknown",
+                        "quantization_level": "unknown"
+                    }
+                })
+            
+            return {"models": ollama_models}
+            
+    except UpstreamError:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing models: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list models")
+
+@router.post("/pull")
+async def pull_model(body: Dict[str, Any]):
+    """Model pulling not supported - return appropriate error"""
+    return JSONResponse(
+        status_code=501,
+        content={
+            "error": {
+                "code": 501,
+                "message": "Model management operations (pull/push/delete) are not supported by the VLLM backend",
+                "type": "not_implemented"
+            }
+        }
+    )
+
+@router.post("/push")
+async def push_model(body: Dict[str, Any]):
+    """Model pushing not supported - return appropriate error"""
+    return JSONResponse(
+        status_code=501,
+        content={
+            "error": {
+                "code": 501,
+                "message": "Model management operations (pull/push/delete) are not supported by the VLLM backend",
+                "type": "not_implemented"
+            }
+        }
+    )
+
+@router.delete("/delete")
+async def delete_model(body: Dict[str, Any]):
+    """Model deletion not supported - return appropriate error"""
+    return JSONResponse(
+        status_code=501,
+        content={
+            "error": {
+                "code": 501,
+                "message": "Model management operations (pull/push/delete) are not supported by the VLLM backend",
+                "type": "not_implemented"
+            }
+        }
+    )
+
+@router.get("/version")
+async def get_version():
+    """Return API version information"""
+    return {
+        "version": "0.1.105",  # Ollama version we're emulating
+        "proxy_version": "1.0.0",
+        "backend": settings.openai_api_base_url
+    }
+
+@router.post("/show")
+async def show_model(body: Dict[str, Any]):
+    """Show model information"""
+    model_name = body.get('name', '')
+    
+    # For now, return basic info since OpenAI doesn't provide detailed model info
+    return {
+        "license": "See model provider",
+        "modelfile": f"FROM {model_name}",
+        "parameters": "temperature 0.7\ntop_p 0.9",
+        "template": "{{ .Prompt }}",
+        "details": {
+            "format": "gguf",
+            "family": "unknown",
+            "parameter_size": "unknown"
+        }
+    }
+```
+
+# Test Strategy:
+Test model listing returns correct Ollama format, verify 501 errors for pull/push/delete operations, test version endpoint returns correct format, verify show endpoint returns valid model info, test error handling for upstream failures
+
+# Subtasks:
+## 1. Implement Model Listing Endpoint [pending]
+### Dependencies: None
+### Description: Create the /api/tags endpoint to list available models from Ollama
+### Details:
+Implement GET /api/tags endpoint that calls Ollama's /api/tags endpoint, retrieves the model list, and returns it in the expected format. Handle connection errors and empty model lists gracefully.
+
+## 2. Create Format Transformation Logic [pending]
+### Dependencies: None
+### Description: Build utility functions to transform Ollama model data to OpenAI-compatible format
+### Details:
+Create transformation functions that convert Ollama model objects to OpenAI model format, including mapping model names, adding required fields like 'object', 'created', and 'owned_by', and handling any format differences.
+
+## 3. Implement Pull Operation Handler [pending]
+### Dependencies: None
+### Description: Create endpoint handler for model pull requests with appropriate error response
+### Details:
+Implement POST /api/pull endpoint that returns a 501 Not Implemented status with a clear error message indicating that model pulling is not supported in this OpenAI-compatible interface.
+
+## 4. Implement Push and Delete Handlers [pending]
+### Dependencies: 9.3
+### Description: Create endpoint handlers for push and delete operations with error responses
+### Details:
+Implement POST /api/push and DELETE /api/delete endpoints that return 501 Not Implemented status with appropriate error messages. Ensure consistent error format across all unsupported operations.
+
+## 5. Create Version Information Endpoint [pending]
+### Dependencies: None
+### Description: Implement the version endpoint to return Ollama version information
+### Details:
+Create GET /api/version endpoint that queries Ollama's version endpoint and returns the version information. Add middleware version info if needed for debugging purposes.
+
+## 6. Implement Model Show Endpoint [pending]
+### Dependencies: 9.2
+### Description: Create endpoint to show detailed information about a specific model
+### Details:
+Implement POST /api/show endpoint that accepts a model name, queries Ollama for detailed model information, transforms it to OpenAI-compatible format, and returns the result. Handle cases where the model doesn't exist.
+
+## 7. Add Comprehensive Error Handling and Testing [pending]
+### Dependencies: 9.1, 9.3, 9.4, 9.5, 9.6
+### Description: Implement error handling middleware and create tests for all endpoints
+### Details:
+Add global error handling for network failures, invalid requests, and Ollama service unavailability. Create unit and integration tests for all endpoints, including success cases, error cases, and edge cases like malformed requests.
+
