@@ -63,6 +63,9 @@ cover/
 .dmypy.json
 dmypy.json
 
+# Ruff
+.ruff_cache/
+
 # Logs
 logs/
 *.log
