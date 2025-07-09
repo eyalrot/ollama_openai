@@ -17,7 +17,7 @@ logger = setup_logging(level=settings.LOG_LEVEL)
 app = FastAPI(
     title="Ollama to OpenAI Proxy",
     description="A proxy service that translates Ollama API calls to OpenAI-compatible endpoints",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # Configure CORS
@@ -42,5 +42,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=settings.PROXY_PORT,
         reload=settings.DEBUG,
-        log_level=settings.LOG_LEVEL.lower()
+        log_level=settings.LOG_LEVEL.lower(),
     )

@@ -3,12 +3,13 @@ Pydantic models for request/response validation.
 """
 
 from typing import Dict, List, Optional, Union, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 # Ollama API Models
 class OllamaGenerateRequest(BaseModel):
     """Request model for Ollama generate endpoint."""
+
     model: str
     prompt: str
     images: Optional[List[str]] = None
@@ -22,6 +23,7 @@ class OllamaGenerateRequest(BaseModel):
 
 class OllamaChatMessage(BaseModel):
     """Chat message model for Ollama."""
+
     role: str
     content: str
     images: Optional[List[str]] = None
@@ -29,6 +31,7 @@ class OllamaChatMessage(BaseModel):
 
 class OllamaChatRequest(BaseModel):
     """Request model for Ollama chat endpoint."""
+
     model: str
     messages: List[OllamaChatMessage]
     stream: bool = True
@@ -38,6 +41,7 @@ class OllamaChatRequest(BaseModel):
 
 class OllamaGenerateResponse(BaseModel):
     """Response model for Ollama generate endpoint."""
+
     model: str
     created_at: str
     response: str
@@ -54,6 +58,7 @@ class OllamaGenerateResponse(BaseModel):
 # OpenAI API Models
 class OpenAIMessage(BaseModel):
     """OpenAI chat message model."""
+
     role: str
     content: Union[str, List[Dict[str, Any]]]
     name: Optional[str] = None
@@ -61,6 +66,7 @@ class OpenAIMessage(BaseModel):
 
 class OpenAIChatRequest(BaseModel):
     """OpenAI chat completion request model."""
+
     model: str
     messages: List[OpenAIMessage]
     temperature: Optional[float] = 1.0
@@ -77,6 +83,7 @@ class OpenAIChatRequest(BaseModel):
 
 class OpenAIChoice(BaseModel):
     """OpenAI response choice model."""
+
     index: int
     message: OpenAIMessage
     finish_reason: Optional[str] = None
@@ -84,6 +91,7 @@ class OpenAIChoice(BaseModel):
 
 class OpenAIUsage(BaseModel):
     """OpenAI token usage model."""
+
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
@@ -91,6 +99,7 @@ class OpenAIUsage(BaseModel):
 
 class OpenAIChatResponse(BaseModel):
     """OpenAI chat completion response model."""
+
     id: str
     object: str = "chat.completion"
     created: int
@@ -103,6 +112,7 @@ class OpenAIChatResponse(BaseModel):
 # Model listing models
 class ModelInfo(BaseModel):
     """Model information."""
+
     name: str
     modified_at: str
     size: int
@@ -112,4 +122,5 @@ class ModelInfo(BaseModel):
 
 class ModelsResponse(BaseModel):
     """Response for model listing."""
+
     models: List[ModelInfo]

@@ -19,7 +19,7 @@ async def pull_model(model: dict):
     """Pull model endpoint - not supported."""
     raise HTTPException(
         status_code=501,
-        detail="Model management operations (pull/push/delete) are not supported by the VLLM backend"
+        detail="Model management operations (pull/push/delete) are not supported by the VLLM backend",
     )
 
 
@@ -28,7 +28,7 @@ async def push_model(model: dict):
     """Push model endpoint - not supported."""
     raise HTTPException(
         status_code=501,
-        detail="Model management operations (pull/push/delete) are not supported by the VLLM backend"
+        detail="Model management operations (pull/push/delete) are not supported by the VLLM backend",
     )
 
 
@@ -37,7 +37,7 @@ async def delete_model(model: dict):
     """Delete model endpoint - not supported."""
     raise HTTPException(
         status_code=501,
-        detail="Model management operations (pull/push/delete) are not supported by the VLLM backend"
+        detail="Model management operations (pull/push/delete) are not supported by the VLLM backend",
     )
 
 

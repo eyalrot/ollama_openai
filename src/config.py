@@ -3,7 +3,6 @@ Configuration management for the Ollama to OpenAI proxy service.
 """
 
 import json
-from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Optional, Any
 
@@ -13,73 +12,67 @@ from pydantic import Field, HttpUrl, field_validator, model_validator
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
-    
+
     # Required settings
     OPENAI_API_BASE_URL: HttpUrl = Field(
         ...,
-        description="Base URL for the OpenAI-compatible API (e.g., http://vllm-server:8000/v1)"
+        description="Base URL for the OpenAI-compatible API (e.g., http://vllm-server:8000/v1)",
     )
     OPENAI_API_KEY: str = Field(
-        ...,
-        description="API key for authentication with the OpenAI-compatible server"
+        ..., description="API key for authentication with the OpenAI-compatible server"
     )
-    
+
     # Optional settings
     PROXY_PORT: int = Field(
         default=11434,
         description="Port for the proxy server to listen on",
         ge=1,
-        le=65535
+        le=65535,
     )
     LOG_LEVEL: str = Field(
         default="INFO",
-        description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+        description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
     )
     REQUEST_TIMEOUT: int = Field(
-        default=60,
-        description="Request timeout in seconds",
-        ge=1,
-        le=600
+        default=60, description="Request timeout in seconds", ge=1, le=600
     )
     MAX_RETRIES: int = Field(
         default=3,
         description="Maximum number of retry attempts for failed requests",
         ge=0,
-        le=10
+        le=10,
     )
     MODEL_MAPPING_FILE: Optional[str] = Field(
-        default=None,
-        description="Path to optional model name mapping JSON file"
+        default=None, description="Path to optional model name mapping JSON file"
     )
-    DEBUG: bool = Field(
-        default=False,
-        description="Enable debug mode"
-    )
-    
+    DEBUG: bool = Field(default=False, description="Enable debug mode")
+
     # Runtime properties (not from env)
     _model_mappings: Optional[Dict[str, str]] = None
-    
+
     @field_validator("LOG_LEVEL")
     @classmethod
     def validate_log_level(cls, v: str) -> str:
         """Validate log level is valid."""
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in valid_levels:
-            raise ValueError(f"Invalid log level. Must be one of: {', '.join(valid_levels)}")
+            raise ValueError(
+                f"Invalid log level. Must be one of: {', '.join(valid_levels)}"
+            )
         return v.upper()
-    
-    @field_validator("OPENAI_API_BASE_URL", mode='before')
+
+    @field_validator("OPENAI_API_BASE_URL", mode="before")
     @classmethod
     def validate_base_url(cls, v: Any) -> Any:
         """Ensure base URL ends with /v1 if not already present."""
         if isinstance(v, str):
             # Remove any trailing slashes first
-            v = v.rstrip('/')
+            v = v.rstrip("/")
             # Add /v1 if not present
-            if not v.endswith('/v1'):
+            if not v.endswith("/v1"):
                 v = f"{v}/v1"
         return v
-    
+
     @field_validator("OPENAI_API_KEY")
     @classmethod
     def validate_api_key(cls, v: str) -> str:
@@ -87,7 +80,7 @@ class Settings(BaseSettings):
         if not v or v.strip() == "":
             raise ValueError("OPENAI_API_KEY cannot be empty")
         return v.strip()
-    
+
     @field_validator("MODEL_MAPPING_FILE")
     @classmethod
     def validate_mapping_file(cls, v: Optional[str]) -> Optional[str]:
@@ -98,51 +91,54 @@ class Settings(BaseSettings):
                 raise ValueError(f"Model mapping file not found: {v}")
             if not path.is_file():
                 raise ValueError(f"Model mapping path is not a file: {v}")
-            if path.suffix not in ['.json', '.JSON']:
+            if path.suffix not in [".json", ".JSON"]:
                 raise ValueError(f"Model mapping file must be JSON: {v}")
         return v
-    
-    @model_validator(mode='after')
-    def validate_timeout_vs_retries(self) -> 'Settings':
+
+    @model_validator(mode="after")
+    def validate_timeout_vs_retries(self) -> "Settings":
         """Ensure timeout is reasonable given retry settings."""
         # Warn if total timeout could exceed 10 minutes
         total_possible_time = self.REQUEST_TIMEOUT * (self.MAX_RETRIES + 1)
         if total_possible_time > 600:  # 10 minutes
             import warnings
+
             warnings.warn(
                 f"Total timeout with retries could exceed {total_possible_time}s. "
                 f"Consider reducing REQUEST_TIMEOUT or MAX_RETRIES."
             )
-        
+
         return self
-    
+
     def load_model_mappings(self) -> Dict[str, str]:
         """Load model mappings from file if specified."""
         if self._model_mappings is not None:
             return self._model_mappings
-        
+
         self._model_mappings = {}
-        
+
         if self.MODEL_MAPPING_FILE:
             try:
-                with open(self.MODEL_MAPPING_FILE, 'r') as f:
+                with open(self.MODEL_MAPPING_FILE, "r") as f:
                     mappings = json.load(f)
-                    
+
                 if not isinstance(mappings, dict):
                     raise ValueError("Model mappings must be a JSON object")
-                
+
                 # Validate all mappings are string to string
                 for key, value in mappings.items():
                     if not isinstance(key, str) or not isinstance(value, str):
-                        raise ValueError(f"Invalid mapping: {key} -> {value}. Both must be strings.")
-                
+                        raise ValueError(
+                            f"Invalid mapping: {key} -> {value}. Both must be strings."
+                        )
+
                 self._model_mappings = mappings
-                
+
             except json.JSONDecodeError as e:
                 raise ValueError(f"Invalid JSON in model mapping file: {e}")
             except Exception as e:
                 raise ValueError(f"Error loading model mappings: {e}")
-        
+
         # Add default mappings if not overridden
         default_mappings = {
             "llama2": "meta-llama/Llama-2-7b-chat-hf",
@@ -154,23 +150,23 @@ class Settings(BaseSettings):
             "gemma": "google/gemma-7b-it",
             "phi": "microsoft/phi-2",
         }
-        
+
         for key, value in default_mappings.items():
             if key not in self._model_mappings:
                 self._model_mappings[key] = value
-        
+
         return self._model_mappings
-    
+
     def get_mapped_model_name(self, ollama_model: str) -> str:
         """Get the mapped model name for an Ollama model."""
         mappings = self.load_model_mappings()
         return mappings.get(ollama_model, ollama_model)
-    
+
     model_config = {
         "env_file": ".env",
         "case_sensitive": True,
         "extra": "ignore",
-        "arbitrary_types_allowed": True
+        "arbitrary_types_allowed": True,
     }
 
 
@@ -181,7 +177,7 @@ _settings: Optional[Settings] = None
 def get_settings() -> Settings:
     """
     Get the global settings instance (singleton pattern).
-    
+
     Returns:
         Settings: The global settings instance
     """
@@ -198,5 +194,3 @@ def reset_settings() -> None:
     """
     global _settings
     _settings = None
-
-
