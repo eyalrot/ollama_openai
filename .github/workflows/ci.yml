@@ -37,7 +37,7 @@ jobs:
     
     - name: Run ruff linter
       run: |
-        ruff check src/ tests/ --format=github
+        ruff check src/ tests/ --output-format=github
     
     - name: Run black formatter check
       run: |
