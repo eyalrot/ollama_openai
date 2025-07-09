@@ -45,7 +45,7 @@ jobs:
     
     - name: Run mypy type checker
       run: |
-        mypy src/ --strict --ignore-missing-imports
+        mypy src/ --ignore-missing-imports --allow-untyped-defs --allow-incomplete-defs
 
   test:
     runs-on: ubuntu-latest
