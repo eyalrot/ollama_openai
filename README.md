@@ -1,5 +1,7 @@
 # Ollama to OpenAI Proxy Service
 
+[![CI Pipeline](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml)
+
 A transparent proxy service that maintains the Ollama API interface while forwarding requests to OpenAI-compatible endpoints (such as VLLM).
 
 ## Overview
