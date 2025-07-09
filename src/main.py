@@ -2,22 +2,61 @@
 Main entry point for the Ollama to OpenAI proxy service.
 """
 
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from typing import Any, Dict
+import uuid
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import uvicorn
 
 from src.config import get_settings
-from src.utils.logging import setup_logging
+from src.utils.logging import setup_logging, get_logger
+from src.utils.exceptions import ProxyException, UpstreamError
+from src.routers import chat, models, embeddings
+from src.middleware.logging_middleware import LoggingMiddleware
 
 # Initialize settings and logging
 settings = get_settings()
-logger = setup_logging(level=settings.LOG_LEVEL)
+setup_logging(level=settings.LOG_LEVEL)
+logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Manage application lifecycle.
+    
+    Handles startup and shutdown events.
+    """
+    # Startup
+    logger.info(
+        "Starting Ollama-OpenAI Proxy",
+        extra={
+            "extra_data": {
+                "proxy_port": settings.PROXY_PORT,
+                "target_url": settings.OPENAI_API_BASE_URL,
+                "log_level": settings.LOG_LEVEL,
+                "version": "1.0.0"
+            }
+        }
+    )
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down Ollama-OpenAI Proxy")
+
 
 # Create FastAPI app
 app = FastAPI(
-    title="Ollama to OpenAI Proxy",
-    description="A proxy service that translates Ollama API calls to OpenAI-compatible endpoints",
-    version="0.1.0",
+    title="Ollama-OpenAI Proxy",
+    description="Proxy service to translate Ollama API calls to OpenAI format",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
 )
 
 # Configure CORS
@@ -27,13 +66,150 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
 
+# Add request ID middleware
+@app.middleware("http")
+async def add_request_id_middleware(request: Request, call_next):
+    """Add unique request ID to each request."""
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    request.state.request_id = request_id
+    
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": "ollama-openai-proxy"}
+# Add logging middleware
+app.add_middleware(LoggingMiddleware)
+
+# Error handlers
+@app.exception_handler(ProxyException)
+async def proxy_exception_handler(request: Request, exc: ProxyException) -> JSONResponse:
+    """Handle proxy-specific exceptions."""
+    return JSONResponse(
+        status_code=exc.error_code or 400,
+        content={
+            "error": {
+                "message": str(exc),
+                "type": exc.__class__.__name__,
+                "code": exc.error_code,
+                "details": exc.details
+            }
+        },
+        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")}
+    )
+
+@app.exception_handler(UpstreamError)
+async def upstream_error_handler(request: Request, exc: UpstreamError) -> JSONResponse:
+    """Handle upstream service errors."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "message": str(exc),
+                "type": "upstream_error",
+                "status_code": exc.status_code,
+                "service": exc.service,
+                "details": exc.details
+            }
+        },
+        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")}
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Handle unexpected exceptions."""
+    logger.error(
+        f"Unexpected error: {str(exc)}",
+        exc_info=exc,
+        extra={
+            "extra_data": {
+                "request_id": getattr(request.state, "request_id", "unknown"),
+                "path": request.url.path,
+                "method": request.method
+            }
+        }
+    )
+    
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "message": "Internal server error",
+                "type": "internal_error",
+                "request_id": getattr(request.state, "request_id", "unknown")
+            }
+        },
+        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")}
+    )
+
+# Include routers
+app.include_router(chat.router, prefix="/v1", tags=["chat"])
+app.include_router(models.router, prefix="/v1", tags=["models"])
+app.include_router(embeddings.router, prefix="/v1", tags=["embeddings"])
+
+# Also include Ollama-style endpoints
+app.include_router(chat.router, prefix="/api", tags=["ollama-chat"])
+app.include_router(models.router, prefix="/api", tags=["ollama-models"])
+app.include_router(embeddings.router, prefix="/api", tags=["ollama-embeddings"])
+
+# Health check endpoints
+@app.get("/health", tags=["health"])
+async def health_check() -> Dict[str, Any]:
+    """Basic health check endpoint."""
+    return {
+        "status": "healthy",
+        "service": "ollama-openai-proxy",
+        "version": "1.0.0"
+    }
+
+@app.get("/ready", tags=["health"])
+async def readiness_check() -> Dict[str, Any]:
+    """
+    Readiness check endpoint.
+    
+    Verifies the service is ready to handle requests.
+    """
+    # In the future, this could check:
+    # - Database connections
+    # - External service availability
+    # - Model loading status
+    
+    return {
+        "status": "ready",
+        "service": "ollama-openai-proxy",
+        "checks": {
+            "config": "ok",
+            "logging": "ok"
+        }
+    }
+
+# Root endpoint
+@app.get("/", tags=["info"])
+async def root() -> Dict[str, Any]:
+    """Root endpoint with service information."""
+    return {
+        "service": "Ollama-OpenAI Proxy",
+        "version": "1.0.0",
+        "description": "Proxy service to translate Ollama API calls to OpenAI format",
+        "endpoints": {
+            "health": "/health",
+            "ready": "/ready",
+            "docs": "/docs" if settings.DEBUG else None,
+            "openai": {
+                "chat": "/v1/chat/completions",
+                "models": "/v1/models",
+                "embeddings": "/v1/embeddings"
+            },
+            "ollama": {
+                "generate": "/api/generate",
+                "chat": "/api/chat",
+                "models": "/api/tags",
+                "embeddings": "/api/embeddings"
+            }
+        }
+    }
 
 
 if __name__ == "__main__":
