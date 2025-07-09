@@ -137,7 +137,7 @@ async def stream_response(
                 if line == "data: [DONE]":
                     # Send final chunk
                     final_chunk = translator.translate_streaming_response(
-                        "[DONE]",
+                        "[DONE]",  # type: ignore
                         original_request,
                         is_last_chunk=True,
                     )

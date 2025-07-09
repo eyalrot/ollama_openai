@@ -194,7 +194,7 @@ class ModelNotFoundError(ProxyException):
             available_models: Optional list of available models
         """
         message = f"Model '{model_name}' not found"
-        details = {"requested_model": model_name}
+        details: Dict[str, Any] = {"requested_model": model_name}
         if available_models:
             details["available_models"] = list(available_models)
             message += f". Available models: {', '.join(available_models[:5])}"

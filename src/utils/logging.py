@@ -84,7 +84,9 @@ class JSONFormatter(logging.Formatter):
         # Add exception info if present
         if record.exc_info and "exception" not in self.exclude_fields:
             log_object["exception"] = {
-                "type": record.exc_info[0].__name__ if record.exc_info[0] else "Unknown",
+                "type": (
+                    record.exc_info[0].__name__ if record.exc_info[0] else "Unknown"
+                ),
                 "message": str(record.exc_info[1]),
                 "traceback": self.formatException(record.exc_info).split("\n"),
             }

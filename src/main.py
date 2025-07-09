@@ -97,10 +97,10 @@ async def proxy_exception_handler(
 ) -> JSONResponse:
     """Handle proxy-specific exceptions."""
     return JSONResponse(
-        status_code=exc.error_code or 400,
+        status_code=400,  # ProxyException doesn't have a status_code attribute
         content={
             "error": {
-                "message": str(exc),
+                "message": exc.message,
                 "type": exc.__class__.__name__,
                 "code": exc.error_code,
                 "details": exc.details,
@@ -117,10 +117,10 @@ async def upstream_error_handler(request: Request, exc: UpstreamError) -> JSONRe
         status_code=exc.status_code,
         content={
             "error": {
-                "message": str(exc),
+                "message": exc.message,
                 "type": "upstream_error",
                 "status_code": exc.status_code,
-                "service": exc.service,
+                "service": exc.details.get("service") if "service" in exc.details else None,
                 "details": exc.details,
             }
         },

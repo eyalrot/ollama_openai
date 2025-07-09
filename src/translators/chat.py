@@ -269,10 +269,10 @@ class ChatTranslator(
         if isinstance(request, OllamaGenerateRequest):
             # For generate requests, create a single user message
             if request.system:
-                messages.append(OpenAIMessage(role="system", content=request.system))
+                messages.append(OpenAIMessage(role="system", content=request.system))  # type: ignore[call-arg]
 
             # Add the prompt as a user message
-            messages.append(OpenAIMessage(role="user", content=request.prompt))
+            messages.append(OpenAIMessage(role="user", content=request.prompt))  # type: ignore[call-arg]
 
         else:  # OllamaChatRequest
             # Convert each message
@@ -284,7 +284,7 @@ class ChatTranslator(
                     self.logger.warning(f"Unknown role '{role}', defaulting to 'user'")
                     role = "user"
 
-                messages.append(OpenAIMessage(role=role, content=msg.content))
+                messages.append(OpenAIMessage(role=role, content=msg.content))  # type: ignore[call-arg]
 
         return messages
 
@@ -314,7 +314,7 @@ class ChatTranslator(
             finish_reason = choice.finish_reason
 
         # Build streaming response - use OllamaGenerateResponse for streaming
-        response = OllamaGenerateResponse(
+        response = OllamaGenerateResponse(  # type: ignore[call-arg]
             model=self.reverse_map_model_name(openai_response.model),
             created_at=self.get_iso_timestamp(),
             response=content,
@@ -349,11 +349,11 @@ class ChatTranslator(
         if openai_response.choices:
             choice = openai_response.choices[0]
             if choice.message:
-                content = choice.message.content or ""
+                content = choice.message.content or ""  # type: ignore[assignment]
             finish_reason = choice.finish_reason or "stop"
 
         # Build response - use OllamaGenerateResponse which matches Ollama's generate API
-        response = OllamaGenerateResponse(
+        response = OllamaGenerateResponse(  # type: ignore[call-arg]
             model=self.reverse_map_model_name(openai_response.model),
             created_at=self.get_iso_timestamp(),
             response=content,

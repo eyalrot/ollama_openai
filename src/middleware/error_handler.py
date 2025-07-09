@@ -2,7 +2,7 @@
 Error handling middleware for FastAPI.
 """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Dict, Any
 import traceback
 
 from fastapi import Request, Response
@@ -164,7 +164,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         )
 
         # Create a generic error response
-        error_dict = {
+        error_dict: Dict[str, Any] = {
             "error": {
                 "type": "InternalServerError",
                 "code": "INTERNAL_ERROR",

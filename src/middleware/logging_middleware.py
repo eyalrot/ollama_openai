@@ -5,7 +5,7 @@ Logging middleware for FastAPI with request ID tracking.
 import time
 import uuid
 import json
-from typing import Callable, Optional, Dict
+from typing import Callable, Optional, Dict, Any
 
 from fastapi import Request, Response
 from fastapi.responses import StreamingResponse
@@ -109,7 +109,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
     async def _log_request(self, request: Request, request_id: str) -> None:
         """Log incoming request details."""
-        log_data = {
+        log_data: Dict[str, Any] = {
             "event": "request",
             "request_id": request_id,
             "method": request.method,
@@ -147,7 +147,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         request_id: str,
     ) -> None:
         """Log response details."""
-        log_data = {
+        log_data: Dict[str, Any] = {
             "event": "response",
             "request_id": request_id,
             "method": request.method,
@@ -193,7 +193,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         request_id: str,
     ) -> None:
         """Log error details."""
-        log_data = {
+        log_data: Dict[str, Any] = {
             "event": "error",
             "request_id": request_id,
             "method": request.method,

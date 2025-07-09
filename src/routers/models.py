@@ -87,7 +87,7 @@ async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
                     model.created, tz=timezone.utc
                 ).isoformat()
 
-                ollama_model = OllamaModelInfo(
+                ollama_model = OllamaModelInfo(  # type: ignore[call-arg]
                     name=model.id,
                     model=model.id,
                     modified_at=modified_at,

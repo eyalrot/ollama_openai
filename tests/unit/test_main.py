@@ -104,11 +104,15 @@ class TestMiddleware:
             headers={
                 "Origin": "http://localhost:3000",
                 "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "content-type",
             },
         )
         assert response.status_code == 200
         assert "access-control-allow-origin" in response.headers
-        assert response.headers["access-control-allow-origin"] == "*"
+        # When allow_credentials=True and allow_origins=["*"], FastAPI echoes back the origin
+        assert (
+            response.headers["access-control-allow-origin"] == "http://localhost:3000"
+        )
         assert "access-control-allow-methods" in response.headers
         assert "access-control-allow-headers" in response.headers
 
