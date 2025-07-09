@@ -12,6 +12,8 @@ This proxy allows you to migrate from Ollama to OpenAI-compatible LLM servers wi
 - Full compatibility with Ollama Python SDK
 - Supports text generation and chat endpoints
 - Configurable model name mapping
+- Streaming response support
+- Automatic retry with exponential backoff
 - Docker and standalone Python deployment options
 
 ## Quick Start
@@ -43,6 +45,26 @@ The proxy will start on port 11434 (Ollama's default port).
 ## Configuration
 
 See `.env.example` for all available configuration options.
+
+### Model Name Mapping
+
+The proxy can automatically map Ollama model names to their OpenAI/VLLM equivalents. For example, `llama2` can be mapped to `meta-llama/Llama-2-7b-chat-hf`.
+
+To use custom model mappings:
+
+1. Create a mapping file (see `config/model_map.example.json` for format)
+2. Set the `MODEL_MAPPING_FILE` environment variable to point to your file
+
+Example mapping file:
+```json
+{
+  "llama2": "meta-llama/Llama-2-7b-chat-hf",
+  "mistral": "mistralai/Mistral-7B-Instruct-v0.1",
+  "my-custom-model": "org/my-fine-tuned-model"
+}
+```
+
+See `docs/MODEL_MAPPING.md` for detailed documentation.
 
 ## Development
 

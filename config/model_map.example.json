@@ -1,0 +1,17 @@
+{
+  "_comment": "Model mapping configuration for Ollama to OpenAI/VLLM proxy",
+  "_description": "Maps Ollama model names (keys) to their OpenAI/VLLM equivalents (values)",
+  "_usage": "Set MODEL_MAPPING_FILE environment variable to the path of your mapping file",
+  "_note": "These mappings override the default mappings built into the application",
+  
+  "_example_mappings": "Common Ollama to Hugging Face model mappings",
+  
+  "llama2": "meta-llama/Llama-2-7b-chat-hf",
+  "llama2:7b": "meta-llama/Llama-2-7b-chat-hf",
+  "llama2:13b": "meta-llama/Llama-2-13b-chat-hf",
+  "llama2:70b": "meta-llama/Llama-2-70b-chat-hf",
+  
+  "_custom_mappings": "Add your custom mappings below",
+  "my-custom-model": "organization/custom-model-name",
+  "local-fine-tuned": "path/to/local/model"
+}
