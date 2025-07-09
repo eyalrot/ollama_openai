@@ -1,0 +1,53 @@
+# CI/CD specific Dockerfile for running tests and linting
+FROM python:3.12-slim
+
+# Install system dependencies for testing
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    git \
+    curl \
+    make \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files first for better caching
+COPY requirements.txt requirements-dev.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+
+# Install additional CI tools that might not be in requirements-dev.txt
+RUN pip install --no-cache-dir \
+    pytest-cov \
+    pytest-xdist \
+    pytest-timeout \
+    pytest-mock \
+    black \
+    ruff \
+    mypy \
+    bandit \
+    coverage[toml]
+
+# Create non-root user for security
+RUN useradd -m -u 1000 -s /bin/bash ciuser && \
+    chown -R ciuser:ciuser /app
+
+# Create directories for test outputs
+RUN mkdir -p /app/htmlcov /app/coverage /app/.pytest_cache && \
+    chown -R ciuser:ciuser /app/htmlcov /app/coverage /app/.pytest_cache
+
+# Switch to non-root user
+USER ciuser
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app
+
+# Default command runs tests
+CMD ["pytest", "tests/unit/", "-v"]

@@ -6,7 +6,7 @@ and returning appropriate errors for unsupported model management operations.
 """
 
 from datetime import datetime, timezone
-from typing import Dict, Any, List
+from typing import List
 import hashlib
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -23,7 +23,6 @@ from src.models import (
     OllamaShowRequest,
     OllamaVersionResponse,
     OpenAIModelsResponse,
-    ErrorResponse,
 )
 from src.config import get_settings
 from src.utils.exceptions import UpstreamError
@@ -39,16 +38,16 @@ settings = get_settings()
 async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
     """
     List available models from the OpenAI-compatible backend.
-    
+
     Translates OpenAI model format to Ollama format.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     logger.info(
-        f"Models list request received",
+        "Models list request received",
         extra={"extra_data": {"request_id": request_id}},
     )
-    
+
     try:
         # Query OpenAI-compatible backend for models
         async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
@@ -56,10 +55,10 @@ async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
                 f"{settings.OPENAI_API_BASE_URL}/models",
                 headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
             )
-            
+
             if response.status_code != 200:
                 logger.error(
-                    f"Backend error listing models",
+                    "Backend error listing models",
                     extra={
                         "extra_data": {
                             "status_code": response.status_code,
@@ -73,21 +72,21 @@ async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
                     service="openai",
                     details={"response": response.text[:500]},
                 )
-            
+
             # Parse OpenAI response
             openai_response = OpenAIModelsResponse(**response.json())
-            
+
             # Transform to Ollama format
             ollama_models: List[OllamaModelInfo] = []
             for model in openai_response.data:
                 # Generate a consistent digest from model ID
                 digest_hash = hashlib.sha256(model.id.encode()).hexdigest()
-                
+
                 # Convert created timestamp to ISO format
                 modified_at = datetime.fromtimestamp(
                     model.created, tz=timezone.utc
                 ).isoformat()
-                
+
                 ollama_model = OllamaModelInfo(
                     name=model.id,
                     model=model.id,
@@ -103,9 +102,9 @@ async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
                     },
                 )
                 ollama_models.append(ollama_model)
-            
+
             return OllamaModelsResponse(models=ollama_models)
-            
+
     except UpstreamError:
         raise
     except httpx.TimeoutException:
@@ -115,7 +114,7 @@ async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
             detail="Timeout while listing models",
         )
     except Exception as e:
-        logger.error(f"Error listing models", exc_info=e)
+        logger.error("Error listing models", exc_info=e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list models",
@@ -129,16 +128,16 @@ async def pull_model(
 ) -> JSONResponse:
     """
     Model pulling not supported - return appropriate error.
-    
+
     This operation is not supported as models are managed by the backend.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     logger.warning(
         f"Unsupported pull request for model: {request.name}",
         extra={"extra_data": {"request_id": request_id, "model": request.name}},
     )
-    
+
     return JSONResponse(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         content={
@@ -159,16 +158,16 @@ async def push_model(
 ) -> JSONResponse:
     """
     Model pushing not supported - return appropriate error.
-    
+
     This operation is not supported as models are managed by the backend.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     logger.warning(
         f"Unsupported push request for model: {request.name}",
         extra={"extra_data": {"request_id": request_id, "model": request.name}},
     )
-    
+
     return JSONResponse(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         content={
@@ -189,16 +188,16 @@ async def delete_model(
 ) -> JSONResponse:
     """
     Model deletion not supported - return appropriate error.
-    
+
     This operation is not supported as models are managed by the backend.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     logger.warning(
         f"Unsupported delete request for model: {request.name}",
         extra={"extra_data": {"request_id": request_id, "model": request.name}},
     )
-    
+
     return JSONResponse(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         content={
@@ -216,16 +215,16 @@ async def delete_model(
 async def get_version(fastapi_request: Request) -> OllamaVersionResponse:
     """
     Return API version information.
-    
+
     Returns both the Ollama version we're emulating and proxy information.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     logger.info(
-        f"Version request received",
+        "Version request received",
         extra={"extra_data": {"request_id": request_id}},
     )
-    
+
     return OllamaVersionResponse(
         version="0.1.42",  # Ollama version we're emulating
     )
@@ -238,12 +237,12 @@ async def show_model(
 ) -> OllamaShowResponse:
     """
     Show model information.
-    
+
     Since OpenAI API doesn't provide detailed model information like Ollama,
     we return a basic response with default values.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     logger.info(
         f"Show model request for: {request.name}",
         extra={
@@ -254,7 +253,7 @@ async def show_model(
             }
         },
     )
-    
+
     # First, verify the model exists by listing models
     try:
         async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
@@ -262,14 +261,14 @@ async def show_model(
                 f"{settings.OPENAI_API_BASE_URL}/models",
                 headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
             )
-            
+
             if response.status_code == 200:
                 models_data = response.json()
                 model_exists = any(
-                    model.get("id") == request.name 
+                    model.get("id") == request.name
                     for model in models_data.get("data", [])
                 )
-                
+
                 if not model_exists:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
@@ -278,7 +277,7 @@ async def show_model(
     except httpx.RequestError:
         # If we can't verify, proceed anyway
         pass
-    
+
     # Return basic model information
     # Since OpenAI doesn't provide modelfile/template info, we create defaults
     modelfile = f"""FROM {request.name}
@@ -291,19 +290,19 @@ PARAMETER num_predict 128
 
 # System message
 SYSTEM You are a helpful assistant."""
-    
+
     parameters = """temperature 0.7
 top_p 0.9
 top_k 40
 num_predict 128"""
-    
+
     template = """{{ if .System }}<|im_start|>system
 {{ .System }}<|im_end|>
 {{ end }}{{ if .Prompt }}<|im_start|>user
 {{ .Prompt }}<|im_end|>
 {{ end }}<|im_start|>assistant
 """
-    
+
     details = {
         "parent_model": "",
         "format": "gguf",
@@ -312,16 +311,24 @@ num_predict 128"""
         "parameter_size": "7B" if "7b" in request.name.lower() else "unknown",
         "quantization_level": "Q4_0",
     }
-    
+
     return OllamaShowResponse(
         modelfile=modelfile if request.verbose else "",
         parameters=parameters,
         template=template,
         details=details,
-        model_info={
-            "general.architecture": "llama" if "llama" in request.name.lower() else "unknown",
-            "general.file_type": 2,
-            "general.parameter_count": 7000000000 if "7b" in request.name.lower() else 0,
-            "general.quantization_version": 2,
-        } if request.verbose else {},
+        model_info=(
+            {
+                "general.architecture": (
+                    "llama" if "llama" in request.name.lower() else "unknown"
+                ),
+                "general.file_type": 2,
+                "general.parameter_count": (
+                    7000000000 if "7b" in request.name.lower() else 0
+                ),
+                "general.quantization_version": 2,
+            }
+            if request.verbose
+            else {}
+        ),
     )

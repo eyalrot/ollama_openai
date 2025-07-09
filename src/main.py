@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """
     Manage application lifecycle.
-    
+
     Handles startup and shutdown events.
     """
     # Startup
@@ -39,16 +39,16 @@ async def lifespan(app: FastAPI):
                 "proxy_port": settings.PROXY_PORT,
                 "target_url": settings.OPENAI_API_BASE_URL,
                 "log_level": settings.LOG_LEVEL,
-                "version": "1.0.0"
+                "version": "1.0.0",
             }
-        }
+        },
     )
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Ollama-OpenAI Proxy")
-    
+
     # Close global HTTP client
     await close_global_client()
 
@@ -73,23 +73,28 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
 )
 
+
 # Add request ID middleware
 @app.middleware("http")
 async def add_request_id_middleware(request: Request, call_next):
     """Add unique request ID to each request."""
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     request.state.request_id = request_id
-    
+
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     return response
 
+
 # Add logging middleware
 app.add_middleware(LoggingMiddleware)
 
+
 # Error handlers
 @app.exception_handler(ProxyException)
-async def proxy_exception_handler(request: Request, exc: ProxyException) -> JSONResponse:
+async def proxy_exception_handler(
+    request: Request, exc: ProxyException
+) -> JSONResponse:
     """Handle proxy-specific exceptions."""
     return JSONResponse(
         status_code=exc.error_code or 400,
@@ -98,11 +103,12 @@ async def proxy_exception_handler(request: Request, exc: ProxyException) -> JSON
                 "message": str(exc),
                 "type": exc.__class__.__name__,
                 "code": exc.error_code,
-                "details": exc.details
+                "details": exc.details,
             }
         },
-        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")}
+        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")},
     )
+
 
 @app.exception_handler(UpstreamError)
 async def upstream_error_handler(request: Request, exc: UpstreamError) -> JSONResponse:
@@ -115,11 +121,12 @@ async def upstream_error_handler(request: Request, exc: UpstreamError) -> JSONRe
                 "type": "upstream_error",
                 "status_code": exc.status_code,
                 "service": exc.service,
-                "details": exc.details
+                "details": exc.details,
             }
         },
-        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")}
+        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")},
     )
+
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -131,22 +138,23 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
             "extra_data": {
                 "request_id": getattr(request.state, "request_id", "unknown"),
                 "path": request.url.path,
-                "method": request.method
+                "method": request.method,
             }
-        }
+        },
     )
-    
+
     return JSONResponse(
         status_code=500,
         content={
             "error": {
                 "message": "Internal server error",
                 "type": "internal_error",
-                "request_id": getattr(request.state, "request_id", "unknown")
+                "request_id": getattr(request.state, "request_id", "unknown"),
             }
         },
-        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")}
+        headers={"X-Request-ID": getattr(request.state, "request_id", "unknown")},
     )
+
 
 # Include routers
 app.include_router(chat.router, prefix="/v1", tags=["chat"])
@@ -158,36 +166,32 @@ app.include_router(chat.router, prefix="/api", tags=["ollama-chat"])
 app.include_router(models.router, prefix="/api", tags=["ollama-models"])
 app.include_router(embeddings.router, prefix="/api", tags=["ollama-embeddings"])
 
+
 # Health check endpoints
 @app.get("/health", tags=["health"])
 async def health_check() -> Dict[str, Any]:
     """Basic health check endpoint."""
-    return {
-        "status": "healthy",
-        "service": "ollama-openai-proxy",
-        "version": "1.0.0"
-    }
+    return {"status": "healthy", "service": "ollama-openai-proxy", "version": "1.0.0"}
+
 
 @app.get("/ready", tags=["health"])
 async def readiness_check() -> Dict[str, Any]:
     """
     Readiness check endpoint.
-    
+
     Verifies the service is ready to handle requests.
     """
     # In the future, this could check:
     # - Database connections
     # - External service availability
     # - Model loading status
-    
+
     return {
         "status": "ready",
         "service": "ollama-openai-proxy",
-        "checks": {
-            "config": "ok",
-            "logging": "ok"
-        }
+        "checks": {"config": "ok", "logging": "ok"},
     }
+
 
 # Root endpoint
 @app.get("/", tags=["info"])
@@ -204,15 +208,15 @@ async def root() -> Dict[str, Any]:
             "openai": {
                 "chat": "/v1/chat/completions",
                 "models": "/v1/models",
-                "embeddings": "/v1/embeddings"
+                "embeddings": "/v1/embeddings",
             },
             "ollama": {
                 "generate": "/api/generate",
                 "chat": "/api/chat",
                 "models": "/api/tags",
-                "embeddings": "/api/embeddings"
-            }
-        }
+                "embeddings": "/api/embeddings",
+            },
+        },
     }
 
 

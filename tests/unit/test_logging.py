@@ -5,12 +5,10 @@ Unit tests for logging utilities.
 import json
 import logging
 import sys
-from datetime import datetime
 from pathlib import Path
 import tempfile
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 
 from src.utils.logging import (
     JSONFormatter,
@@ -148,7 +146,7 @@ class TestJSONFormatter:
         assert log_data["request_id"] == "test-request-123"
 
         # Clean up
-        request_id_context.set(None)
+        request_id_context.set(None)  # type: ignore[arg-type]
 
     def test_configuration_options(self):
         """Test formatter configuration options."""
@@ -241,7 +239,7 @@ class TestSetupLogging:
 
     def test_json_formatting(self):
         """Test JSON formatting configuration."""
-        logger = setup_logging("INFO", use_json=True)
+        setup_logging("INFO", use_json=True)
 
         # Check formatter type
         root_logger = logging.getLogger()
@@ -250,7 +248,7 @@ class TestSetupLogging:
 
     def test_pretty_json_formatting(self):
         """Test pretty JSON formatting configuration."""
-        logger = setup_logging("INFO", use_json=True, pretty_json=True)
+        setup_logging("INFO", use_json=True, pretty_json=True)
 
         # Check formatter type
         root_logger = logging.getLogger()
@@ -259,7 +257,7 @@ class TestSetupLogging:
 
     def test_text_formatting(self):
         """Test text formatting configuration."""
-        logger = setup_logging("INFO", use_json=False)
+        setup_logging("INFO", use_json=False)
 
         # Check formatter type
         root_logger = logging.getLogger()
@@ -324,7 +322,9 @@ class TestLoggerFunctions:
         logger = get_logger("test")
 
         with patch.object(logger, "log") as mock_log:
-            log_with_context(logger, logging.INFO, "Test message", user_id="123", action="test")
+            log_with_context(
+                logger, logging.INFO, "Test message", user_id="123", action="test"
+            )
 
             mock_log.assert_called_once()
             args = mock_log.call_args
@@ -406,4 +406,4 @@ class TestIntegration:
             assert error_log["exception"]["type"] == "ValueError"
 
         # Clean up
-        request_id_context.set(None)
+        request_id_context.set(None)  # type: ignore[arg-type]

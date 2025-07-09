@@ -6,9 +6,7 @@ for chat completions and text generation.
 """
 
 import json
-import time
-from typing import AsyncGenerator, Union, Dict, Any, Optional
-from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Union
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -19,8 +17,6 @@ from src.models import (
     OllamaChatRequest,
     OpenAIChatRequest,
     OpenAIChatResponse,
-    OllamaGenerateResponse,
-    OllamaChatResponse,
 )
 from src.translators.chat import ChatTranslator
 from src.config import get_settings
@@ -28,7 +24,6 @@ from src.utils.exceptions import (
     UpstreamError,
     TranslationError,
     ValidationError,
-    ProxyException,
 )
 from src.utils.logging import get_logger
 from src.utils.http_client import RetryClient, retry_client_context
@@ -51,11 +46,11 @@ async def make_openai_request(
         "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
         "Content-Type": "application/json",
     }
-    
+
     url = f"{settings.OPENAI_API_BASE_URL}/chat/completions"
-    
+
     logger.debug(
-        f"Making request to OpenAI backend",
+        "Making request to OpenAI backend",
         extra={
             "extra_data": {
                 "url": url,
@@ -65,7 +60,7 @@ async def make_openai_request(
             }
         },
     )
-    
+
     try:
         # Use retry client for both streaming and non-streaming
         response = await client.request_with_retry(
@@ -74,10 +69,10 @@ async def make_openai_request(
             json=openai_request.model_dump(exclude_none=True),
             headers=headers,
         )
-        
+
         if response.status_code != 200:
             logger.error(
-                f"OpenAI backend error",
+                "OpenAI backend error",
                 extra={
                     "extra_data": {
                         "status_code": response.status_code,
@@ -85,16 +80,16 @@ async def make_openai_request(
                     }
                 },
             )
-            
+
             raise UpstreamError(
-                f"OpenAI backend returned error",
+                "OpenAI backend returned error",
                 status_code=response.status_code,
                 service="openai",
                 details={"response": response.text[:500]},
             )
-        
+
         return response
-        
+
     except httpx.TimeoutException:
         logger.error("Request timeout")
         raise UpstreamError(
@@ -122,9 +117,9 @@ async def stream_response(
         "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
         "Content-Type": "application/json",
     }
-    
+
     url = f"{settings.OPENAI_API_BASE_URL}/chat/completions"
-    
+
     try:
         # Use stream_with_retry for streaming requests
         async for chunk in client.stream_with_retry(
@@ -138,7 +133,7 @@ async def stream_response(
             for line in chunk_str.split("\n"):
                 if not line.strip():
                     continue
-                    
+
                 if line == "data: [DONE]":
                     # Send final chunk
                     final_chunk = translator.translate_streaming_response(
@@ -149,27 +144,27 @@ async def stream_response(
                     if final_chunk:
                         yield json.dumps(final_chunk) + "\n"
                     return
-                
+
                 if line.startswith("data: "):
                     try:
                         # Parse the JSON data
                         data = json.loads(line[6:])
-                        
+
                         # Translate to Ollama format
                         ollama_chunk = translator.translate_streaming_response(
                             data, original_request
                         )
-                        
+
                         if ollama_chunk:
                             yield json.dumps(ollama_chunk) + "\n"
-                            
+
                     except json.JSONDecodeError as e:
                         logger.warning(
-                            f"Failed to parse streaming chunk",
+                            "Failed to parse streaming chunk",
                             extra={"extra_data": {"line": line, "error": str(e)}},
                         )
                         continue
-                        
+
     except httpx.TimeoutException:
         logger.error("Request timeout while streaming")
         raise UpstreamError(
@@ -198,14 +193,14 @@ async def generate(
 ):
     """
     Handle Ollama generate requests (text-only in Phase 1).
-    
+
     This endpoint accepts Ollama-style generation requests and translates them
     to OpenAI chat completion format for processing.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     logger.info(
-        f"Generate request received",
+        "Generate request received",
         extra={
             "extra_data": {
                 "request_id": request_id,
@@ -215,11 +210,11 @@ async def generate(
             }
         },
     )
-    
+
     try:
         # Translate to OpenAI format
         openai_request = translator.translate_request(request)
-        
+
         async with retry_client_context() as client:
             if request.stream:
                 # Return streaming response
@@ -233,19 +228,23 @@ async def generate(
                 )
             else:
                 # Make non-streaming request
-                response = await make_openai_request(client, openai_request, stream=False)
-                
+                response = await make_openai_request(
+                    client, openai_request, stream=False
+                )
+
                 # Parse response
                 openai_response = OpenAIChatResponse(**response.json())
-                
+
                 # Translate response back to Ollama format
-                ollama_response = translator.translate_response(openai_response, request)
-                
+                ollama_response = translator.translate_response(
+                    openai_response, request
+                )
+
                 return JSONResponse(
                     content=ollama_response.model_dump(exclude_none=True),
                     headers={"X-Request-ID": request_id},
                 )
-                
+
     except ValidationError as e:
         logger.warning(f"Validation error: {e}")
         raise HTTPException(
@@ -265,7 +264,7 @@ async def generate(
             detail=f"Upstream error: {str(e)}",
         )
     except Exception as e:
-        logger.error(f"Unexpected error in generate endpoint", exc_info=e)
+        logger.error("Unexpected error in generate endpoint", exc_info=e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",
@@ -280,14 +279,14 @@ async def chat(
 ):
     """
     Handle Ollama chat requests (text-only in Phase 1).
-    
+
     This endpoint accepts Ollama-style chat requests with message history
     and processes them through the OpenAI backend.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     logger.info(
-        f"Chat request received",
+        "Chat request received",
         extra={
             "extra_data": {
                 "request_id": request_id,
@@ -297,11 +296,11 @@ async def chat(
             }
         },
     )
-    
+
     try:
         # Translate to OpenAI format
         openai_request = translator.translate_request(request)
-        
+
         async with retry_client_context() as client:
             if request.stream:
                 # Return streaming response
@@ -315,19 +314,23 @@ async def chat(
                 )
             else:
                 # Make non-streaming request
-                response = await make_openai_request(client, openai_request, stream=False)
-                
+                response = await make_openai_request(
+                    client, openai_request, stream=False
+                )
+
                 # Parse response
                 openai_response = OpenAIChatResponse(**response.json())
-                
+
                 # Translate response back to Ollama format
-                ollama_response = translator.translate_response(openai_response, request)
-                
+                ollama_response = translator.translate_response(
+                    openai_response, request
+                )
+
                 return JSONResponse(
                     content=ollama_response.model_dump(exclude_none=True),
                     headers={"X-Request-ID": request_id},
                 )
-                
+
     except ValidationError as e:
         logger.warning(f"Validation error: {e}")
         raise HTTPException(
@@ -347,7 +350,7 @@ async def chat(
             detail=f"Upstream error: {str(e)}",
         )
     except Exception as e:
-        logger.error(f"Unexpected error in chat endpoint", exc_info=e)
+        logger.error("Unexpected error in chat endpoint", exc_info=e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error",

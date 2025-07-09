@@ -14,7 +14,7 @@ class EmbeddingsTranslator(BaseTranslator):
         # TODO: Implement in later tasks
         return {}
 
-    def translate_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
+    def translate_response(self, openai_response: Any, original_request: Any = None) -> Dict[str, Any]:
         """Translate OpenAI embeddings response to Ollama format."""
         # TODO: Implement in later tasks
         return {}

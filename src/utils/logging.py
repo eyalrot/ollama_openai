@@ -5,7 +5,6 @@ Logging configuration and utilities.
 import logging
 import json
 import sys
-import traceback
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Union
 from pathlib import Path
@@ -85,7 +84,7 @@ class JSONFormatter(logging.Formatter):
         # Add exception info if present
         if record.exc_info and "exception" not in self.exclude_fields:
             log_object["exception"] = {
-                "type": record.exc_info[0].__name__,
+                "type": record.exc_info[0].__name__ if record.exc_info[0] else "Unknown",
                 "message": str(record.exc_info[1]),
                 "traceback": self.formatException(record.exc_info).split("\n"),
             }
@@ -149,6 +148,7 @@ def setup_logging(
     root_logger.setLevel(level)
 
     # Create formatter
+    formatter: Union[JSONFormatter, PrettyJSONFormatter, logging.Formatter]
     if use_json:
         if pretty_json:
             formatter = PrettyJSONFormatter(

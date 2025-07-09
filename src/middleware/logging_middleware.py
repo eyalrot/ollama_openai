@@ -5,8 +5,7 @@ Logging middleware for FastAPI with request ID tracking.
 import time
 import uuid
 import json
-from typing import Callable, Optional, Dict, Any
-from datetime import datetime, timezone
+from typing import Callable, Optional, Dict
 
 from fastapi import Request, Response
 from fastapi.responses import StreamingResponse
@@ -86,25 +85,25 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Process request
         try:
             response = await call_next(request)
-            
+
             # Add request ID to response headers
             response.headers["x-request-id"] = request_id
-            
+
             # Calculate duration
             duration_ms = (time.time() - start_time) * 1000
-            
+
             # Log response
             await self._log_response(request, response, duration_ms, request_id)
-            
+
             return response
 
         except Exception as exc:
             # Calculate duration
             duration_ms = (time.time() - start_time) * 1000
-            
+
             # Log error
             await self._log_error(request, exc, duration_ms, request_id)
-            
+
             # Re-raise the exception
             raise
 
@@ -126,7 +125,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 body = await request.body()
                 # Store body for later use by route handlers
                 request._body = body
-                
+
                 # Try to parse as JSON
                 try:
                     log_data["body"] = json.loads(body)
@@ -176,9 +175,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         # Choose log level based on status code
         if response.status_code >= 500:
-            self.logger.error("Request failed with server error", extra={"extra_data": log_data})
+            self.logger.error(
+                "Request failed with server error", extra={"extra_data": log_data}
+            )
         elif response.status_code >= 400:
-            self.logger.warning("Request failed with client error", extra={"extra_data": log_data})
+            self.logger.warning(
+                "Request failed with client error", extra={"extra_data": log_data}
+            )
         else:
             self.logger.info("Request completed", extra={"extra_data": log_data})
 
@@ -247,8 +250,8 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         """Add request ID to context and response headers."""
         request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
         request_id_context.set(request_id)
-        
+
         response = await call_next(request)
         response.headers["x-request-id"] = request_id
-        
+
         return response

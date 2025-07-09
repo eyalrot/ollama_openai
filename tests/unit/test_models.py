@@ -3,9 +3,6 @@ Unit tests for Pydantic models.
 """
 
 import json
-from datetime import datetime
-from typing import Dict, Any
-import uuid
 
 import pytest
 from pydantic import ValidationError
@@ -494,7 +491,10 @@ class TestOpenAIMessage:
             role="user",
             content=[
                 {"type": "text", "text": "What's in this image?"},
-                {"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": "data:image/png;base64,..."},
+                },
             ],
         )
         assert msg.role == "user"

@@ -16,7 +16,6 @@ from src.utils.exceptions import (
     ProxyException,
     ValidationError,
     UpstreamError,
-    exception_from_status_code,
 )
 
 
@@ -99,11 +98,13 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
         errors = []
         for error in exc.errors():
             field = ".".join(str(loc) for loc in error["loc"])
-            errors.append({
-                "field": field,
-                "message": error["msg"],
-                "type": error["type"],
-            })
+            errors.append(
+                {
+                    "field": field,
+                    "message": error["msg"],
+                    "type": error["type"],
+                }
+            )
 
         validation_error = ValidationError(
             "Request validation failed",

@@ -65,7 +65,9 @@ class ProxyException(Exception):
 class ConfigurationError(ProxyException):
     """Raised when there's a configuration issue."""
 
-    def __init__(self, message: str, *, config_key: Optional[str] = None, **kwargs: Any):
+    def __init__(
+        self, message: str, *, config_key: Optional[str] = None, **kwargs: Any
+    ):
         """
         Initialize configuration error.
 
@@ -181,7 +183,9 @@ class UpstreamError(ProxyException):
 class ModelNotFoundError(ProxyException):
     """Raised when a requested model is not found."""
 
-    def __init__(self, model_name: str, *, available_models: Optional[list[str]] = None):
+    def __init__(
+        self, model_name: str, *, available_models: Optional[list[str]] = None
+    ):
         """
         Initialize model not found error.
 
@@ -192,7 +196,7 @@ class ModelNotFoundError(ProxyException):
         message = f"Model '{model_name}' not found"
         details = {"requested_model": model_name}
         if available_models:
-            details["available_models"] = available_models
+            details["available_models"] = list(available_models)
             message += f". Available models: {', '.join(available_models[:5])}"
             if len(available_models) > 5:
                 message += f" and {len(available_models) - 5} more"
@@ -206,7 +210,9 @@ class AuthenticationError(ProxyException):
 
     def __init__(self, message: str = "Authentication failed", **kwargs: Any):
         """Initialize authentication error."""
-        super().__init__(message, error_code="AUTH_ERROR", details=kwargs.get("details", {}))
+        super().__init__(
+            message, error_code="AUTH_ERROR", details=kwargs.get("details", {})
+        )
 
 
 class RateLimitError(ProxyException):

@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Create Pydantic Models
-# Status: pending
+# Status: done
 # Dependencies: 3
 # Priority: high
 # Description: Define all Pydantic models for request/response validation, including Ollama and OpenAI format models for proper type safety and validation
@@ -69,43 +69,43 @@ class OllamaResponse(BaseModel):
 Create unit tests for model validation, test optional fields with None values, verify type coercion works correctly, test serialization/deserialization, validate that all Ollama API fields are covered
 
 # Subtasks:
-## 1. Define Ollama Request Models [pending]
+## 1. Define Ollama Request Models [done]
 ### Dependencies: None
 ### Description: Create TypeScript interfaces and classes for all Ollama API request payloads
 ### Details:
 Define models for chat completion requests, embedding requests, model management requests (pull, push, create, copy, delete), and generation requests. Include proper type definitions for all parameters like model, prompt, messages, options, format, stream, keep_alive, etc.
 
-## 2. Define Ollama Response Models [pending]
+## 2. Define Ollama Response Models [done]
 ### Dependencies: None
 ### Description: Create TypeScript interfaces and classes for all Ollama API response structures
 ### Details:
 Define models for chat completion responses, embedding responses, model listing responses, model information responses, and streaming response chunks. Include proper handling of optional fields and response metadata like created_at, done, total_duration, etc.
 
-## 3. Define OpenAI Request Models [pending]
+## 3. Define OpenAI Request Models [done]
 ### Dependencies: None
 ### Description: Create TypeScript interfaces and classes for OpenAI-compatible request formats
 ### Details:
 Define models for OpenAI chat completion requests, including messages array structure, model selection, temperature, max_tokens, stream, and other OpenAI-specific parameters. Ensure compatibility with OpenAI API v1 specification.
 
-## 4. Define OpenAI Response Models [pending]
+## 4. Define OpenAI Response Models [done]
 ### Dependencies: None
 ### Description: Create TypeScript interfaces and classes for OpenAI-compatible response formats
 ### Details:
 Define models for OpenAI chat completion responses, including choices array, usage statistics, finish_reason, and model metadata. Handle both streaming and non-streaming response formats according to OpenAI API specification.
 
-## 5. Implement Streaming Models [pending]
+## 5. Implement Streaming Models [done]
 ### Dependencies: 4.2, 4.4
 ### Description: Create specialized models for handling streaming responses from both APIs
 ### Details:
 Define streaming chunk models for both Ollama and OpenAI formats, including proper type unions for different chunk types, delta handling, and stream termination indicators. Implement proper TypeScript discriminated unions for type safety.
 
-## 6. Implement Model Validation Rules [pending]
+## 6. Implement Model Validation Rules [done]
 ### Dependencies: 4.1, 4.2, 4.3, 4.4
 ### Description: Create validation logic and decorators for all request and response models
 ### Details:
 Implement validation rules using class-validator or similar library. Define constraints for required fields, string formats, number ranges, enum values, and custom validation for complex fields. Ensure proper error messages for validation failures.
 
-## 7. Create Comprehensive Model Tests [pending]
+## 7. Create Comprehensive Model Tests [done]
 ### Dependencies: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6
 ### Description: Write unit tests for all models, validation rules, and edge cases
 ### Details:

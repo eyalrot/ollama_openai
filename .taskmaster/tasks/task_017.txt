@@ -1,0 +1,158 @@
+# Task ID: 17
+# Title: Update CI/CD Pipeline for Python 3.12 and Docker-based Testing
+# Status: pending
+# Dependencies: 10, 16
+# Priority: medium
+# Description: Modernize the GitHub Actions CI/CD pipeline to exclusively use Python 3.12 and run all checks inside Docker containers, ensuring all CI checks pass reliably
+# Details:
+Update all GitHub Actions workflows to focus on Python 3.12 and containerized testing:
+
+1. **Update .github/workflows/ci.yml**:
+   - Remove Python matrix strategy (3.9, 3.10, 3.11) and use only Python 3.12
+   - Replace direct Python setup with Docker-based execution
+   - Update all job steps to run inside containers
+   - Ensure proper volume mounting for code and test results
+
+2. **Create docker/Dockerfile.ci**:
+   ```dockerfile
+   # CI/CD specific Dockerfile
+   FROM python:3.12-slim
+   
+   # Install system dependencies for testing
+   RUN apt-get update && apt-get install -y \
+       gcc \
+       git \
+       curl \
+       && rm -rf /var/lib/apt/lists/*
+   
+   # Install test dependencies
+   WORKDIR /app
+   COPY requirements.txt requirements-dev.txt ./
+   RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+   
+   # Install additional CI tools
+   RUN pip install --no-cache-dir \
+       pytest-cov \
+       pytest-xdist \
+       pytest-timeout \
+       black \
+       flake8 \
+       mypy \
+       isort \
+       bandit
+   
+   # Set up non-root user for security
+   RUN useradd -m -u 1000 ciuser
+   USER ciuser
+   
+   # Default command
+   CMD ["pytest"]
+   ```
+
+3. **Dockerize all test execution**:
+   - Create docker-compose.ci.yml for orchestrating test services
+   - Include test database containers if needed
+   - Set up proper networking between containers
+   - Configure volume mounts for test output and coverage reports
+
+4. **Update workflow jobs**:
+   ```yaml
+   jobs:
+     build-ci-image:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v4
+         - name: Build CI Docker image
+           run: docker build -f docker/Dockerfile.ci -t ci-image:${{ github.sha }} .
+         - name: Save Docker image
+           run: docker save ci-image:${{ github.sha }} > ci-image.tar
+         - uses: actions/upload-artifact@v4
+           with:
+             name: ci-image
+             path: ci-image.tar
+   
+     lint:
+       needs: build-ci-image
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v4
+         - uses: actions/download-artifact@v4
+           with:
+             name: ci-image
+         - name: Load Docker image
+           run: docker load < ci-image.tar
+         - name: Run linting
+           run: |
+             docker run --rm -v ${{ github.workspace }}:/app \
+               ci-image:${{ github.sha }} \
+               sh -c "black --check . && flake8 . && isort --check-only ."
+   ```
+
+5. **Optimize Docker caching**:
+   - Use BuildKit for advanced caching features
+   - Implement layer caching with GitHub Actions cache
+   - Use multi-stage builds to minimize rebuild time
+   - Cache pip packages between builds
+   - Example caching strategy:
+   ```yaml
+   - name: Set up Docker Buildx
+     uses: docker/setup-buildx-action@v3
+   
+   - name: Build with cache
+     uses: docker/build-push-action@v5
+     with:
+       context: .
+       file: docker/Dockerfile.ci
+       tags: ci-image:${{ github.sha }}
+       cache-from: type=gha
+       cache-to: type=gha,mode=max
+       outputs: type=docker,dest=ci-image.tar
+   ```
+
+6. **Update test execution commands**:
+   - Replace `pytest` with `docker run ... pytest`
+   - Mount workspace as volume for test discovery
+   - Export test results and coverage reports
+   - Handle exit codes properly for CI status
+
+7. **Iterative fixes**:
+   - Monitor each workflow run for failures
+   - Address permission issues with file ownership
+   - Fix path mapping between host and container
+   - Ensure all environment variables are passed correctly
+   - Update any hardcoded Python version references
+
+# Test Strategy:
+Iteratively verify CI/CD pipeline functionality:
+
+1. **Local Testing**:
+   - Build Dockerfile.ci locally and verify all tools are installed
+   - Run each CI step locally using the Docker image
+   - Test volume mounting and file permissions
+   - Verify test output and coverage reports are generated
+
+2. **GitHub Actions Testing**:
+   - Create a test PR to trigger the updated workflow
+   - Monitor each job for successful completion
+   - Verify Docker image caching reduces build time on subsequent runs
+   - Ensure all status checks appear on the PR
+
+3. **Iterative Debugging**:
+   - For each failing check, examine logs and fix issues
+   - Common issues to check:
+     - File permissions (use --user flag if needed)
+     - Path differences between container and host
+     - Missing environment variables
+     - Network connectivity for integration tests
+
+4. **Performance Verification**:
+   - Measure total CI runtime before and after dockerization
+   - Verify cache hit rates for Docker layers
+   - Ensure parallel job execution works correctly
+   - Test that artifacts are properly uploaded/downloaded
+
+5. **Final Validation**:
+   - Run the complete pipeline on main branch
+   - Verify all checks pass (lint, type check, unit tests, integration tests)
+   - Confirm coverage reports are generated and uploaded
+   - Test that the Docker image can be used for local development

@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  ci-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ci
+    image: ollama-openai-proxy-ci:latest
+    working_dir: /app
+    volumes:
+      - ..:/app
+      - /app/.pytest_cache
+      - /app/htmlcov
+      - /app/coverage
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL:-https://api.test.com}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-test-key}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-config/model_map.json}
+    command: pytest tests/unit/ -v --cov=src --cov-report=xml --cov-report=html
+
+  lint:
+    extends: ci-tests
+    command: sh -c "ruff check src/ tests/ && black --check src/ tests/"
+
+  typecheck:
+    extends: ci-tests
+    command: mypy src/ --ignore-missing-imports --allow-untyped-defs --allow-incomplete-defs
+
+  security-scan:
+    extends: ci-tests
+    command: bandit -r src/ -f json -o /app/bandit-report.json || true

@@ -3,9 +3,7 @@ Unit tests for custom exceptions.
 """
 
 import json
-from datetime import datetime
 
-import pytest
 
 from src.utils.exceptions import (
     ProxyException,
@@ -132,7 +130,9 @@ class TestValidationError:
 
     def test_value_conversion(self):
         """Test that values are converted to strings."""
-        exc = ValidationError("Invalid number", field="age", value={"complex": "object"})
+        exc = ValidationError(
+            "Invalid number", field="age", value={"complex": "object"}
+        )
 
         assert exc.details["invalid_value"] == "{'complex': 'object'}"
 
@@ -216,7 +216,9 @@ class TestModelNotFoundError:
         models = ["gpt-3.5-turbo", "gpt-4", "claude-2", "llama-2"]
         exc = ModelNotFoundError("gpt-5", available_models=models)
 
-        assert "Available models: gpt-3.5-turbo, gpt-4, claude-2, llama-2" in exc.message
+        assert (
+            "Available models: gpt-3.5-turbo, gpt-4, claude-2, llama-2" in exc.message
+        )
         assert exc.details["available_models"] == models
 
     def test_with_many_available_models(self):
@@ -324,7 +326,11 @@ class TestUnsupportedOperationError:
             supported_operations=["chat", "generate", "list_models"],
         )
 
-        assert exc.details["supported_operations"] == ["chat", "generate", "list_models"]
+        assert exc.details["supported_operations"] == [
+            "chat",
+            "generate",
+            "list_models",
+        ]
 
 
 class TestStreamingError:
