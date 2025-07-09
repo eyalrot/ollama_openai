@@ -11,7 +11,7 @@ from src.utils.logging import setup_logging
 
 # Initialize settings and logging
 settings = get_settings()
-logger = setup_logging()
+logger = setup_logging(level=settings.LOG_LEVEL)
 
 # Create FastAPI app
 app = FastAPI(
