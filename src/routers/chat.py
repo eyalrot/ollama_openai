@@ -31,6 +31,7 @@ from src.utils.exceptions import (
     ProxyException,
 )
 from src.utils.logging import get_logger
+from src.utils.http_client import RetryClient, retry_client_context
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -39,41 +40,9 @@ settings = get_settings()
 # Initialize translator
 translator = ChatTranslator()
 
-# HTTP client configuration
-CLIENT_TIMEOUT = httpx.Timeout(
-    timeout=settings.REQUEST_TIMEOUT,  # Total timeout
-    connect=5.0,  # Connection timeout
-    read=settings.REQUEST_TIMEOUT,  # Read timeout
-    write=10.0,  # Write timeout
-    pool=5.0,  # Pool timeout
-)
-
-# Connection limits for pooling
-POOL_LIMITS = httpx.Limits(
-    max_keepalive_connections=20,
-    max_connections=100,
-    keepalive_expiry=30.0,
-)
-
-
-@asynccontextmanager
-async def get_http_client():
-    """Create an HTTP client with proper configuration."""
-    transport = httpx.AsyncHTTPTransport(
-        limits=POOL_LIMITS,
-        retries=settings.MAX_RETRIES,
-    )
-    
-    async with httpx.AsyncClient(
-        timeout=CLIENT_TIMEOUT,
-        transport=transport,
-        follow_redirects=True,
-    ) as client:
-        yield client
-
 
 async def make_openai_request(
-    client: httpx.AsyncClient,
+    client: RetryClient,
     openai_request: OpenAIChatRequest,
     stream: bool = False,
 ) -> Union[httpx.Response, httpx.Response]:
@@ -98,40 +67,34 @@ async def make_openai_request(
     )
     
     try:
-        if stream:
-            # For streaming, we return the raw response to handle in the caller
-            return await client.post(
-                url,
-                json=openai_request.model_dump(exclude_none=True),
-                headers=headers,
-            )
-        else:
-            # For non-streaming, we handle the response here
-            response = await client.post(
-                url,
-                json=openai_request.model_dump(exclude_none=True),
-                headers=headers,
+        # Use retry client for both streaming and non-streaming
+        response = await client.request_with_retry(
+            "POST",
+            url,
+            json=openai_request.model_dump(exclude_none=True),
+            headers=headers,
+        )
+        
+        if response.status_code != 200:
+            logger.error(
+                f"OpenAI backend error",
+                extra={
+                    "extra_data": {
+                        "status_code": response.status_code,
+                        "response_text": response.text[:500],  # First 500 chars
+                    }
+                },
             )
             
-            if response.status_code != 200:
-                logger.error(
-                    f"OpenAI backend error",
-                    extra={
-                        "extra_data": {
-                            "status_code": response.status_code,
-                            "response_text": response.text[:500],  # First 500 chars
-                        }
-                    },
-                )
-                
-                raise UpstreamError(
-                    f"OpenAI backend returned error",
-                    status_code=response.status_code,
-                    service="openai",
-                    details={"response": response.text[:500]},
-                )
-            
-            return response
+            raise UpstreamError(
+                f"OpenAI backend returned error",
+                status_code=response.status_code,
+                service="openai",
+                details={"response": response.text[:500]},
+            )
+        
+        return response
+        
     except httpx.TimeoutException:
         logger.error("Request timeout")
         raise UpstreamError(
@@ -140,7 +103,7 @@ async def make_openai_request(
             service="openai",
             details={"timeout": settings.REQUEST_TIMEOUT},
         )
-    except httpx.RequestError as e:
+    except httpx.NetworkError as e:
         logger.error(f"HTTP request error: {e}")
         raise UpstreamError(
             f"HTTP request failed: {str(e)}",
@@ -150,61 +113,63 @@ async def make_openai_request(
 
 
 async def stream_response(
-    client: httpx.AsyncClient,
+    client: RetryClient,
     openai_request: OpenAIChatRequest,
     original_request: Union[OllamaGenerateRequest, OllamaChatRequest],
 ) -> AsyncGenerator[str, None]:
     """Stream responses from OpenAI and translate them to Ollama format."""
+    headers = {
+        "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    
+    url = f"{settings.OPENAI_API_BASE_URL}/chat/completions"
+    
     try:
-        # Make streaming request
-        response = await make_openai_request(client, openai_request, stream=True)
-        
-        if response.status_code != 200:
-            # Handle error response
-            error_text = await response.aread()
-            raise UpstreamError(
-                f"OpenAI streaming error",
-                status_code=response.status_code,
-                service="openai",
-                details={"response": error_text.decode()[:500]},
-            )
-        
-        # Process streaming response
-        async for line in response.aiter_lines():
-            if not line:
-                continue
-                
-            if line == "data: [DONE]":
-                # Send final chunk
-                final_chunk = translator.translate_streaming_response(
-                    "[DONE]",
-                    original_request,
-                    is_last_chunk=True,
-                )
-                if final_chunk:
-                    yield json.dumps(final_chunk) + "\n"
-                break
-            
-            if line.startswith("data: "):
-                try:
-                    # Parse the JSON data
-                    data = json.loads(line[6:])
-                    
-                    # Translate to Ollama format
-                    ollama_chunk = translator.translate_streaming_response(
-                        data, original_request
-                    )
-                    
-                    if ollama_chunk:
-                        yield json.dumps(ollama_chunk) + "\n"
-                        
-                except json.JSONDecodeError as e:
-                    logger.warning(
-                        f"Failed to parse streaming chunk",
-                        extra={"extra_data": {"line": line, "error": str(e)}},
-                    )
+        # Use stream_with_retry for streaming requests
+        async for chunk in client.stream_with_retry(
+            "POST",
+            url,
+            json=openai_request.model_dump(exclude_none=True),
+            headers=headers,
+        ):
+            # Process each chunk
+            chunk_str = chunk.decode("utf-8")
+            for line in chunk_str.split("\n"):
+                if not line.strip():
                     continue
                     
+                if line == "data: [DONE]":
+                    # Send final chunk
+                    final_chunk = translator.translate_streaming_response(
+                        "[DONE]",
+                        original_request,
+                        is_last_chunk=True,
+                    )
+                    if final_chunk:
+                        yield json.dumps(final_chunk) + "\n"
+                    return
+                
+                if line.startswith("data: "):
+                    try:
+                        # Parse the JSON data
+                        data = json.loads(line[6:])
+                        
+                        # Translate to Ollama format
+                        ollama_chunk = translator.translate_streaming_response(
+                            data, original_request
+                        )
+                        
+                        if ollama_chunk:
+                            yield json.dumps(ollama_chunk) + "\n"
+                            
+                    except json.JSONDecodeError as e:
+                        logger.warning(
+                            f"Failed to parse streaming chunk",
+                            extra={"extra_data": {"line": line, "error": str(e)}},
+                        )
+                        continue
+                        
     except httpx.TimeoutException:
         logger.error("Request timeout while streaming")
         raise UpstreamError(
@@ -213,7 +178,7 @@ async def stream_response(
             service="openai",
             details={"timeout": settings.REQUEST_TIMEOUT},
         )
-    except httpx.RequestError as e:
+    except httpx.NetworkError as e:
         logger.error(f"HTTP request error: {e}")
         raise UpstreamError(
             f"HTTP request failed: {str(e)}",
@@ -255,7 +220,7 @@ async def generate(
         # Translate to OpenAI format
         openai_request = translator.translate_request(request)
         
-        async with get_http_client() as client:
+        async with retry_client_context() as client:
             if request.stream:
                 # Return streaming response
                 return StreamingResponse(
@@ -337,7 +302,7 @@ async def chat(
         # Translate to OpenAI format
         openai_request = translator.translate_request(request)
         
-        async with get_http_client() as client:
+        async with retry_client_context() as client:
             if request.stream:
                 # Return streaming response
                 return StreamingResponse(

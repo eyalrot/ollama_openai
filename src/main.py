@@ -16,6 +16,7 @@ from src.utils.logging import setup_logging, get_logger
 from src.utils.exceptions import ProxyException, UpstreamError
 from src.routers import chat, models, embeddings
 from src.middleware.logging_middleware import LoggingMiddleware
+from src.utils.http_client import close_global_client
 
 # Initialize settings and logging
 settings = get_settings()
@@ -47,6 +48,9 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down Ollama-OpenAI Proxy")
+    
+    # Close global HTTP client
+    await close_global_client()
 
 
 # Create FastAPI app

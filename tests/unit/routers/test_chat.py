@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 from fastapi import Request, HTTPException
 from fastapi.testclient import TestClient
 
-from src.routers.chat import router, get_http_client
+from src.routers.chat import router
 from src.models import (
     OllamaGenerateRequest,
     OllamaChatRequest,
@@ -129,7 +129,7 @@ class TestChatRouterGenerate:
         mock_translator.translate_response.return_value = mock_ollama_response
         
         # Mock HTTP client
-        with patch("src.routers.chat.get_http_client") as mock_client_ctx:
+        with patch("src.routers.chat.retry_client_context") as mock_client_ctx:
             mock_client = AsyncMock()
             mock_client_ctx.return_value.__aenter__.return_value = mock_client
             
@@ -137,7 +137,7 @@ class TestChatRouterGenerate:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = openai_response_data
-            mock_client.post.return_value = mock_response
+            mock_client.request_with_retry.return_value = mock_response
             
             # Call endpoint
             from src.routers.chat import generate
@@ -152,7 +152,7 @@ class TestChatRouterGenerate:
             
             # Verify calls
             mock_translator.translate_request.assert_called_once_with(ollama_generate_request)
-            mock_client.post.assert_called_once()
+            mock_client.request_with_retry.assert_called_once()
             
     @pytest.mark.asyncio
     async def test_generate_streaming_success(
@@ -181,7 +181,7 @@ class TestChatRouterGenerate:
         ]
         
         # Mock HTTP client with streaming
-        with patch("src.routers.chat.get_http_client") as mock_client_ctx:
+        with patch("src.routers.chat.retry_client_context") as mock_client_ctx:
             mock_client = AsyncMock()
             mock_client_ctx.return_value.__aenter__.return_value = mock_client
             
@@ -196,7 +196,7 @@ class TestChatRouterGenerate:
                 'data: {"choices": [{"delta": {"content": " time"}}]}',
                 'data: [DONE]'
             ]
-            mock_client.post.return_value = mock_response
+            mock_client.request_with_retry.return_value = mock_response
             
             # Call endpoint
             from src.routers.chat import generate
@@ -240,7 +240,7 @@ class TestChatRouterGenerate:
         mock_translator.translate_request.return_value = mock_openai_request
         
         # Mock HTTP client to return error
-        with patch("src.routers.chat.get_http_client") as mock_client_ctx:
+        with patch("src.routers.chat.retry_client_context") as mock_client_ctx:
             mock_client = AsyncMock()
             mock_client_ctx.return_value.__aenter__.return_value = mock_client
             
@@ -248,7 +248,7 @@ class TestChatRouterGenerate:
             mock_response = Mock()
             mock_response.status_code = 503
             mock_response.text = "Service unavailable"
-            mock_client.post.return_value = mock_response
+            mock_client.request_with_retry.return_value = mock_response
             
             # Call endpoint
             from src.routers.chat import generate
@@ -292,7 +292,7 @@ class TestChatRouterChat:
         mock_translator.translate_response.return_value = mock_ollama_response
         
         # Mock HTTP client
-        with patch("src.routers.chat.get_http_client") as mock_client_ctx:
+        with patch("src.routers.chat.retry_client_context") as mock_client_ctx:
             mock_client = AsyncMock()
             mock_client_ctx.return_value.__aenter__.return_value = mock_client
             
@@ -300,7 +300,7 @@ class TestChatRouterChat:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = openai_response_data
-            mock_client.post.return_value = mock_response
+            mock_client.request_with_retry.return_value = mock_response
             
             # Call endpoint
             from src.routers.chat import chat
@@ -326,12 +326,12 @@ class TestChatRouterChat:
         mock_translator.translate_request.return_value = mock_openai_request
         
         # Mock HTTP client to raise timeout
-        with patch("src.routers.chat.get_http_client") as mock_client_ctx:
+        with patch("src.routers.chat.retry_client_context") as mock_client_ctx:
             mock_client = AsyncMock()
             mock_client_ctx.return_value.__aenter__.return_value = mock_client
             
             # Mock timeout error
-            mock_client.post.side_effect = httpx.TimeoutException("Request timeout")
+            mock_client.request_with_retry.side_effect = httpx.TimeoutException("Request timeout")
             
             # Call endpoint
             from src.routers.chat import chat
@@ -348,19 +348,19 @@ class TestHTTPClient:
     @pytest.mark.asyncio
     async def test_http_client_configuration(self, mock_settings):
         """Test HTTP client is configured correctly."""
-        from src.routers.chat import CLIENT_TIMEOUT, POOL_LIMITS
+        # Test that retry client is created successfully
+        from src.routers.chat import retry_client_context
+        from src.utils.http_client import RetryClient
         
-        # Verify timeout and pool limits are defined
-        assert CLIENT_TIMEOUT is not None
-        assert POOL_LIMITS is not None
-        
-        # Check pool limits
-        assert POOL_LIMITS.max_keepalive_connections == 20
-        assert POOL_LIMITS.max_connections == 100
-        
-        # Test that client is created successfully
-        async with get_http_client() as client:
+        async with retry_client_context() as client:
             assert client is not None
+            assert isinstance(client, RetryClient)
+            
+            # Verify client has expected attributes
+            assert hasattr(client, 'request_with_retry')
+            assert hasattr(client, 'stream_with_retry')
+            assert client.max_retries > 0
+            assert client.timeout > 0
 
 
 class TestStreamingResponse:
@@ -386,28 +386,26 @@ class TestStreamingResponse:
         
         # Mock client with streaming response
         mock_client = AsyncMock()
-        mock_response = Mock()
-        mock_response.status_code = 200
         
-        # Create async iterator for lines
-        async def async_lines():
-            lines = [
-                'data: {"choices": [{"delta": {"content": "Hello"}}]}',
-                'data: {"choices": [{"delta": {"content": " world"}}]}',
-                '',  # Empty line
-                'data: {"invalid": "json}',  # Invalid JSON
-                'data: [DONE]'
+        # Create async iterator for raw chunks
+        async def mock_stream_chunks(*args, **kwargs):
+            chunks = [
+                b'data: {"choices": [{"delta": {"content": "Hello"}}]}\n',
+                b'data: {"choices": [{"delta": {"content": " world"}}]}\n',
+                b'\n',  # Empty line
+                b'data: {"invalid": "json}\n',  # Invalid JSON
+                b'data: [DONE]\n'
             ]
-            for line in lines:
-                yield line
+            for chunk in chunks:
+                yield chunk
         
-        mock_response.aiter_lines = async_lines
+        # Mock stream_with_retry to return our async generator
+        mock_client.stream_with_retry = mock_stream_chunks
         
         mock_openai_request = Mock()
         mock_openai_request.model_dump.return_value = {"model": "gpt-3.5-turbo"}
         mock_openai_request.model = "gpt-3.5-turbo"
         mock_openai_request.messages = [{"role": "user", "content": "Hello"}]
-        mock_client.post.return_value = mock_response
         
         # Stream response
         chunks = []
