@@ -7,36 +7,7 @@ from unittest.mock import Mock, patch, AsyncMock
 import uuid
 
 import pytest
-import httpx
-from fastapi import FastAPI
-
-
-class TestClient(httpx.Client):
-    """Custom TestClient that works with newer httpx versions."""
-    
-    def __init__(self, app: FastAPI, base_url: str = "http://testserver", **kwargs):
-        from starlette.testclient import _TestClientTransport, _AsyncBackend
-        import typing
-        
-        self.async_backend = _AsyncBackend(backend="asyncio", backend_options={})
-        self.app = app
-        self.app_state: typing.Dict[str, typing.Any] = {}
-        
-        transport = _TestClientTransport(
-            self.app,
-            portal_factory=lambda: self.async_backend.portal_factory(),
-            raise_server_exceptions=True,
-            root_path="",
-            app_state=self.app_state,
-        )
-        
-        super().__init__(
-            base_url=base_url,
-            headers={"user-agent": "testclient"},
-            transport=transport,
-            follow_redirects=True,
-            **kwargs
-        )
+from fastapi.testclient import TestClient
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
