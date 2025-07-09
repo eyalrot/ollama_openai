@@ -71,6 +71,7 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}:/app \
           -w /app \
+          --user $(id -u):$(id -g) \
           ${{ env.CI_IMAGE_NAME }}:${{ github.sha }} \
           ruff check src/ tests/ --output-format=github
     
@@ -79,6 +80,7 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}:/app \
           -w /app \
+          --user $(id -u):$(id -g) \
           ${{ env.CI_IMAGE_NAME }}:${{ github.sha }} \
           black --check src/ tests/
     
@@ -87,6 +89,7 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}:/app \
           -w /app \
+          --user $(id -u):$(id -g) \
           ${{ env.CI_IMAGE_NAME }}:${{ github.sha }} \
           mypy src/ --ignore-missing-imports --allow-untyped-defs --allow-incomplete-defs
 
@@ -158,6 +161,7 @@ jobs:
           -w /app \
           -e OPENAI_API_BASE_URL=https://api.test.com \
           -e OPENAI_API_KEY=test-key \
+          --user $(id -u):$(id -g) \
           ${{ env.CI_IMAGE_NAME }}:${{ github.sha }} \
           pytest tests/unit/ -v -k "test_valid_configuration or test_ollama_chat_request"
 

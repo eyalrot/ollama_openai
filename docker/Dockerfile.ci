@@ -37,9 +37,9 @@ RUN pip install --no-cache-dir \
 RUN useradd -m -u 1000 -s /bin/bash ciuser && \
     chown -R ciuser:ciuser /app
 
-# Create directories for test outputs
-RUN mkdir -p /app/htmlcov /app/coverage /app/.pytest_cache && \
-    chown -R ciuser:ciuser /app/htmlcov /app/coverage /app/.pytest_cache
+# Create directories for test outputs and ruff cache
+RUN mkdir -p /app/htmlcov /app/coverage /app/.pytest_cache /app/.ruff_cache && \
+    chown -R ciuser:ciuser /app/htmlcov /app/coverage /app/.pytest_cache /app/.ruff_cache
 
 # Switch to non-root user
 USER ciuser
