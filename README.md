@@ -18,7 +18,7 @@ This proxy allows you to migrate from Ollama to OpenAI-compatible LLM servers wi
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/ollama_openai.git
+   git clone https://github.com/eyalrot/ollama_openai.git
    cd ollama_openai
    ```
 
