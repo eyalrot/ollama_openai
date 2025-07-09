@@ -280,7 +280,7 @@ class BaseTranslator(ABC, Generic[OllamaRequestType, OpenAIRequestType, OpenAIRe
         )
         
         if isinstance(error, (TranslationError, ValidationError)):
-            raise
+            raise error
         
         raise TranslationError(
             f"Failed to translate in {context}: {str(error)}",
