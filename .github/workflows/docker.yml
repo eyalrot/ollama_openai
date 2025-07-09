@@ -1,0 +1,152 @@
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha
+
+    - name: Build production image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile.prod
+        push: false
+        tags: ollama-proxy-test:prod
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        load: true
+
+    - name: Build development image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile.dev
+        push: false
+        tags: ollama-proxy-test:dev
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        load: true
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ollama-proxy-test:prod
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Test container startup
+      run: |
+        docker run -d --name test-container \
+          -e OPENAI_API_BASE_URL=http://test \
+          -e OPENAI_API_KEY=test \
+          ollama-proxy-test:prod
+        
+        # Wait for container to be ready
+        for i in {1..30}; do
+          if docker ps -q -f name=test-container | grep -q .; then
+            break
+          fi
+          sleep 1
+        done
+        
+        # Check if running
+        docker ps -a
+        docker logs test-container
+        
+        # Verify non-root user
+        USER_ID=$(docker exec test-container id -u)
+        if [ "$USER_ID" != "1000" ]; then
+          echo "Container not running as expected user (UID: $USER_ID)"
+          exit 1
+        fi
+        
+        docker rm -f test-container
+
+    - name: Build and push production image
+      if: github.event_name != 'pull_request'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile.prod
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+  docker-compose-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate docker-compose files
+      run: |
+        # Create test .env file
+        cat > .env.test << EOF
+        OPENAI_API_BASE_URL=http://test-server:8000/v1
+        OPENAI_API_KEY=test-key
+        PROXY_PORT=11434
+        LOG_LEVEL=INFO
+        EOF
+        
+        # Validate production compose
+        docker compose --env-file .env.test -f docker-compose.yml config
+        
+        # Validate development compose
+        docker compose --env-file .env.test -f docker/docker-compose.dev.yml config
+        
+        # Validate production compose with overrides
+        docker compose --env-file .env.test -f docker/docker-compose.prod.yml config
+        
+        rm .env.test

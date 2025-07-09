@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  ollama-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ollama-openai-proxy:latest
+    container_name: ollama-proxy
+    ports:
+      - "${PROXY_PORT:-11434}:11434"
+    environment:
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROXY_PORT=${PROXY_PORT:-11434}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
+      - DEBUG=${DEBUG:-false}
+    volumes:
+      # Mount config directory for model mappings if needed
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; import sys; sys.exit(0 if httpx.get('http://localhost:11434/health').status_code == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ollama-network
+
+networks:
+  ollama-network:
+    driver: bridge

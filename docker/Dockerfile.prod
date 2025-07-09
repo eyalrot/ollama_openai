@@ -1,0 +1,63 @@
+# Build stage
+FROM python:3.12-slim as builder
+
+WORKDIR /build
+
+# Install build dependencies and security updates
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    --no-install-recommends \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir --no-warn-script-location -r requirements.txt
+
+# Runtime stage
+FROM python:3.12-slim
+
+# Install security updates and create non-root user
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
+        curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -u 1000 -s /bin/bash proxyuser \
+    && mkdir -p /app/config \
+    && chown -R proxyuser:proxyuser /app
+
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /home/proxyuser/.local
+
+# Copy application code with proper ownership
+COPY --chown=proxyuser:proxyuser src/ ./src/
+COPY --chown=proxyuser:proxyuser requirements.txt ./
+
+# Set environment variables
+ENV PATH=/home/proxyuser/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Create necessary directories
+RUN mkdir -p /app/logs && chown proxyuser:proxyuser /app/logs
+
+# Switch to non-root user
+USER proxyuser
+
+# Health check using curl for better reliability
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:${PROXY_PORT:-11434}/health || exit 1
+
+# Expose port
+EXPOSE 11434
+
+# Use exec form to ensure proper signal handling
+ENTRYPOINT ["python", "-m", "uvicorn"]
+CMD ["src.main:app", "--host", "0.0.0.0", "--port", "11434", "--workers", "1"]
