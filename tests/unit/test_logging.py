@@ -210,6 +210,21 @@ class TestSetupLogging:
     def setup_method(self):
         """Clear handlers before each test."""
         root_logger = logging.getLogger()
+        # Close any existing file handlers to prevent ResourceWarning
+        for handler in root_logger.handlers[:]:
+            if hasattr(handler, "close"):
+                handler.close()
+            root_logger.removeHandler(handler)
+        root_logger.handlers = []
+
+    def teardown_method(self):
+        """Clean up handlers after each test."""
+        root_logger = logging.getLogger()
+        # Close any file handlers to prevent ResourceWarning
+        for handler in root_logger.handlers[:]:
+            if hasattr(handler, "close"):
+                handler.close()
+            root_logger.removeHandler(handler)
         root_logger.handlers = []
 
     def test_basic_setup(self):

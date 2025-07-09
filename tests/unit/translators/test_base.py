@@ -22,7 +22,7 @@ def mock_settings():
 
 
 # Concrete implementation for testing
-class TestTranslator(
+class ConcreteTranslator(
     BaseTranslator[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]
 ):
     """Concrete translator for testing."""
@@ -59,7 +59,7 @@ class TestBaseTranslator:
     def test_initialization_with_mappings(self):
         """Test translator initialization with custom model mappings."""
         mappings = {"llama2": "gpt-3.5-turbo", "codellama": "gpt-4"}
-        translator = TestTranslator(model_mappings=mappings)
+        translator = ConcreteTranslator(model_mappings=mappings)
 
         assert translator.model_mappings == mappings
         assert hasattr(translator, "logger")
@@ -71,7 +71,7 @@ class TestBaseTranslator:
             mock_settings.return_value.load_model_mappings.return_value = {
                 "mistral": "gpt-3.5-turbo"
             }
-            translator = TestTranslator()
+            translator = ConcreteTranslator()
 
             assert translator.model_mappings == {"mistral": "gpt-3.5-turbo"}
 
@@ -79,14 +79,14 @@ class TestBaseTranslator:
         """Test translator initialization with no mappings."""
         with patch("src.translators.base.get_settings") as mock_settings:
             mock_settings.return_value.load_model_mappings.return_value = {}
-            translator = TestTranslator()
+            translator = ConcreteTranslator()
 
             assert translator.model_mappings == {}
 
     def test_map_model_name(self):
         """Test model name mapping."""
         mappings = {"llama2": "gpt-3.5-turbo", "codellama": "gpt-4"}
-        translator = TestTranslator(model_mappings=mappings)
+        translator = ConcreteTranslator(model_mappings=mappings)
 
         # Test existing mapping
         assert translator.map_model_name("llama2") == "gpt-3.5-turbo"
@@ -98,7 +98,7 @@ class TestBaseTranslator:
     def test_reverse_map_model_name(self):
         """Test reverse model name mapping."""
         mappings = {"llama2": "gpt-3.5-turbo", "codellama": "gpt-4"}
-        translator = TestTranslator(model_mappings=mappings)
+        translator = ConcreteTranslator(model_mappings=mappings)
 
         # Test reverse mapping
         assert translator.reverse_map_model_name("gpt-3.5-turbo") == "llama2"
@@ -111,7 +111,7 @@ class TestBaseTranslator:
     def test_extract_options_with_ollama_options(self, mock_settings):
         """Test extracting options from OllamaOptions object."""
         mock_settings.return_value.load_model_mappings.return_value = {}
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         options = OllamaOptions(
             temperature=0.7,
@@ -137,20 +137,20 @@ class TestBaseTranslator:
 
     def test_extract_options_none(self):
         """Test extracting options with None input."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
         result = translator.extract_options(None)
         assert result == {}
 
     def test_extract_options_empty(self):
         """Test extracting options with empty OllamaOptions."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
         options = OllamaOptions()
         result = translator.extract_options(options)
         assert result == {}
 
     def test_extract_ollama_options(self):
         """Test extracting OpenAI params to Ollama options."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         openai_params = {
             "temperature": 0.8,
@@ -176,7 +176,7 @@ class TestBaseTranslator:
 
     def test_generate_message_id(self):
         """Test message ID generation."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         msg_id = translator.generate_message_id()
         assert msg_id.startswith("msg-")
@@ -188,7 +188,7 @@ class TestBaseTranslator:
 
     def test_generate_request_id(self):
         """Test request ID generation."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         req_id = translator.generate_request_id()
         assert req_id.startswith("chatcmpl-")
@@ -200,7 +200,7 @@ class TestBaseTranslator:
 
     def test_get_timestamp(self):
         """Test Unix timestamp generation."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         before = int(datetime.now().timestamp())
         timestamp = translator.get_timestamp()
@@ -211,7 +211,7 @@ class TestBaseTranslator:
 
     def test_get_iso_timestamp(self):
         """Test ISO timestamp generation."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         timestamp = translator.get_iso_timestamp()
         assert timestamp.endswith("Z")
@@ -222,7 +222,7 @@ class TestBaseTranslator:
 
     def test_validate_model_name_valid(self):
         """Test model name validation with valid name."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         # Should not raise
         translator.validate_model_name("gpt-3.5-turbo")
@@ -230,7 +230,7 @@ class TestBaseTranslator:
 
     def test_validate_model_name_empty(self):
         """Test model name validation with empty name."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         with pytest.raises(ValidationError) as exc_info:
             translator.validate_model_name("")
@@ -238,7 +238,7 @@ class TestBaseTranslator:
 
     def test_calculate_tokens(self):
         """Test token calculation estimation."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         # Test various text lengths
         assert translator.calculate_tokens("") == 0
@@ -248,7 +248,7 @@ class TestBaseTranslator:
 
     def test_handle_translation_error_with_custom_errors(self):
         """Test error handling with custom exception types."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         # Test with TranslationError
         trans_error = TranslationError("Translation failed")
@@ -264,7 +264,7 @@ class TestBaseTranslator:
 
     def test_handle_translation_error_with_generic_error(self):
         """Test error handling with generic exception."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         generic_error = ValueError("Something went wrong")
         with pytest.raises(TranslationError) as exc_info:
@@ -283,7 +283,7 @@ class TestBaseTranslator:
 
     def test_concrete_implementation(self):
         """Test the concrete implementation works correctly."""
-        translator = TestTranslator(model_mappings={"llama2": "gpt-3.5-turbo"})
+        translator = ConcreteTranslator(model_mappings={"llama2": "gpt-3.5-turbo"})
 
         # Test translate_request
         request = {"model": "llama2", "prompt": "Hello"}
@@ -317,7 +317,7 @@ class TestIntegration:
     def test_full_translation_flow(self):
         """Test a complete translation flow."""
         mappings = {"llama2:7b": "gpt-3.5-turbo-0613"}
-        translator = TestTranslator(model_mappings=mappings)
+        translator = ConcreteTranslator(model_mappings=mappings)
 
         # Create Ollama request with options
         ollama_options = OllamaOptions(
@@ -349,7 +349,7 @@ class TestIntegration:
 
     def test_streaming_translation_flow(self):
         """Test streaming translation flow."""
-        translator = TestTranslator()
+        translator = ConcreteTranslator()
 
         original_request = {"model": "llama2", "stream": True}
 

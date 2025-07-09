@@ -7,7 +7,7 @@ including request/response models, streaming models, and validation rules.
 
 from datetime import datetime
 from typing import Dict, List, Optional, Union, Any, Literal
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 import uuid
 
 
@@ -257,6 +257,8 @@ class OllamaModelsResponse(BaseModel):
 
 class OllamaShowResponse(BaseModel):
     """Response for showing model information."""
+
+    model_config = ConfigDict(protected_namespaces=())
 
     modelfile: str = Field(..., description="Modelfile content")
     parameters: str = Field(..., description="Model parameters")

@@ -120,7 +120,9 @@ async def upstream_error_handler(request: Request, exc: UpstreamError) -> JSONRe
                 "message": exc.message,
                 "type": "upstream_error",
                 "status_code": exc.status_code,
-                "service": exc.details.get("service") if "service" in exc.details else None,
+                "service": (
+                    exc.details.get("service") if "service" in exc.details else None
+                ),
                 "details": exc.details,
             }
         },

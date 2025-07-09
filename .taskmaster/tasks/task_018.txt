@@ -1,0 +1,105 @@
+# Task ID: 18
+# Title: Fix All CI Issues in GitHub Actions Until Pipeline Passes
+# Status: pending
+# Dependencies: 16, 12, 10, 7
+# Priority: medium
+# Description: Systematically diagnose and fix all GitHub Actions CI failures for Python 3.12 and Docker-based workflows, iterating through each failure until all checks are green
+# Details:
+Implement a systematic approach to fix all CI issues:
+
+1. **Initial CI Status Assessment**
+   - Run GitHub Actions workflow and capture all failing jobs
+   - Document each failure type (linting, type checking, tests, Docker build)
+   - Create a priority list based on dependency order
+
+2. **Python 3.12 Compatibility Fixes**
+   - Update type hints for Python 3.12 compatibility
+   - Fix any deprecated imports or syntax
+   - Update dependencies in requirements.txt for Python 3.12 support
+   - Address asyncio changes in Python 3.12
+
+3. **Linting Issues Resolution**
+   - Run `ruff check .` locally to identify all linting errors
+   - Fix import ordering issues
+   - Resolve line length violations
+   - Address unused imports and variables
+   - Fix docstring formatting issues
+
+4. **Type Checking Fixes**
+   - Run `mypy src/` to identify type errors
+   - Add missing type annotations
+   - Fix incompatible type assignments
+   - Resolve generic type parameter issues
+   - Update Pydantic model type hints for v2 compatibility
+
+5. **Test Suite Repairs**
+   - Fix failing unit tests one by one
+   - Update mocked responses to match current implementations
+   - Resolve pytest deprecation warnings
+   - Fix async test issues with proper event loop handling
+   - Address test isolation problems
+
+6. **Docker Build Fixes**
+   - Update Dockerfile for Python 3.12 base image
+   - Fix multi-stage build issues
+   - Resolve dependency installation problems
+   - Ensure health checks work with Python 3.12
+   - Verify non-root user permissions
+
+7. **GitHub Actions Workflow Updates**
+   - Update actions/setup-python to latest version
+   - Fix matrix strategy for Python 3.12
+   - Resolve caching issues
+   - Update codecov action configuration
+   - Fix artifact upload/download steps
+
+8. **Iterative Fix Verification**
+   - After each fix category, push to a test branch
+   - Monitor GitHub Actions run results
+   - Document remaining failures
+   - Repeat until all checks pass
+
+9. **Final Validation**
+   - Ensure all jobs in CI matrix pass
+   - Verify coverage reports are generated
+   - Confirm Docker images build successfully
+   - Check that all Python versions (3.9-3.12) pass
+
+# Test Strategy:
+Comprehensive CI validation approach:
+
+1. **Local Pre-flight Checks**
+   - Run `ruff check . --fix` and verify no errors remain
+   - Execute `mypy src/ --strict` and confirm zero type errors
+   - Run `pytest -xvs` to ensure all tests pass locally
+   - Build Docker image with `docker build -t test:latest .`
+
+2. **GitHub Actions Verification**
+   - Create a test branch and push fixes incrementally
+   - Monitor each workflow run in GitHub Actions UI
+   - Verify lint-and-type-check job passes for all Python versions
+   - Confirm unit-tests job completes successfully
+   - Check integration-tests job runs without errors
+   - Ensure docker-build job creates and pushes images
+
+3. **Matrix Testing Validation**
+   - Verify Python 3.9, 3.10, 3.11, and 3.12 all pass
+   - Confirm Ubuntu, macOS, and Windows runners work
+   - Check that both PR and push workflows execute
+
+4. **Coverage and Reporting**
+   - Verify coverage reports upload to Codecov
+   - Ensure coverage meets minimum threshold (>80%)
+   - Check that test results are properly formatted
+
+5. **Docker Integration**
+   - Pull and run the built Docker image
+   - Verify health checks pass
+   - Test container starts with proper environment
+   - Confirm graceful shutdown works
+
+6. **Final PR Validation**
+   - Create a clean PR with all fixes
+   - Ensure all status checks are green
+   - Verify no warnings in build logs
+   - Confirm successful merge to main branch
