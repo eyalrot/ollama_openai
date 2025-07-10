@@ -14,8 +14,9 @@ import uvicorn
 from src.config import get_settings
 from src.utils.logging import setup_logging, get_logger
 from src.utils.exceptions import ProxyException, UpstreamError
-from src.routers import chat, models, embeddings
+from src.routers import chat, models, embeddings, metrics
 from src.middleware.logging_middleware import LoggingMiddleware
+from src.middleware.metrics_middleware import MetricsMiddleware
 from src.utils.http_client import close_global_client
 
 # Initialize settings and logging
@@ -85,6 +86,9 @@ async def add_request_id_middleware(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
+
+# Add metrics middleware (before logging to capture all requests)
+app.add_middleware(MetricsMiddleware, track_request_body=True, track_response_body=True)
 
 # Add logging middleware
 app.add_middleware(LoggingMiddleware)
@@ -162,11 +166,13 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 app.include_router(chat.router, prefix="/v1", tags=["chat"])
 app.include_router(models.router, prefix="/v1", tags=["models"])
 app.include_router(embeddings.router, prefix="/v1", tags=["embeddings"])
+app.include_router(metrics.router, prefix="/v1", tags=["metrics"])
 
 # Also include Ollama-style endpoints
 app.include_router(chat.router, prefix="/api", tags=["ollama-chat"])
 app.include_router(models.router, prefix="/api", tags=["ollama-models"])
 app.include_router(embeddings.router, prefix="/api", tags=["ollama-embeddings"])
+app.include_router(metrics.router, prefix="/api", tags=["ollama-metrics"])
 
 
 # Health check endpoints
@@ -211,12 +217,14 @@ async def root() -> Dict[str, Any]:
                 "chat": "/v1/chat/completions",
                 "models": "/v1/models",
                 "embeddings": "/v1/embeddings",
+                "metrics": "/v1/metrics",
             },
             "ollama": {
                 "generate": "/api/generate",
                 "chat": "/api/chat",
                 "models": "/api/tags",
                 "embeddings": "/api/embeddings",
+                "metrics": "/api/metrics",
             },
         },
     }
