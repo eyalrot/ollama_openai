@@ -106,7 +106,7 @@ class Settings(BaseSettings):
             warnings.warn(
                 f"Total timeout with retries could exceed {total_possible_time}s. "
                 f"Consider reducing REQUEST_TIMEOUT or MAX_RETRIES.",
-                stacklevel=2
+                stacklevel=2,
             )
 
         return self
