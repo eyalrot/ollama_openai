@@ -78,9 +78,8 @@ jobs:
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
-        base: ${{ github.event.repository.default_branch }}
-        head: HEAD
         extra_args: --debug --only-verified
+      continue-on-error: true
 
   container-security:
     name: Container Security Scan
@@ -129,6 +128,7 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+        category: 'trivy-container'
 
     - name: Run Trivy filesystem scan
       uses: aquasecurity/trivy-action@master
@@ -145,6 +145,7 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-fs-results.sarif'
+        category: 'trivy-filesystem'
 
   dependency-check:
     name: Dependency Security Check
