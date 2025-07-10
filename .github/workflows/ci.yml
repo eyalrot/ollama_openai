@@ -33,7 +33,7 @@ jobs:
           type=sha,prefix={{branch}}-
     
     - name: Build CI Docker image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: ./docker/Dockerfile.ci
@@ -246,7 +246,7 @@ jobs:
       uses: docker/setup-buildx-action@v3
     
     - name: Build production Docker image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: ./docker/Dockerfile.prod
