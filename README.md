@@ -3,7 +3,7 @@
 [![CI Status](https://github.com/eyalrot/ollama_openai/workflows/CI%20Pipeline/badge.svg)](https://github.com/eyalrot/ollama_openai/actions)
 [![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/branch/master/graph/badge.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
 [![Security Scan](https://github.com/eyalrot/ollama_openai/workflows/Security%20Scan/badge.svg)](https://github.com/eyalrot/ollama_openai/security)
-[![Docker Build](https://github.com/eyalrot/ollama_openai/workflows/Docker/badge.svg)](https://github.com/eyalrot/ollama_openai/actions)
+[![Docker Build](https://github.com/eyalrot/ollama_openai/workflows/Docker%20Build%20and%20Test/badge.svg)](https://github.com/eyalrot/ollama_openai/actions)
 [![License](https://img.shields.io/github/license/eyalrot/ollama_openai)](LICENSE)
 
 A transparent proxy service that allows legacy applications using the Ollama Python SDK to seamlessly work with OpenAI-compatible LLM servers like VLLM.
