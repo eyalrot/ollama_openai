@@ -118,25 +118,95 @@ jobs:
           -e OPENAI_API_KEY=${{ secrets.TEST_OPENAI_API_KEY || 'test-key' }} \
           --user $(id -u):$(id -g) \
           ${{ env.CI_IMAGE_NAME }}:${{ github.sha }} \
-          pytest tests/unit/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term-missing --ignore=tests/unit/test_main.py
+          pytest tests/unit/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term-missing --cov-fail-under=80 --ignore=tests/unit/test_main.py
     
     - name: Fix coverage file permissions
       run: |
         sudo chown -R $USER:$USER coverage.xml htmlcov/ || true
     
-    - name: Upload coverage reports
+    - name: Generate coverage badge
+      run: |
+        # Extract coverage percentage from coverage.xml
+        if [ -f coverage.xml ]; then
+          COVERAGE=$(python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('coverage.xml')
+          root = tree.getroot()
+          coverage = float(root.attrib['line-rate']) * 100
+          print(f'{coverage:.1f}')
+          " 2>/dev/null || echo "0.0")
+          echo "COVERAGE_PERCENTAGE=$COVERAGE" >> $GITHUB_ENV
+          echo "Coverage: $COVERAGE%"
+        fi
+
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
-    
+        verbose: true
+
     - name: Upload coverage HTML report
       uses: actions/upload-artifact@v4
+      if: always()
       with:
-        name: coverage-report
+        name: coverage-report-${{ github.sha }}
         path: htmlcov/
-        retention-days: 7
+        retention-days: 30
+
+    - name: Coverage Summary
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -f coverage.xml ]; then
+          echo "**Coverage**: ${COVERAGE_PERCENTAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📈 [View detailed coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          
+          # Add coverage threshold check
+          THRESHOLD=80
+          if (( $(echo "$COVERAGE_PERCENTAGE >= $THRESHOLD" | bc -l) )); then
+            echo "✅ Coverage meets threshold ($THRESHOLD%)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Coverage below threshold ($THRESHOLD%)" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "❌ Coverage report not generated" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const coverage = process.env.COVERAGE_PERCENTAGE || '0.0';
+          const threshold = 80;
+          const status = parseFloat(coverage) >= threshold ? '✅' : '❌';
+          const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+          
+          const body = `## 📊 Coverage Report
+          
+          **Coverage**: ${coverage}% ${status}
+          **Threshold**: ${threshold}%
+          
+          📈 [View detailed report](${runUrl})
+          📋 [Download HTML report](${runUrl})
+          
+          ${parseFloat(coverage) >= threshold ? 
+            '✅ Coverage meets the required threshold!' : 
+            '❌ Coverage is below the required threshold. Please add more tests.'}
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
 
   integration-test:
     runs-on: ubuntu-latest

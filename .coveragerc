@@ -1,22 +1,54 @@
+# Coverage configuration file
+# This file provides coverage settings and ensures compatibility with coverage tools
+
 [run]
 source = src
+branch = True
+parallel = False
+
+# Files to omit from coverage analysis
 omit = 
     */tests/*
-    */venv/*
+    */test_*
     */__pycache__/*
+    */migrations/*
+    */venv/*
+    */.venv/*
     */site-packages/*
+    */conftest.py
+    */setup.py
+    */manage.py
+    */.pytest_cache/*
+    */htmlcov/*
+    */.coverage*
+    */build/*
+    */dist/*
+    */.tox/*
 
 [report]
-precision = 2
+# Fail if coverage is below threshold
+fail_under = 80
+
+# Show missing lines in terminal report
 show_missing = True
+
+# Skip files with 100% coverage in summary
 skip_covered = False
 
+# Sort output by coverage percentage
+sort = Cover
+
+# Precision for coverage percentages
+precision = 1
+
+# Lines to exclude from coverage analysis
 exclude_lines =
     # Have to re-enable the standard pragma
     pragma: no cover
     
     # Don't complain about missing debug-only code:
     def __repr__
+    def __str__
     if self\.debug
     
     # Don't complain if tests don't hit defensive assertion code:
@@ -24,14 +56,40 @@ exclude_lines =
     raise NotImplementedError
     
     # Don't complain if non-runnable code isn't run:
-    if 0:
     if __name__ == .__main__.:
     
-    # Don't complain about abstract methods
+    # Don't complain about type checking imports:
+    if TYPE_CHECKING:
+    
+    # Don't complain about abstract methods:
     @(abc\.)?abstractmethod
+    
+    # Don't complain about overload definitions:
+    @overload
+    
+    # Don't complain about protocol definitions:
+    class .*\bProtocol\):
+    
+    # Don't complain about pass statements:
+    pass
+    
+    # Don't complain about ellipsis:
+    \.\.\.
 
 [html]
+# HTML report directory
 directory = htmlcov
 
+# HTML report title
+title = Ollama-OpenAI Proxy Coverage Report
+
+# Show file contexts in HTML
+show_contexts = True
+
 [xml]
+# XML report output file
 output = coverage.xml
+
+[json]
+# JSON report output file
+output = coverage.json

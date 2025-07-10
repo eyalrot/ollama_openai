@@ -1,5 +1,11 @@
 # Ollama to OpenAI Proxy
 
+[![CI Status](https://github.com/eyalrot/ollama_openai/workflows/CI%20Pipeline/badge.svg)](https://github.com/eyalrot/ollama_openai/actions)
+[![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/branch/master/graph/badge.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
+[![Security Scan](https://github.com/eyalrot/ollama_openai/workflows/Security%20Scan/badge.svg)](https://github.com/eyalrot/ollama_openai/security)
+[![Docker Build](https://github.com/eyalrot/ollama_openai/workflows/Docker/badge.svg)](https://github.com/eyalrot/ollama_openai/actions)
+[![License](https://img.shields.io/github/license/eyalrot/ollama_openai)](LICENSE)
+
 A transparent proxy service that allows legacy applications using the Ollama Python SDK to seamlessly work with OpenAI-compatible LLM servers like VLLM.
 
 ## Features
@@ -28,6 +34,8 @@ A transparent proxy service that allows legacy applications using the Ollama Pyt
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
 - [Development](#development)
+- [Documentation](#documentation)
+- [Security & Compliance](#security--compliance)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -209,7 +217,11 @@ See `deployment/kubernetes/` for example manifests:
 
 ## Testing
 
-### Running Tests
+![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/branch/master/graph/badge.svg)
+
+This project maintains comprehensive test coverage across unit, integration, and performance tests. For detailed testing documentation, see our **[Testing Guide](docs/TESTING.md)**.
+
+### Quick Testing
 
 ```bash
 # Install dev dependencies
@@ -218,27 +230,45 @@ pip install -r requirements-dev.txt
 # Run all tests
 pytest tests/ -v
 
-# Run with coverage
+# Run with coverage report
 pytest tests/ --cov=src --cov-report=html
 
-# Run specific test category
-pytest tests/unit/ -v
-pytest tests/integration/ -v
+# Run specific test categories
+pytest tests/unit/ -v          # Unit tests
+pytest tests/performance/ -v   # Performance tests
 ```
 
-### Integration Tests
+### Test Categories
 
-Integration tests require a valid OpenAI-compatible endpoint:
+- **Unit Tests**: 273+ tests covering individual components with >85% coverage
+- **Integration Tests**: End-to-end API testing with mock backends
+- **Performance Tests**: Load testing and benchmarking with metrics validation
+- **Security Tests**: Input validation and error handling verification
+
+### Coverage Requirements
+
+Our coverage standards ensure code quality and reliability:
+
+- **Overall Coverage**: ≥80% (enforced by CI)
+- **New Code Coverage**: ≥85% (enforced on PRs)
+- **Critical Components**: ≥90% (config, models, translators)
+- **Quality Gates**: Automatic PR blocking below thresholds
 
 ```bash
-# With OpenRouter API key
-OPENROUTER_API_KEY=your-key pytest tests/test_openrouter_integration.py
-
-# With your own VLLM server
-OPENAI_API_BASE_URL=http://your-vllm:8000/v1 \
-OPENAI_API_KEY=your-key \
-pytest tests/test_integration.py
+# Generate coverage reports
+make coverage                    # All formats
+make coverage-html              # HTML report only
+pytest --cov=src --cov-fail-under=80  # With threshold check
 ```
+
+### CI/CD Testing
+
+All tests run automatically on:
+- Pull requests and commits to main branch
+- Nightly scheduled runs for regression detection
+- Docker image builds for container testing
+
+For complete testing instructions, coverage reports, and test strategy details, see the **[Testing Guide](docs/TESTING.md)**.
 
 ## Troubleshooting
 
@@ -311,6 +341,52 @@ make lint
 4. Ensure all tests pass
 5. Update documentation
 6. Submit a pull request
+
+## Documentation
+
+### Comprehensive Guides
+
+- 📚 **[Architecture](ARCHITECTURE.md)** - System design and implementation details
+- 🧪 **[Testing Guide](docs/TESTING.md)** - Comprehensive testing documentation and coverage reports
+- 🔒 **[Security](docs/SECURITY.md)** - Security standards, best practices, and vulnerability reporting
+- 📊 **[Performance Benchmarks](docs/PERFORMANCE_BENCHMARKS.md)** - Performance testing and optimization guide
+- 🔧 **[Monitoring Integration](docs/MONITORING_INTEGRATION.md)** - Prometheus/Grafana setup and metrics
+
+### Quick Reference
+
+- [Quick Start Guide](docs/QUICK_START.md) - Get running in 5 minutes
+- [Configuration Guide](docs/CONFIGURATION.md) - Environment variables and settings
+- [API Compatibility Matrix](docs/API_COMPATIBILITY.md) - Supported endpoints and parameters
+- [Model Mapping Guide](docs/MODEL_MAPPING.md) - Custom model name configuration
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions
+
+## Security & Compliance
+
+This project follows industry security standards and best practices:
+
+### 🔒 Security Standards
+- **OWASP Compliance**: Follows [OWASP Top 10](https://owasp.org/www-project-top-ten/) and [OWASP API Security Top 10](https://owasp.org/www-project-api-security/) guidelines
+- **Input Validation**: All API inputs validated using Pydantic models with strict type checking
+- **Secure Configuration**: Environment-based configuration with no hardcoded credentials
+- **Error Handling**: Generic error messages prevent information leakage
+
+### 🛡️ Security Features
+- API key validation and secure forwarding
+- Request size limits and timeout enforcement
+- Connection pooling with configurable limits
+- Graceful degradation under load
+- Comprehensive audit logging with request IDs
+
+### 📋 Security Scanning
+- **Trivy**: Container vulnerability scanning
+- **Bandit**: Python security linting
+- **TruffleHog**: Secret detection in code
+- **GitHub Security**: Automated dependency scanning
+
+For detailed security information, see our [Security Policy](docs/SECURITY.md).
+
+### 🚨 Vulnerability Reporting
+Please report security vulnerabilities responsibly by following our [Security Policy](docs/SECURITY.md#vulnerability-reporting).
 
 ## Contributing
 

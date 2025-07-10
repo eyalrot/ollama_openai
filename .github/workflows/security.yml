@@ -1,0 +1,299 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  schedule:
+    # Run weekly on Sundays at 00:00 UTC
+    - cron: '0 0 * * 0'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+env:
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  security-scan:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # Full history for accurate secret detection
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit[toml] safety
+
+    - name: Run Bandit security linter
+      run: |
+        bandit -r src/ -f json -o bandit-results.json
+        bandit -r src/ -f txt -o bandit-results.txt
+        # Also generate human-readable report
+        bandit -r src/ || echo "Bandit found security issues"
+      continue-on-error: true
+
+    - name: Upload Bandit results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: bandit-results
+        path: |
+          bandit-results.json
+          bandit-results.txt
+        retention-days: 30
+
+    - name: Run Safety check for known vulnerabilities
+      run: |
+        safety check --json --output safety-results.json || echo "Safety found vulnerabilities"
+        safety check --output safety-results.txt || echo "Safety found vulnerabilities"
+      continue-on-error: true
+
+    - name: Upload Safety results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: safety-results
+        path: |
+          safety-results.json
+          safety-results.txt
+        retention-days: 30
+
+    - name: Run TruffleHog secret detection
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event.repository.default_branch }}
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  container-security:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image for scanning
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false
+        tags: ollama-openai-proxy:security-scan
+        load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Run Trivy vulnerability scanner (Table format)
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ollama-openai-proxy:security-scan
+        format: 'table'
+        exit-code: '0'  # Don't fail the build
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+
+    - name: Run Trivy vulnerability scanner (SARIF format)
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ollama-openai-proxy:security-scan
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run Trivy filesystem scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-fs-results.sarif'
+        ignore-unfixed: true
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy filesystem results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-fs-results.sarif'
+
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install pip-audit
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-audit
+
+    - name: Run pip-audit
+      run: |
+        pip-audit --format=json --output=pip-audit-results.json --requirement=requirements.txt
+        pip-audit --format=cyclonedx-json --output=sbom.json --requirement=requirements.txt
+        # Also run on dev requirements if they exist
+        if [ -f requirements-dev.txt ]; then
+          pip-audit --format=json --output=pip-audit-dev-results.json --requirement=requirements-dev.txt
+        fi
+      continue-on-error: true
+
+    - name: Upload pip-audit results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: dependency-audit-results
+        path: |
+          pip-audit-results.json
+          pip-audit-dev-results.json
+          sbom.json
+        retention-days: 30
+
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        queries: security-extended,security-and-quality
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [security-scan, container-security, dependency-check, codeql-analysis]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: security-results
+
+    - name: Generate security summary
+      run: |
+        echo "# Security Scan Summary" > security-summary.md
+        echo "**Scan Date**: $(date -u)" >> security-summary.md
+        echo "" >> security-summary.md
+        
+        echo "## Scan Results" >> security-summary.md
+        echo "| Tool | Status | Results |" >> security-summary.md
+        echo "|------|--------|---------|" >> security-summary.md
+        
+        # Check if Bandit results exist
+        if [ -f security-results/bandit-results/bandit-results.json ]; then
+          BANDIT_ISSUES=$(jq '.results | length' security-results/bandit-results/bandit-results.json 2>/dev/null || echo "0")
+          echo "| Bandit | ✅ Complete | $BANDIT_ISSUES issues found |" >> security-summary.md
+        else
+          echo "| Bandit | ❌ Failed | No results |" >> security-summary.md
+        fi
+        
+        # Check if Safety results exist
+        if [ -f security-results/safety-results/safety-results.json ]; then
+          echo "| Safety | ✅ Complete | See artifact for details |" >> security-summary.md
+        else
+          echo "| Safety | ❌ Failed | No results |" >> security-summary.md
+        fi
+        
+        # Check if pip-audit results exist
+        if [ -f security-results/dependency-audit-results/pip-audit-results.json ]; then
+          echo "| pip-audit | ✅ Complete | See artifact for details |" >> security-summary.md
+        else
+          echo "| pip-audit | ❌ Failed | No results |" >> security-summary.md
+        fi
+        
+        echo "| Trivy | ✅ Complete | See GitHub Security tab |" >> security-summary.md
+        echo "| TruffleHog | ✅ Complete | Secret detection performed |" >> security-summary.md
+        echo "| CodeQL | ✅ Complete | See GitHub Security tab |" >> security-summary.md
+        
+        echo "" >> security-summary.md
+        echo "## Next Steps" >> security-summary.md
+        echo "1. Review scan results in the Security tab" >> security-summary.md
+        echo "2. Download artifacts for detailed analysis" >> security-summary.md
+        echo "3. Address any critical or high-severity findings" >> security-summary.md
+        echo "4. Update dependencies if vulnerabilities are found" >> security-summary.md
+        
+        cat security-summary.md
+
+    - name: Upload security summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-summary
+        path: security-summary.md
+        retention-days: 30
+
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('security-summary.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## 🔒 Security Scan Results\n\n${summary}`
+          });

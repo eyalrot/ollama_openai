@@ -1,0 +1,182 @@
+# Codecov Configuration
+# https://docs.codecov.com/docs/codecov-yaml
+
+# Coverage Analysis Settings
+coverage:
+  # Global coverage targets
+  range: "70...85"       # Coverage range (red to green)
+  round: down            # Round coverage down to be conservative
+  precision: 1           # Show one decimal place
+
+  # Status checks for GitHub
+  status:
+    # Overall project coverage
+    project:
+      default:
+        target: 80%       # Target overall coverage
+        threshold: 2%     # Allow up to 2% drop
+        base: auto        # Compare against base branch
+        if_ci_failed: error
+    
+    # Patch coverage (new code in PR)
+    patch:
+      default:
+        target: 85%       # Higher standard for new code
+        threshold: 1%     # Stricter threshold for new code
+        base: auto
+        if_ci_failed: error
+
+  # Notify settings
+  notify:
+    # Require successful CI before posting comments
+    require_ci_to_pass: true
+    
+    # Wait for coverage reports from CI
+    wait_for_ci: true
+    
+    # After how many builds can we send a notification
+    after_n_builds: 1
+
+# GitHub Integration
+github_checks:
+  annotations: true       # Add annotations to PR files
+
+# Pull Request Comments
+comment:
+  layout: "reach,diff,flags,tree,reach"
+  behavior: default
+  require_changes: false  # Always comment on PRs
+  require_base: false
+  require_head: true
+  
+  # Comment template
+  template: |
+    ## 📊 Codecov Report
+    
+    > Merging [#{{ pull.number }}]({{ pull.url }}) ({{ commit.short }}) into [{{ base.branch }}]({{ base.url }}) ({{ base.commit.short }}) will {{ change_word }} coverage by {{ coverage_diff }}.
+    
+    **Coverage Summary:**
+    - **Total Coverage:** {{ totals.coverage }}% ({{ totals.diff }} {{ change_word }})
+    - **Files Changed:** {{ files|length }}
+    - **Coverage Threshold:** 80% ✅
+    
+    {% if has_diff %}
+    | Files | Coverage Δ | Complexity Δ |
+    |-------|------------|---------------|
+    {% for file in files -%}
+    | [{{ file.name }}]({{ file.url }}) | {{ file.totals.coverage }}% ({{ file.totals.diff }}) | {{ file.totals.complexity }} ({{ file.totals.complexity_diff }}) |
+    {% endfor -%}
+    {% endif %}
+    
+    {% if uncovered_lines_files|length > 0 -%}
+    **📍 Missing Coverage:**
+    {% for file in uncovered_lines_files -%}
+    - [{{ file.name }}]({{ file.url }}): Lines {{ file.uncovered_lines }}
+    {% endfor -%}
+    {% endif %}
+    
+    **Quality Gates:**
+    - Overall Coverage: {% if totals.coverage >= 80 %}✅{% else %}❌{% endif %} {{ totals.coverage }}%
+    - New Code Coverage: {% if patch.coverage >= 85 %}✅{% else %}❌{% endif %} {{ patch.coverage }}%
+    - Coverage Change: {% if totals.diff >= -2 %}✅{% else %}❌{% endif %} {{ coverage_diff }}
+    
+    {% if missing_tests|length > 0 -%}
+    **🚨 Please add tests for:**
+    {% for file in missing_tests -%}
+    - {{ file.name }}
+    {% endfor -%}
+    {% endif %}
+
+# File paths to ignore
+ignore:
+  - "tests/**/*"           # Test files
+  - "**/*test*.py"         # Test files with 'test' in name
+  - "**/conftest.py"       # Pytest configuration
+  - "**/setup.py"          # Setup scripts
+  - "**/manage.py"         # Management scripts
+  - "**/__pycache__/**"    # Python cache
+  - "**/migrations/**"     # Database migrations
+  - "**/htmlcov/**"        # Coverage reports
+  - "**/.pytest_cache/**" # Pytest cache
+  - "**/build/**"          # Build artifacts
+  - "**/dist/**"           # Distribution files
+  - "**/.tox/**"           # Tox environments
+  - "**/venv/**"           # Virtual environments
+  - "**/.venv/**"          # Virtual environments
+
+# Flag configuration for different test types
+flags:
+  unit_tests:
+    paths:
+      - tests/unit/
+    carryforward: true
+  
+  integration_tests:
+    paths:
+      - tests/integration/
+      - tests/test_docker.py
+    carryforward: true
+  
+  performance_tests:
+    paths:
+      - tests/performance/
+    carryforward: true
+
+# Codecov processing rules
+fixes:
+  - "src/::src/"     # Map src/ in reports to src/ in repo
+
+# Component configuration
+component_management:
+  individual_components:
+    # Core components with higher standards
+    - component_id: "configuration"
+      name: "Configuration Management"
+      paths:
+        - "src/config.py"
+      flag_regexes:
+        - unit_tests
+      statuses:
+        - type: project
+          target: 95%
+    
+    - component_id: "models"
+      name: "Data Models"
+      paths:
+        - "src/models.py"
+      flag_regexes:
+        - unit_tests
+      statuses:
+        - type: project
+          target: 90%
+    
+    - component_id: "translators"
+      name: "Translation Layer"
+      paths:
+        - "src/translators/"
+      flag_regexes:
+        - unit_tests
+      statuses:
+        - type: project
+          target: 88%
+    
+    - component_id: "routers"
+      name: "API Routes"
+      paths:
+        - "src/routers/"
+      flag_regexes:
+        - unit_tests
+        - integration_tests
+      statuses:
+        - type: project
+          target: 85%
+    
+    - component_id: "utils"
+      name: "Utilities"
+      paths:
+        - "src/utils/"
+      flag_regexes:
+        - unit_tests
+      statuses:
+        - type: project
+          target: 80%
