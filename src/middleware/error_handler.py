@@ -2,21 +2,21 @@
 Error handling middleware for FastAPI.
 """
 
-from typing import Callable, Optional, Dict, Any
 import traceback
+from typing import Any, Callable, Dict, Optional
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError as PydanticValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-from pydantic import ValidationError as PydanticValidationError
 
-from src.utils.logging import get_logger, request_id_context
 from src.utils.exceptions import (
     ProxyException,
-    ValidationError,
     UpstreamError,
+    ValidationError,
 )
+from src.utils.logging import get_logger, request_id_context
 
 
 class ErrorHandlerMiddleware(BaseHTTPMiddleware):
@@ -124,9 +124,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
 
         if isinstance(exc, ValidationError):
             status_code = 400
-        elif isinstance(exc, UpstreamError):
-            status_code = exc.status_code
-        elif hasattr(exc, "status_code"):
+        elif isinstance(exc, UpstreamError) or hasattr(exc, "status_code"):
             status_code = exc.status_code
         else:
             # Map error codes to status codes

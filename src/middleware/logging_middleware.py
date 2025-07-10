@@ -2,18 +2,18 @@
 Logging middleware for FastAPI with request ID tracking.
 """
 
+import json
 import time
 import uuid
-import json
-from typing import Callable, Optional, Dict, Any
+from typing import Any, Callable, Dict, Optional
 
 from fastapi import Request, Response
 from fastapi.responses import StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-from src.utils.logging import get_logger, request_id_context
 from src.utils.exceptions import ProxyException
+from src.utils.logging import get_logger, request_id_context
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):

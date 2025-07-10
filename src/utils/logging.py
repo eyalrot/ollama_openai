@@ -2,13 +2,13 @@
 Logging configuration and utilities.
 """
 
-import logging
+import contextvars
 import json
+import logging
 import sys
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Union
 from pathlib import Path
-import contextvars
+from typing import Any, Dict, Optional, Union
 
 # Context variable for request ID
 request_id_context: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(

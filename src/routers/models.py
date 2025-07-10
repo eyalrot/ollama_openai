@@ -5,26 +5,26 @@ This module provides endpoints for listing models, showing model information,
 and returning appropriate errors for unsupported model management operations.
 """
 
+import hashlib
 from datetime import datetime, timezone
 from typing import List
-import hashlib
 
+import httpx
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import JSONResponse
-import httpx
 
+from src.config import get_settings
 from src.models import (
-    OllamaModelsResponse,
+    OllamaDeleteRequest,
     OllamaModelInfo,
-    OllamaShowResponse,
+    OllamaModelsResponse,
     OllamaPullRequest,
     OllamaPushRequest,
-    OllamaDeleteRequest,
     OllamaShowRequest,
+    OllamaShowResponse,
     OllamaVersionResponse,
     OpenAIModelsResponse,
 )
-from src.config import get_settings
 from src.utils.exceptions import UpstreamError
 from src.utils.logging import get_logger
 

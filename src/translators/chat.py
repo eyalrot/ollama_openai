@@ -5,24 +5,23 @@ This module handles the translation of chat completion requests and responses
 between Ollama and OpenAI formats for Phase 1 (text-only support).
 """
 
-from typing import Dict, Any, List, Optional, Union
 import json
+from typing import Any, Dict, List, Optional, Union
 
 from src.models import (
+    OllamaChatRequest,
+    OllamaChatResponse,
     # Ollama models
     OllamaGenerateRequest,
-    OllamaChatRequest,
     OllamaGenerateResponse,
-    OllamaChatResponse,
     OpenAIChatRequest,
     OpenAIChatResponse,
-    OpenAIStreamResponse,
     OpenAIMessage,
+    OpenAIStreamResponse,
 )
 from src.translators.base import BaseTranslator
 from src.utils.exceptions import TranslationError, ValidationError
 from src.utils.logging import get_logger
-
 
 # Type aliases for clarity
 OllamaResponse = Union[OllamaGenerateResponse, OllamaChatResponse]

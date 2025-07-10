@@ -2,12 +2,13 @@
 Tests for Docker container configuration and functionality.
 """
 
+import os
 import subprocess
 import time
+from pathlib import Path
+
 import httpx
 import pytest
-import os
-from pathlib import Path
 
 
 class TestDockerBuild:

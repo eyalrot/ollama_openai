@@ -2,12 +2,13 @@
 Additional tests for HTTP client streaming functionality.
 """
 
-import pytest
-import httpx
-from unittest.mock import Mock, AsyncMock, patch
 from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, Mock, patch
 
-from src.utils.http_client import RetryClient, CircuitBreaker
+import httpx
+import pytest
+
+from src.utils.http_client import CircuitBreaker, RetryClient
 
 
 class TestStreamingRetry:

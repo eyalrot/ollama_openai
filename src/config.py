@@ -4,10 +4,10 @@ Configuration management for the Ollama to OpenAI proxy service.
 
 import json
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
-from pydantic_settings import BaseSettings
 from pydantic import Field, HttpUrl, field_validator, model_validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -119,7 +119,7 @@ class Settings(BaseSettings):
 
         if self.MODEL_MAPPING_FILE:
             try:
-                with open(self.MODEL_MAPPING_FILE, "r") as f:
+                with open(self.MODEL_MAPPING_FILE) as f:
                     mappings = json.load(f)
 
                 if not isinstance(mappings, dict):

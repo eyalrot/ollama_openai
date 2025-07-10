@@ -2,22 +2,22 @@
 Main entry point for the Ollama to OpenAI proxy service.
 """
 
+import uuid
 from contextlib import asynccontextmanager
 from typing import Any, Dict
-import uuid
 
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import uvicorn
 
 from src.config import get_settings
-from src.utils.logging import setup_logging, get_logger
-from src.utils.exceptions import ProxyException, UpstreamError
-from src.routers import chat, models, embeddings, metrics
 from src.middleware.logging_middleware import LoggingMiddleware
 from src.middleware.metrics_middleware import MetricsMiddleware
+from src.routers import chat, embeddings, metrics, models
+from src.utils.exceptions import ProxyException, UpstreamError
 from src.utils.http_client import close_global_client
+from src.utils.logging import get_logger, setup_logging
 
 # Initialize settings and logging
 settings = get_settings()

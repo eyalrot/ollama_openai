@@ -5,9 +5,9 @@ Unit tests for configuration management.
 import json
 import os
 import tempfile
+import warnings
 from pathlib import Path
 from unittest.mock import patch
-import warnings
 
 import pytest
 from pydantic import ValidationError
@@ -127,7 +127,7 @@ class TestSettings:
             env = {**base_env, "LOG_LEVEL": level}
             with patch.dict(os.environ, env, clear=True):
                 settings = Settings()
-                assert settings.LOG_LEVEL == level
+                assert level == settings.LOG_LEVEL
 
         # Test lowercase gets converted to uppercase
         env = {**base_env, "LOG_LEVEL": "debug"}

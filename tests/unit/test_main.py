@@ -2,14 +2,14 @@
 Unit tests for the main FastAPI application.
 """
 
-from unittest.mock import Mock, patch
 import uuid
+from unittest.mock import Mock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 from fastapi import Request
+from fastapi.testclient import TestClient
 
-from src.main import app, add_request_id_middleware
+from src.main import add_request_id_middleware, app
 from src.utils.exceptions import ProxyException, UpstreamError
 
 

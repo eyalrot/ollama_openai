@@ -2,7 +2,8 @@
 Embeddings request/response translator between Ollama and OpenAI formats.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from src.translators.base import BaseTranslator
 
 

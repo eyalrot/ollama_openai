@@ -3,16 +3,17 @@ Tests for HTTP client with retry logic and connection pooling.
 """
 
 import asyncio
-import pytest
-import httpx
 from unittest.mock import Mock, patch
 
+import httpx
+import pytest
+
 from src.utils.http_client import (
-    RetryClient,
     CircuitBreaker,
+    RetryClient,
+    close_global_client,
     get_retry_client,
     retry_client_context,
-    close_global_client,
 )
 
 

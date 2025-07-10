@@ -2,11 +2,12 @@
 Unit tests for the embeddings router.
 """
 
-import pytest
-from fastapi import HTTPException
 from unittest.mock import Mock
 
-from src.routers.embeddings import router, create_embeddings
+import pytest
+from fastapi import HTTPException
+
+from src.routers.embeddings import create_embeddings, router
 
 
 class TestEmbeddingsEndpoint:

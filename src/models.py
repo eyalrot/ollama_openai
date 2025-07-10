@@ -5,11 +5,11 @@ This module contains all data models for both Ollama and OpenAI APIs,
 including request/response models, streaming models, and validation rules.
 """
 
-from datetime import datetime
-from typing import Dict, List, Optional, Union, Any, Literal
-from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional, Union
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # ===========================
 # Ollama API Models

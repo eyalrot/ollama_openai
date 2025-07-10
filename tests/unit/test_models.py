@@ -8,49 +8,49 @@ import pytest
 from pydantic import ValidationError
 
 from src.models import (
-    # Ollama Request Models
-    OllamaOptions,
-    OllamaGenerateRequest,
-    OllamaChatMessage,
-    OllamaChatRequest,
-    OllamaEmbeddingRequest,
-    OllamaPullRequest,
-    OllamaPushRequest,
-    OllamaCreateRequest,
-    OllamaCopyRequest,
-    OllamaDeleteRequest,
-    OllamaShowRequest,
-    # Ollama Response Models
-    OllamaGenerateResponse,
-    OllamaChatResponse,
-    OllamaEmbeddingResponse,
-    OllamaModelInfo,
-    OllamaModelsResponse,
-    OllamaShowResponse,
-    OllamaPullResponse,
-    OllamaVersionResponse,
-    # OpenAI Request Models
-    OpenAIMessage,
-    OpenAIFunction,
-    OpenAITool,
-    OpenAIChatRequest,
-    # OpenAI Response Models
-    OpenAIChoice,
-    OpenAIUsage,
-    OpenAIChatResponse,
-    # OpenAI Streaming Models
-    OpenAIDelta,
-    OpenAIStreamChoice,
-    OpenAIStreamResponse,
-    # OpenAI Model Models
-    OpenAIModel,
-    OpenAIModelsResponse,
     # Error Models
     ErrorDetail,
     ErrorResponse,
+    OllamaChatMessage,
+    OllamaChatRequest,
+    OllamaChatResponse,
+    OllamaCopyRequest,
+    OllamaCreateRequest,
+    OllamaDeleteRequest,
+    OllamaEmbeddingRequest,
+    OllamaEmbeddingResponse,
+    OllamaGenerateRequest,
+    # Ollama Response Models
+    OllamaGenerateResponse,
+    OllamaModelInfo,
+    OllamaModelsResponse,
+    # Ollama Request Models
+    OllamaOptions,
+    OllamaPullRequest,
+    OllamaPullResponse,
+    OllamaPushRequest,
+    OllamaShowRequest,
+    OllamaShowResponse,
+    OllamaVersionResponse,
+    OpenAIChatRequest,
+    OpenAIChatResponse,
+    # OpenAI Response Models
+    OpenAIChoice,
+    # OpenAI Streaming Models
+    OpenAIDelta,
+    OpenAIFunction,
+    # OpenAI Request Models
+    OpenAIMessage,
+    # OpenAI Model Models
+    OpenAIModel,
+    OpenAIModelsResponse,
+    OpenAIStreamChoice,
+    OpenAIStreamResponse,
+    OpenAITool,
+    OpenAIUsage,
+    StreamDoneEvent,
     # Streaming Event Models
     StreamEvent,
-    StreamDoneEvent,
 )
 
 

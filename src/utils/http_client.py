@@ -2,13 +2,14 @@
 HTTP client with retry logic and connection pooling.
 """
 
-import httpx
 import asyncio
 import logging
 import random
-from typing import Optional, Callable, TypeVar
 from contextlib import asynccontextmanager
 from datetime import datetime
+from typing import Callable, Optional, TypeVar
+
+import httpx
 
 from ..config import get_settings
 

@@ -3,16 +3,16 @@ Unit tests for the chat router.
 """
 
 import json
-from unittest.mock import Mock, patch, AsyncMock
-import pytest
-import httpx
+from unittest.mock import AsyncMock, Mock, patch
 
-from fastapi import Request, HTTPException
+import httpx
+import pytest
+from fastapi import HTTPException, Request
 
 from src.models import (
-    OllamaGenerateRequest,
-    OllamaChatRequest,
     OllamaChatMessage,
+    OllamaChatRequest,
+    OllamaGenerateRequest,
     OllamaOptions,
 )
 from src.utils.exceptions import ValidationError

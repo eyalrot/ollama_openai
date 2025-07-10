@@ -5,20 +5,19 @@ Unit tests for logging utilities.
 import json
 import logging
 import sys
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from unittest.mock import patch
-
 
 from src.utils.logging import (
     JSONFormatter,
     PrettyJSONFormatter,
-    setup_logging,
+    error,
     get_logger,
+    info,
     log_with_context,
     request_id_context,
-    info,
-    error,
+    setup_logging,
 )
 
 

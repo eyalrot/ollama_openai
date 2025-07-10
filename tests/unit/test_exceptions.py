@@ -4,21 +4,20 @@ Unit tests for custom exceptions.
 
 import json
 
-
 from src.utils.exceptions import (
-    ProxyException,
-    ConfigurationError,
-    ValidationError,
-    TranslationError,
-    UpstreamError,
-    ModelNotFoundError,
-    AuthenticationError,
-    RateLimitError,
-    TimeoutError,
-    UnsupportedOperationError,
-    StreamingError,
-    exception_from_status_code,
     STATUS_CODE_TO_EXCEPTION,
+    AuthenticationError,
+    ConfigurationError,
+    ModelNotFoundError,
+    ProxyException,
+    RateLimitError,
+    StreamingError,
+    TimeoutError,
+    TranslationError,
+    UnsupportedOperationError,
+    UpstreamError,
+    ValidationError,
+    exception_from_status_code,
 )
 
 

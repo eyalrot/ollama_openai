@@ -2,9 +2,9 @@
 Custom exception classes for the proxy service.
 """
 
-from typing import Optional, Dict, Any, Union
 import json
 from datetime import datetime, timezone
+from typing import Any, Dict, Optional, Union
 
 
 class ProxyException(Exception):

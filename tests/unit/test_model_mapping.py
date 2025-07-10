@@ -5,14 +5,14 @@ Tests for model name mapping functionality.
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import ValidationError
 
 from src.config import Settings, get_settings, reset_settings
-from src.translators.chat import ChatTranslator
 from src.models import OllamaGenerateRequest
+from src.translators.chat import ChatTranslator
 
 
 class TestModelMappingConfig:

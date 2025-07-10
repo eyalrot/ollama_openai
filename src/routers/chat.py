@@ -6,27 +6,28 @@ for chat completions and text generation.
 """
 
 import json
-from typing import AsyncGenerator, Union
+from collections.abc import AsyncGenerator
+from typing import Union
 
-from fastapi import APIRouter, HTTPException, Request, status
-from fastapi.responses import StreamingResponse, JSONResponse
 import httpx
+from fastapi import APIRouter, HTTPException, Request, status
+from fastapi.responses import JSONResponse, StreamingResponse
 
+from src.config import get_settings
 from src.models import (
-    OllamaGenerateRequest,
     OllamaChatRequest,
+    OllamaGenerateRequest,
     OpenAIChatRequest,
     OpenAIChatResponse,
 )
 from src.translators.chat import ChatTranslator
-from src.config import get_settings
 from src.utils.exceptions import (
-    UpstreamError,
     TranslationError,
+    UpstreamError,
     ValidationError,
 )
-from src.utils.logging import get_logger
 from src.utils.http_client import RetryClient, retry_client_context
+from src.utils.logging import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)

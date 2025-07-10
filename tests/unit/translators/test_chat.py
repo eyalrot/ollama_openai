@@ -2,30 +2,31 @@
 Unit tests for the chat translator.
 """
 
+import json
 from typing import Union
 from unittest.mock import Mock, patch
-import json
+
 import pytest
 
-from src.translators.chat import ChatTranslator
 from src.models import (
+    OllamaChatMessage,
+    OllamaChatRequest,
+    OllamaChatResponse,
     # Ollama models
     OllamaGenerateRequest,
-    OllamaChatRequest,
-    OllamaChatMessage,
     OllamaGenerateResponse,
-    OllamaChatResponse,
     OllamaOptions,
     # OpenAI models
     OpenAIChatRequest,
     OpenAIChatResponse,
-    OpenAIStreamResponse,
-    OpenAIMessage,
     OpenAIChoice,
-    OpenAIStreamChoice,
     OpenAIDelta,
+    OpenAIMessage,
+    OpenAIStreamChoice,
+    OpenAIStreamResponse,
     OpenAIUsage,
 )
+from src.translators.chat import ChatTranslator
 from src.utils.exceptions import TranslationError, ValidationError
 
 # Type aliases (same as in chat.py)

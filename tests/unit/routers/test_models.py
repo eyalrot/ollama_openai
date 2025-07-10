@@ -4,20 +4,20 @@ Unit tests for the models router.
 
 import json
 from datetime import datetime
-from unittest.mock import Mock, patch, AsyncMock
-import pytest
-import httpx
+from unittest.mock import AsyncMock, Mock, patch
 
-from fastapi import Request, HTTPException
+import httpx
+import pytest
+from fastapi import HTTPException, Request
 from starlette.responses import JSONResponse
 
 from src.models import (
+    OllamaDeleteRequest,
     OllamaModelsResponse,
-    OllamaShowResponse,
     OllamaPullRequest,
     OllamaPushRequest,
-    OllamaDeleteRequest,
     OllamaShowRequest,
+    OllamaShowResponse,
     OllamaVersionResponse,
 )
 from src.utils.exceptions import UpstreamError

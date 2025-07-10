@@ -2,15 +2,15 @@
 Unit tests for the base translator class.
 """
 
-from typing import Dict, Any, Optional
-from unittest.mock import patch
 from datetime import datetime
+from typing import Any, Dict, Optional
+from unittest.mock import patch
 
 import pytest
 
+from src.models import OllamaOptions
 from src.translators.base import BaseTranslator
 from src.utils.exceptions import TranslationError, ValidationError
-from src.models import OllamaOptions
 
 
 @pytest.fixture
