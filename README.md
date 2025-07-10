@@ -20,9 +20,9 @@ A transparent proxy service that allows legacy applications using the Ollama Pyt
 - ✅ Automatic retry with exponential backoff
 - ✅ Comprehensive logging and monitoring
 - ✅ Request ID tracking for debugging
-- ⚠️ Phase 1: Text-only (no tools/images)
-- 🚧 Phase 2: Tool calling support (coming soon)
-- 🚧 Phase 2: Image input support (coming soon)
+- ✅ Phase 1: Text-only chat and embeddings (completed)
+- 🚧 Phase 2: Tool calling support (infrastructure ready, coming soon)
+- 🚧 Phase 2: Image input support (infrastructure ready, coming soon)
 
 ## Table of Contents
 
