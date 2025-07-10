@@ -198,6 +198,7 @@ class TestSettings:
 
         with patch.dict(os.environ, env, clear=True):
             with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")  # Capture all warnings
                 Settings()  # This triggers the warning
                 assert len(w) == 1
                 assert "Total timeout with retries could exceed" in str(w[0].message)
