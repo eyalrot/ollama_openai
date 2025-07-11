@@ -2,13 +2,14 @@
 Chat translator for converting between Ollama and OpenAI chat formats.
 
 This module handles the translation of chat completion requests and responses
-between Ollama and OpenAI formats for Phase 1 (text-only support).
+between Ollama and OpenAI formats for Phase 2 (including tool calling and image support).
 """
 
 import json
 from typing import Any, Dict, List, Optional, Union
 
 from src.models import (
+    OllamaChatMessage,
     OllamaChatRequest,
     OllamaChatResponse,
     # Ollama models
@@ -16,8 +17,10 @@ from src.models import (
     OllamaGenerateResponse,
     OpenAIChatRequest,
     OpenAIChatResponse,
+    OpenAIFunction,
     OpenAIMessage,
     OpenAIStreamResponse,
+    OpenAITool,
 )
 from src.translators.base import BaseTranslator
 from src.utils.exceptions import TranslationError, ValidationError
@@ -79,11 +82,17 @@ class ChatTranslator(
             if ollama_request.options:
                 options = self.extract_options(ollama_request.options)
 
+            # Handle tools (Phase 2 feature)
+            tools = None
+            if isinstance(ollama_request, OllamaChatRequest) and ollama_request.tools:
+                tools = self._translate_tools(ollama_request.tools)
+
             # Build OpenAI request
             openai_request = OpenAIChatRequest(
                 model=model,
                 messages=messages,
                 stream=ollama_request.stream or False,
+                tools=tools,
                 **options,
             )
 
@@ -193,12 +202,19 @@ class ChatTranslator(
             # Extract content from delta
             content = ""
             finish_reason = None
+            tool_calls = None
 
             if "choices" in openai_chunk and openai_chunk["choices"]:
                 choice = openai_chunk["choices"][0]
                 delta = choice.get("delta", {})
                 content = delta.get("content", "")
                 finish_reason = choice.get("finish_reason")
+                
+                # Handle tool calls in streaming (Phase 2 feature)
+                if "tool_calls" in delta and delta["tool_calls"]:
+                    tool_calls = self._translate_tool_calls(delta["tool_calls"])
+                elif "function_call" in delta and delta["function_call"]:
+                    tool_calls = self._translate_function_call(delta["function_call"])
 
             # Build Ollama streaming response
             response = {
@@ -213,6 +229,10 @@ class ChatTranslator(
             # Add finish reason if present
             if finish_reason:
                 response["done_reason"] = finish_reason
+                
+            # Add tool calls if present (Phase 2 feature)
+            if tool_calls:
+                response["tool_calls"] = tool_calls
 
             return response
 
@@ -234,6 +254,123 @@ class ChatTranslator(
         """
         # Validate model name
         self.validate_model_name(request.model)
+
+    def _translate_tools(self, ollama_tools: List[Dict[str, Any]]) -> List[OpenAITool]:
+        """
+        Translate Ollama tools format to OpenAI tools format.
+
+        Args:
+            ollama_tools: List of Ollama tool definitions
+
+        Returns:
+            List of OpenAI tool definitions
+
+        Raises:
+            TranslationError: If tool translation fails
+        """
+        try:
+            openai_tools = []
+            for tool in ollama_tools:
+                if not isinstance(tool, dict):
+                    continue
+
+                # Handle both direct function objects and tool wrappers
+                if "function" in tool:
+                    # Tool is wrapped: {"type": "function", "function": {...}}
+                    function_def = tool["function"]
+                else:
+                    # Tool is direct function definition
+                    function_def = tool
+
+                # Create OpenAI function object
+                openai_function = OpenAIFunction(
+                    name=function_def.get("name", ""),
+                    description=function_def.get("description", ""),
+                    parameters=function_def.get("parameters", {})
+                )
+
+                # Create OpenAI tool object
+                openai_tool = OpenAITool(
+                    type="function",
+                    function=openai_function
+                )
+                openai_tools.append(openai_tool)
+
+            self.logger.debug(
+                f"Translated {len(ollama_tools)} tools to OpenAI format",
+                extra={"extra_data": {"tool_count": len(openai_tools)}}
+            )
+            return openai_tools
+
+        except Exception as e:
+            self.logger.error(f"Failed to translate tools: {e}")
+            raise TranslationError(f"Tool translation failed: {e}")
+
+    def _translate_tool_calls(self, openai_tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Translate OpenAI tool calls to Ollama format.
+
+        Args:
+            openai_tool_calls: List of OpenAI tool call objects
+
+        Returns:
+            List of Ollama tool call objects
+        """
+        try:
+            ollama_tool_calls = []
+            for tool_call in openai_tool_calls:
+                if not isinstance(tool_call, dict):
+                    continue
+
+                ollama_tool_call = {
+                    "id": tool_call.get("id", ""),
+                    "type": tool_call.get("type", "function"),
+                    "function": {
+                        "name": tool_call.get("function", {}).get("name", ""),
+                        "arguments": tool_call.get("function", {}).get("arguments", "{}")
+                    }
+                }
+                ollama_tool_calls.append(ollama_tool_call)
+
+            self.logger.debug(
+                f"Translated {len(openai_tool_calls)} tool calls to Ollama format",
+                extra={"extra_data": {"tool_call_count": len(ollama_tool_calls)}}
+            )
+            return ollama_tool_calls
+
+        except Exception as e:
+            self.logger.error(f"Failed to translate tool calls: {e}")
+            raise TranslationError(f"Tool call translation failed: {e}")
+
+    def _translate_function_call(self, openai_function_call: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Translate OpenAI function call (legacy) to Ollama tool calls format.
+
+        Args:
+            openai_function_call: OpenAI function call object
+
+        Returns:
+            List with single Ollama tool call object
+        """
+        try:
+            ollama_tool_call = {
+                "id": "call_legacy",
+                "type": "function",
+                "function": {
+                    "name": openai_function_call.get("name", ""),
+                    "arguments": openai_function_call.get("arguments", "{}")
+                }
+            }
+
+            self.logger.debug(
+                "Translated legacy function call to Ollama format",
+                extra={"extra_data": {"function_name": ollama_tool_call["function"]["name"]}}
+            )
+            return [ollama_tool_call]
+
+        except Exception as e:
+            self.logger.error(f"Failed to translate function call: {e}")
+            raise TranslationError(f"Function call translation failed: {e}")
 
     def _convert_to_messages(
         self, request: Union[OllamaGenerateRequest, OllamaChatRequest]
@@ -328,21 +465,46 @@ class ChatTranslator(
         # Extract content from the first choice
         content = ""
         finish_reason = "stop"
+        tool_calls = None
 
         if openai_response.choices:
             choice = openai_response.choices[0]
             if choice.message:
                 content = choice.message.content or ""  # type: ignore[assignment]
+                
+                # Handle tool calls (Phase 2 feature)
+                if hasattr(choice.message, 'tool_calls') and choice.message.tool_calls:
+                    tool_calls = self._translate_tool_calls(choice.message.tool_calls)
+                elif hasattr(choice.message, 'function_call') and choice.message.function_call:
+                    # Handle legacy function_call format
+                    tool_calls = self._translate_function_call(choice.message.function_call)
+                    
             finish_reason = choice.finish_reason or "stop"
 
-        # Build response - use OllamaGenerateResponse which matches Ollama's generate API
-        response = OllamaGenerateResponse(  # type: ignore[call-arg]
-            model=self.reverse_map_model_name(openai_response.model),
-            created_at=self.get_iso_timestamp(),
-            response=content,
-            done=True,
-            done_reason=finish_reason,
-        )
+        # Build response - use appropriate response type
+        if tool_calls:
+            # For responses with tool calls, use OllamaChatResponse with message
+            message = OllamaChatMessage(
+                role="assistant",
+                content=content,
+                tool_calls=tool_calls
+            )
+            response = OllamaChatResponse(  # type: ignore[call-arg]
+                model=self.reverse_map_model_name(openai_response.model),
+                created_at=self.get_iso_timestamp(),
+                message=message,
+                done=True,
+                done_reason=finish_reason,
+            )
+        else:
+            # For regular responses, use OllamaGenerateResponse
+            response = OllamaGenerateResponse(  # type: ignore[call-arg]
+                model=self.reverse_map_model_name(openai_response.model),
+                created_at=self.get_iso_timestamp(),
+                response=content,
+                done=True,
+                done_reason=finish_reason,
+            )
 
         # Add token usage if available
         if openai_response.usage:
