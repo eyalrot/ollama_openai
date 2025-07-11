@@ -372,6 +372,80 @@ class ChatTranslator(
             self.logger.error(f"Failed to translate function call: {e}")
             raise TranslationError(f"Function call translation failed: {e}")
 
+    def _convert_message_content(self, message: OllamaChatMessage) -> Union[str, List[Dict[str, Any]]]:
+        """
+        Convert Ollama message content to OpenAI multimodal format.
+
+        Args:
+            message: Ollama chat message
+
+        Returns:
+            Either string content or list of content objects for multimodal
+
+        Raises:
+            TranslationError: If content conversion fails
+        """
+        try:
+            # Check if message has images (multimodal)
+            if hasattr(message, 'images') and message.images:
+                # Create multimodal content array
+                content_parts = []
+                
+                # Add text content if present
+                if message.content:
+                    content_parts.append({
+                        "type": "text",
+                        "text": message.content
+                    })
+                
+                # Add image content
+                for image_data in message.images:
+                    # Validate base64 image data
+                    if not isinstance(image_data, str):
+                        self.logger.warning(f"Invalid image data type: {type(image_data)}")
+                        continue
+                        
+                    # Create image content object
+                    image_content = {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": self._format_image_url(image_data)
+                        }
+                    }
+                    content_parts.append(image_content)
+                
+                self.logger.debug(
+                    f"Converted multimodal message with {len(content_parts)} content parts",
+                    extra={"extra_data": {"text_parts": 1 if message.content else 0, "image_parts": len(message.images)}}
+                )
+                
+                return content_parts
+            else:
+                # Simple text content
+                return message.content or ""
+
+        except Exception as e:
+            self.logger.error(f"Failed to convert message content: {e}")
+            raise TranslationError(f"Message content conversion failed: {e}")
+
+    def _format_image_url(self, image_data: str) -> str:
+        """
+        Format image data as data URL for OpenAI API.
+
+        Args:
+            image_data: Base64 encoded image data
+
+        Returns:
+            Formatted data URL
+        """
+        # If already a data URL, return as-is
+        if image_data.startswith("data:"):
+            return image_data
+            
+        # Assume JPEG by default (common for Ollama)
+        # TODO: Add image type detection based on header
+        return f"data:image/jpeg;base64,{image_data}"
+
     def _convert_to_messages(
         self, request: Union[OllamaGenerateRequest, OllamaChatRequest]
     ) -> List[OpenAIMessage]:
@@ -399,12 +473,24 @@ class ChatTranslator(
             for msg in request.messages or []:
                 # Map Ollama roles to OpenAI roles
                 role = msg.role
-                if role not in ["system", "user", "assistant"]:
+                if role not in ["system", "user", "assistant", "tool"]:
                     # Default unknown roles to 'user'
                     self.logger.warning(f"Unknown role '{role}', defaulting to 'user'")
                     role = "user"
 
-                messages.append(OpenAIMessage(role=role, content=msg.content))  # type: ignore[call-arg]
+                # Handle multimodal content (Phase 2 feature)
+                content = self._convert_message_content(msg)
+                
+                # Handle tool calls if present
+                tool_calls = None
+                if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                    tool_calls = msg.tool_calls
+
+                messages.append(OpenAIMessage(
+                    role=role, 
+                    content=content,
+                    tool_calls=tool_calls
+                ))  # type: ignore[call-arg]
 
         return messages
 

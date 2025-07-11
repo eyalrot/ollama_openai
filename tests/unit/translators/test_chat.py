@@ -208,7 +208,12 @@ class TestChatTranslatorRequestTranslation:
         result = chat_translator.translate_request(request)
         assert result.model == "gpt-3.5-turbo"  # Default mapping
         assert len(result.messages) == 1
-        assert result.messages[0].content == "Look at this"
+        # Content should now be multimodal (list) since image is present
+        assert isinstance(result.messages[0].content, list)
+        assert len(result.messages[0].content) == 2  # text + image
+        assert result.messages[0].content[0]["type"] == "text"
+        assert result.messages[0].content[0]["text"] == "Look at this"
+        assert result.messages[0].content[1]["type"] == "image_url"
 
     def test_validate_empty_model_name(self, chat_translator):
         """Test validation fails for empty model name."""
