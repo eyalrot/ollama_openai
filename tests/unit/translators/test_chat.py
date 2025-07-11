@@ -183,32 +183,32 @@ class TestChatTranslatorRequestTranslation:
         assert result.model == "unknown-model"  # No mapping, use original
 
     def test_validate_request_with_tools(self, chat_translator):
-        """Test validation fails for requests with tools (Phase 1 limitation)."""
+        """Test validation accepts requests with tools (Phase 2 support)."""
         request = OllamaChatRequest(
             model="llama2",
             messages=[OllamaChatMessage(role="user", content="Hi")],
             tools=[{"type": "function", "function": {"name": "test"}}],
         )
 
-        with pytest.raises(ValidationError) as exc_info:
-            chat_translator.translate_request(request)
-
-        assert "Tool calling is not supported in Phase 1" in str(exc_info.value)
-        assert exc_info.value.details["unsupported_feature"] == "tools"
+        # Should not raise ValidationError - tools are now supported
+        result = chat_translator.translate_request(request)
+        assert result.model == "gpt-3.5-turbo"  # Default mapping
+        assert len(result.messages) == 1
+        assert result.messages[0].content == "Hi"
 
     def test_validate_request_with_images(self, chat_translator):
-        """Test validation fails for messages with images (Phase 1 limitation)."""
+        """Test validation accepts messages with images (Phase 2 support)."""
         # Create a message with images attribute
         message = OllamaChatMessage(role="user", content="Look at this")
         message.images = ["base64data"]
 
         request = OllamaChatRequest(model="llama2", messages=[message])
 
-        with pytest.raises(ValidationError) as exc_info:
-            chat_translator.translate_request(request)
-
-        assert "Image inputs are not supported in Phase 1" in str(exc_info.value)
-        assert exc_info.value.details["unsupported_feature"] == "images"
+        # Should not raise ValidationError - images are now supported
+        result = chat_translator.translate_request(request)
+        assert result.model == "gpt-3.5-turbo"  # Default mapping
+        assert len(result.messages) == 1
+        assert result.messages[0].content == "Look at this"
 
     def test_validate_empty_model_name(self, chat_translator):
         """Test validation fails for empty model name."""

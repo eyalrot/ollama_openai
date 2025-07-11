@@ -224,30 +224,14 @@ class ChatTranslator(
         self, request: Union[OllamaGenerateRequest, OllamaChatRequest]
     ) -> None:
         """
-        Validate Ollama request for Phase 1 limitations.
+        Validate Ollama request for Phase 2 support.
 
         Args:
             request: The Ollama request to validate
 
         Raises:
-            ValidationError: If request contains unsupported features
+            ValidationError: If request contains invalid data
         """
-        # Check for tools (Phase 1 limitation)
-        if isinstance(request, OllamaChatRequest) and request.tools:
-            raise ValidationError(
-                "Tool calling is not supported in Phase 1",
-                details={"unsupported_feature": "tools"},
-            )
-
-        # Check for images in messages (Phase 1 limitation)
-        if isinstance(request, OllamaChatRequest):
-            for message in request.messages or []:
-                if hasattr(message, "images") and message.images:
-                    raise ValidationError(
-                        "Image inputs are not supported in Phase 1",
-                        details={"unsupported_feature": "images"},
-                    )
-
         # Validate model name
         self.validate_model_name(request.model)
 
