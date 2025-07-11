@@ -1696,11 +1696,80 @@
             "testStrategy": "Submit test PR to verify coverage comments work, ensure thresholds are enforced, validate coverage exclusions are appropriate"
           }
         ]
+      },
+      {
+        "id": 20,
+        "title": "Phase 2 Implementation: Enable Tool Calling & Image Input Support",
+        "description": "Implement Phase 2 features for the Ollama-OpenAI proxy by enabling tool calling (function calling) support and image input support for multimodal models, with all work on a dedicated phase-2 branch",
+        "details": "This task implements the remaining 5% of infrastructure to enable Phase 2 features:\n\n1. **Remove Phase 1 Validation Blocks**:\n   - Remove tool calling validation blocks in src/translators/chat.py\n   - Remove image input validation blocks in request models\n   - Update error handling to support new message types\n\n2. **Implement Tool Calling Translation**:\n   ```python\n   # In src/translators/chat.py\n   def _translate_tools(self, ollama_tools: List[Dict]) -> List[Dict]:\n       \"\"\"Translate Ollama tool format to OpenAI function format\"\"\"\n       openai_tools = []\n       for tool in ollama_tools:\n           openai_tools.append({\n               \"type\": \"function\",\n               \"function\": {\n                   \"name\": tool.get(\"name\"),\n                   \"description\": tool.get(\"description\"),\n                   \"parameters\": tool.get(\"parameters\", {})\n               }\n           })\n       return openai_tools\n\n   def _translate_tool_calls(self, openai_response: Dict) -> Dict:\n       \"\"\"Translate OpenAI tool calls back to Ollama format\"\"\"\n       # Convert function_call and tool_calls to Ollama format\n   ```\n\n3. **Implement Image Input Translation**:\n   ```python\n   # In src/translators/chat.py\n   def _translate_image_content(self, ollama_message: Dict) -> List[Dict]:\n       \"\"\"Convert Ollama image format to OpenAI multimodal format\"\"\"\n       content = []\n       if isinstance(ollama_message.get(\"content\"), str):\n           content.append({\"type\": \"text\", \"text\": ollama_message[\"content\"]})\n       \n       if \"images\" in ollama_message:\n           for image in ollama_message[\"images\"]:\n               content.append({\n                   \"type\": \"image_url\",\n                   \"image_url\": {\n                       \"url\": f\"data:image/jpeg;base64,{image}\"\n                   }\n               })\n       return content\n   ```\n\n4. **Update Request/Response Models**:\n   - Extend OllamaChatMessage to support tools and images fields\n   - Update OpenAIMessage to handle multimodal content\n   - Add tool_choice and tools fields to request models\n\n5. **Integration Testing**:\n   - Create tests/test_phase2_tool_calling.py for tool calling scenarios\n   - Create tests/test_phase2_multimodal.py for image input scenarios\n   - Test streaming responses with tool calls\n   - Test error handling for malformed tools/images\n\n6. **Documentation Updates**:\n   - Update README.md with Phase 2 feature examples\n   - Create docs/TOOL_CALLING.md with detailed usage\n   - Create docs/MULTIMODAL.md with image input examples\n   - Update API documentation with new fields\n\n7. **Pull Request Preparation**:\n   - Ensure all Phase 2 tests pass\n   - Update CHANGELOG.md with Phase 2 features\n   - Create comprehensive PR description\n   - Include migration notes for existing users",
+        "testStrategy": "Comprehensive testing approach for Phase 2 features:\n\n1. **Tool Calling Tests**:\n   - Test basic tool definition translation from Ollama to OpenAI format\n   - Verify tool call responses are correctly translated back\n   - Test streaming responses with tool calls\n   - Test multiple tools in a single request\n   - Test tool_choice parameter handling\n   - Verify error handling for invalid tool schemas\n\n2. **Multimodal Tests**:\n   - Test single image input with text\n   - Test multiple images in one message\n   - Test base64 image encoding/decoding\n   - Test image size validation\n   - Test mixing text-only and multimodal messages\n   - Verify streaming with image inputs\n\n3. **Integration Tests**:\n   - End-to-end test with actual VLLM backend (if available)\n   - Test tool calling with gpt-4 compatible models\n   - Test vision models with image inputs\n   - Performance tests with large images\n   - Concurrent request handling with mixed Phase 1/2 features\n\n4. **Regression Tests**:\n   - Ensure all Phase 1 functionality still works\n   - Verify no performance degradation\n   - Check memory usage with image handling\n   - Validate error messages remain clear\n\n5. **Documentation Validation**:\n   - Test all code examples in documentation\n   - Verify curl examples work correctly\n   - Check Python client examples\n   - Validate migration guide accuracy",
+        "status": "pending",
+        "dependencies": [
+          6,
+          15
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create phase-2 branch and prepare development environment",
+            "description": "Set up the phase-2 feature branch from the current master branch and ensure development environment is ready for Phase 2 implementation",
+            "dependencies": [],
+            "details": "Create a new branch 'phase-2' from master branch. Set up local development environment with all dependencies. Verify that all Phase 1 tests are passing on the new branch as a baseline. Update any development documentation or setup scripts if needed to support Phase 2 development workflow.",
+            "status": "done",
+            "testStrategy": "Run full test suite to ensure Phase 1 functionality remains intact. Verify branch protection rules are configured if applicable."
+          },
+          {
+            "id": 2,
+            "title": "Remove Phase 1 validation blocks for tools and images",
+            "description": "Remove all validation code that blocks tool calling and image input support, enabling the proxy to accept these new message types",
+            "dependencies": [
+              1
+            ],
+            "details": "Locate and remove tool calling validation blocks in src/translators/chat.py that currently reject messages with tools. Remove image input validation blocks in request models (likely in src/models/ollama.py and src/models/openai.py). Update error handling to gracefully handle new message types instead of rejecting them. Ensure backwards compatibility with standard text-only messages.",
+            "status": "done",
+            "testStrategy": "Create unit tests that verify tool and image messages are no longer rejected. Test that existing text-only messages still work correctly. Verify error handling for malformed tool/image inputs."
+          },
+          {
+            "id": 3,
+            "title": "Implement tool calling translation between Ollama and OpenAI formats",
+            "description": "Implement bidirectional translation logic for function/tool calling, converting between Ollama's tool format and OpenAI's function format",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement _translate_tools() method in src/translators/chat.py to convert Ollama tool definitions to OpenAI function format. Implement _translate_tool_calls() to convert OpenAI's function_call and tool_calls responses back to Ollama format. Update request models to include tools and tool_choice fields. Ensure proper handling of tool IDs and function arguments. Handle streaming responses that include tool calls.",
+            "status": "done",
+            "testStrategy": "Unit tests for _translate_tools() with various tool schemas. Unit tests for _translate_tool_calls() with different response formats. Integration tests with mock tool calling scenarios. Test streaming tool call responses."
+          },
+          {
+            "id": 4,
+            "title": "Implement multimodal image input translation",
+            "description": "Implement translation logic for image inputs, converting Ollama's image format to OpenAI's multimodal content format",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement _translate_image_content() in src/translators/chat.py to convert Ollama's 'images' array to OpenAI's multimodal content format. Update OllamaChatMessage model to support 'images' field containing base64 encoded images. Update OpenAIMessage to handle content as either string or array of content objects. Ensure proper base64 encoding/decoding and data URI formatting. Handle mixed text and image content in single messages.",
+            "status": "pending",
+            "testStrategy": "Unit tests for image format translation with various image encodings. Test mixed content messages with text and multiple images. Test error handling for invalid base64 data. Integration tests with actual image data."
+          },
+          {
+            "id": 5,
+            "title": "Comprehensive testing, documentation, and PR preparation",
+            "description": "Create comprehensive test suites for Phase 2 features, update all documentation, and prepare for pull request submission",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Create tests/test_phase2_tool_calling.py with scenarios for tool definition, invocation, and response handling. Create tests/test_phase2_multimodal.py for image input scenarios including single/multiple images and mixed content. Update README.md with Phase 2 feature examples and migration guide. Create docs/TOOL_CALLING.md with detailed usage examples and supported tool schemas. Create docs/MULTIMODAL.md with image input examples and format specifications. Update CHANGELOG.md with Phase 2 features. Run full test suite and ensure 100% pass rate. Create comprehensive PR description with feature overview, breaking changes (if any), and migration notes.",
+            "status": "pending",
+            "testStrategy": "End-to-end integration tests using real Ollama models that support tools and vision. Performance tests to ensure Phase 2 features don't degrade response times. Compatibility tests with various Ollama model versions."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-07-09T10:50:08.658Z",
-      "updated": "2025-07-10T06:48:24.590Z",
+      "updated": "2025-07-11T13:27:25.617Z",
       "description": "Tasks for master context"
     }
   }

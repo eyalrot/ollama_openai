@@ -1,0 +1,116 @@
+# Task ID: 20
+# Title: Phase 2 Implementation: Enable Tool Calling & Image Input Support
+# Status: pending
+# Dependencies: 6, 15
+# Priority: high
+# Description: Implement Phase 2 features for the Ollama-OpenAI proxy by enabling tool calling (function calling) support and image input support for multimodal models, with all work on a dedicated phase-2 branch
+# Details:
+This task implements the remaining 5% of infrastructure to enable Phase 2 features:
+
+1. **Remove Phase 1 Validation Blocks**:
+   - Remove tool calling validation blocks in src/translators/chat.py
+   - Remove image input validation blocks in request models
+   - Update error handling to support new message types
+
+2. **Implement Tool Calling Translation**:
+   ```python
+   # In src/translators/chat.py
+   def _translate_tools(self, ollama_tools: List[Dict]) -> List[Dict]:
+       """Translate Ollama tool format to OpenAI function format"""
+       openai_tools = []
+       for tool in ollama_tools:
+           openai_tools.append({
+               "type": "function",
+               "function": {
+                   "name": tool.get("name"),
+                   "description": tool.get("description"),
+                   "parameters": tool.get("parameters", {})
+               }
+           })
+       return openai_tools
+
+   def _translate_tool_calls(self, openai_response: Dict) -> Dict:
+       """Translate OpenAI tool calls back to Ollama format"""
+       # Convert function_call and tool_calls to Ollama format
+   ```
+
+3. **Implement Image Input Translation**:
+   ```python
+   # In src/translators/chat.py
+   def _translate_image_content(self, ollama_message: Dict) -> List[Dict]:
+       """Convert Ollama image format to OpenAI multimodal format"""
+       content = []
+       if isinstance(ollama_message.get("content"), str):
+           content.append({"type": "text", "text": ollama_message["content"]})
+       
+       if "images" in ollama_message:
+           for image in ollama_message["images"]:
+               content.append({
+                   "type": "image_url",
+                   "image_url": {
+                       "url": f"data:image/jpeg;base64,{image}"
+                   }
+               })
+       return content
+   ```
+
+4. **Update Request/Response Models**:
+   - Extend OllamaChatMessage to support tools and images fields
+   - Update OpenAIMessage to handle multimodal content
+   - Add tool_choice and tools fields to request models
+
+5. **Integration Testing**:
+   - Create tests/test_phase2_tool_calling.py for tool calling scenarios
+   - Create tests/test_phase2_multimodal.py for image input scenarios
+   - Test streaming responses with tool calls
+   - Test error handling for malformed tools/images
+
+6. **Documentation Updates**:
+   - Update README.md with Phase 2 feature examples
+   - Create docs/TOOL_CALLING.md with detailed usage
+   - Create docs/MULTIMODAL.md with image input examples
+   - Update API documentation with new fields
+
+7. **Pull Request Preparation**:
+   - Ensure all Phase 2 tests pass
+   - Update CHANGELOG.md with Phase 2 features
+   - Create comprehensive PR description
+   - Include migration notes for existing users
+
+# Test Strategy:
+Comprehensive testing approach for Phase 2 features:
+
+1. **Tool Calling Tests**:
+   - Test basic tool definition translation from Ollama to OpenAI format
+   - Verify tool call responses are correctly translated back
+   - Test streaming responses with tool calls
+   - Test multiple tools in a single request
+   - Test tool_choice parameter handling
+   - Verify error handling for invalid tool schemas
+
+2. **Multimodal Tests**:
+   - Test single image input with text
+   - Test multiple images in one message
+   - Test base64 image encoding/decoding
+   - Test image size validation
+   - Test mixing text-only and multimodal messages
+   - Verify streaming with image inputs
+
+3. **Integration Tests**:
+   - End-to-end test with actual VLLM backend (if available)
+   - Test tool calling with gpt-4 compatible models
+   - Test vision models with image inputs
+   - Performance tests with large images
+   - Concurrent request handling with mixed Phase 1/2 features
+
+4. **Regression Tests**:
+   - Ensure all Phase 1 functionality still works
+   - Verify no performance degradation
+   - Check memory usage with image handling
+   - Validate error messages remain clear
+
+5. **Documentation Validation**:
+   - Test all code examples in documentation
+   - Verify curl examples work correctly
+   - Check Python client examples
+   - Validate migration guide accuracy
