@@ -21,8 +21,8 @@ A transparent proxy service that allows legacy applications using the Ollama Pyt
 - ✅ Comprehensive logging and monitoring
 - ✅ Request ID tracking for debugging
 - ✅ Phase 1: Text-only chat and embeddings (completed)
-- 🚧 Phase 2: Tool calling support (infrastructure ready, coming soon)
-- 🚧 Phase 2: Image input support (infrastructure ready, coming soon)
+- ✅ Phase 2: Tool calling support (completed)
+- ✅ Phase 2: Image input support (completed)
 
 ## Table of Contents
 
@@ -140,6 +140,78 @@ The proxy also exposes OpenAI-style endpoints:
 - `/v1/embeddings` - Generate embeddings
 
 For detailed parameter mappings, response formats, and examples, see the [API Compatibility Matrix](docs/API_COMPATIBILITY.md).
+
+## Phase 2 Features
+
+### Tool Calling Support ✅
+
+The proxy now supports full tool/function calling capabilities, allowing your AI models to execute tools and functions. This enables:
+
+- **Function Definitions**: Define functions with JSON schema parameters
+- **Tool Invocation**: Models can request to call tools during conversation
+- **Bidirectional Translation**: Seamless translation between Ollama and OpenAI tool formats
+- **Streaming Support**: Tool calls work with both streaming and non-streaming responses
+
+```python
+from ollama import Client
+
+client = Client(host='http://localhost:11434')
+
+# Define tools
+tools = [{
+    "type": "function",
+    "function": {
+        "name": "get_weather",
+        "description": "Get weather information for a location",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "location": {"type": "string", "description": "City name"}
+            },
+            "required": ["location"]
+        }
+    }
+}]
+
+# Chat with tool support
+response = client.chat(
+    model='gpt-4',
+    messages=[{"role": "user", "content": "What's the weather in Paris?"}],
+    tools=tools
+)
+```
+
+### Image Input Support ✅
+
+The proxy supports multimodal inputs, allowing you to send images along with text messages:
+
+- **Base64 Images**: Send images as base64-encoded strings
+- **Data URLs**: Support for data URL formatted images
+- **Multiple Images**: Send multiple images in a single message
+- **Mixed Content**: Combine text and images in conversations
+
+```python
+from ollama import Client
+import base64
+
+client = Client(host='http://localhost:11434')
+
+# Load and encode image
+with open("image.jpg", "rb") as f:
+    image_data = base64.b64encode(f.read()).decode()
+
+# Send multimodal message
+response = client.chat(
+    model='gpt-4-vision-preview',
+    messages=[{
+        "role": "user", 
+        "content": "What do you see in this image?",
+        "images": [image_data]
+    }]
+)
+```
+
+For comprehensive Phase 2 examples and integration guides, see the [examples/phase2/](examples/phase2/) directory.
 
 ## Examples
 
@@ -394,12 +466,12 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ### Areas for Contribution
 
-- 🔧 Tool calling support (Phase 2)
-- 🖼️ Image input support (Phase 2)
 - 📊 Prometheus metrics integration
 - 🔐 Additional authentication methods
 - 🌐 Multi-language SDK examples
 - 📚 Additional documentation and tutorials
+- 🔄 Phase 3: Advanced features and optimizations
+- 🧪 Additional testing and benchmarking
 
 ## License
 
