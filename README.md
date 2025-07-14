@@ -85,7 +85,13 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 11434
 ```python
 from ollama import Client
 client = Client(host='http://localhost:11434')
+
+# Use any model name directly - no mapping needed!
 response = client.generate(model='gpt-3.5-turbo', prompt='Hello!')
+print(response['response'])
+
+# OpenRouter free models work directly too
+response = client.generate(model='google/gemma-2-9b-it:free', prompt='Hello!')
 print(response['response'])
 ```
 
@@ -188,7 +194,7 @@ See the [Configuration Guide](docs/CONFIGURATION.md) for detailed setup instruct
 | `PROXY_PORT` | Port to run proxy on | `11434` |
 | `LOG_LEVEL` | Logging verbosity | `INFO` |
 | `REQUEST_TIMEOUT` | Request timeout in seconds | `60` |
-| `MODEL_MAPPING_FILE` | Path to model mapping JSON (optional - models pass through unchanged if not provided) | `None` |
+| `MODEL_MAPPING_FILE` | **Optional**: Path to model mapping JSON. When not set, model names pass through unchanged to your provider | `None` (recommended) |
 
 For all configuration options, validation rules, and examples, see the [Configuration Guide](docs/CONFIGURATION.md).
 
@@ -305,52 +311,67 @@ See the [examples/](examples/) directory for:
 
 ## Model Mapping
 
-Configure model name mappings to use familiar Ollama names with any backend. **When no mapping file is provided, all model names pass through unchanged**, enabling direct use of provider model names.
+**Model mapping is completely optional.** By default, the proxy passes all model names through unchanged to your OpenAI-compatible provider, allowing direct use of provider-specific model names.
 
-### No Mapping Mode (Default)
+### Default Behavior: No Mapping Required ✅
 
-When `MODEL_MAPPING_FILE` is not set, the proxy passes model names through unchanged:
+**When `MODEL_MAPPING_FILE` is not configured (recommended for most users):**
+- Model names are passed directly to your provider as-is
+- No configuration needed - just use your provider's exact model names
+- Perfect for OpenRouter, OpenAI, and most OpenAI-compatible APIs
 
 ```bash
-# No MODEL_MAPPING_FILE set - models pass through unchanged
+# Direct model usage (no mapping file needed)
+curl -X POST http://localhost:11434/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"model": "google/gemma-2-9b-it:free", "prompt": "Hello!"}'
+# -> Sends "google/gemma-2-9b-it:free" directly to OpenRouter
+
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{"model": "gpt-4", "prompt": "Hello!"}'
-# -> Uses "gpt-4" directly with your OpenAI-compatible provider
+# -> Sends "gpt-4" directly to OpenAI
 ```
 
-### With Model Mapping
+### Optional: Custom Model Mapping
 
-When `MODEL_MAPPING_FILE` is provided, custom mappings + defaults are loaded:
+**Only configure model mapping if you want to create custom aliases:**
 
 ```json
 {
   "model_mappings": {
     "llama2": "meta-llama/Llama-2-7b-chat-hf",
-    "codellama": "codellama/CodeLlama-7b-Instruct-hf",
-    "mistral": "mistralai/Mistral-7B-Instruct-v0.1"
+    "gpt4": "gpt-4",
+    "free-gemma": "google/gemma-2-9b-it:free"
   },
   "default_model": "gpt-3.5-turbo"
 }
 ```
 
-### Configuration Examples
-
-```json
-{
-  "model_mappings": {
-    "llama2": "meta-llama/Llama-2-7b-chat-hf",
-    "codellama": "codellama/CodeLlama-7b-Instruct-hf",
-    "mistral": "mistralai/Mistral-7B-Instruct-v0.1"
-  },
-  "default_model": "gpt-3.5-turbo"
-}
-```
-
-Set in environment:
+Then set in environment:
 ```env
 MODEL_MAPPING_FILE=./config/model_mapping.json
 ```
+
+With mapping enabled, you can use aliases:
+```bash
+# Uses alias "free-gemma" -> maps to "google/gemma-2-9b-it:free"
+curl -X POST http://localhost:11434/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"model": "free-gemma", "prompt": "Hello!"}'
+```
+
+### When to Use Model Mapping
+
+✅ **Use model mapping when:**
+- You want shorter, memorable aliases for long model names
+- Migrating from Ollama and want to keep existing model names
+- Need consistent model names across different environments
+
+❌ **Skip model mapping when:**
+- Using OpenRouter, OpenAI, or similar APIs directly (most common)
+- You prefer using the provider's exact model names
+- You want simpler configuration
 
 For advanced mapping strategies and examples, see the [Model Mapping Guide](docs/MODEL_MAPPING.md).
 
