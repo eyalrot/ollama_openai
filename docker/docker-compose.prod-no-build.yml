@@ -34,17 +34,8 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
-    networks:
-      - ollama-network
     security_opt:
       - no-new-privileges:true
     read_only: true
     tmpfs:
       - /tmp
-
-networks:
-  ollama-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
