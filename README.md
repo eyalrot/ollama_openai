@@ -4,6 +4,8 @@
 [![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/branch/master/graph/badge.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
 [![Security Scan](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml)
 [![Docker Build](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml)
+[![Docker Hub](https://img.shields.io/docker/pulls/eyalrot2/ollama-openai-proxy.svg)](https://hub.docker.com/r/eyalrot2/ollama-openai-proxy)
+[![GHCR](https://img.shields.io/badge/ghcr.io-available-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A transparent proxy service that allows legacy applications using the Ollama Python SDK to seamlessly work with OpenAI-compatible LLM servers like VLLM.
@@ -27,6 +29,7 @@ A transparent proxy service that allows legacy applications using the Ollama Pyt
 ## Table of Contents
 
 - [Quick Start](#quick-start)
+- [Docker Images](#docker-images)
 - [Configuration](#configuration)
 - [API Compatibility](#api-compatibility)
 - [Model Mapping](#model-mapping)
@@ -87,6 +90,85 @@ print(response['response'])
 ```
 
 For more examples and detailed setup instructions, see the [Quick Start Guide](docs/QUICK_START.md).
+
+## Docker Images
+
+### Pre-built Docker Images
+
+Ready-to-use production images are available on both Docker Hub and GitHub Container Registry:
+
+#### Docker Hub 🐳
+```bash
+# Pull and run latest
+docker pull eyalrot2/ollama-openai-proxy:latest
+docker run -d -p 11434:11434 \
+  -e OPENAI_API_BASE_URL=https://openrouter.ai/api/v1 \
+  -e OPENAI_API_KEY=your_key \
+  eyalrot2/ollama-openai-proxy:latest
+
+# Or use specific version
+docker pull eyalrot2/ollama-openai-proxy:prod
+```
+
+#### GitHub Container Registry 📦
+```bash
+# Pull and run latest
+docker pull ghcr.io/eyalrot/ollama_openai:latest
+docker run -d -p 11434:11434 \
+  -e OPENAI_API_BASE_URL=https://openrouter.ai/api/v1 \
+  -e OPENAI_API_KEY=your_key \
+  ghcr.io/eyalrot/ollama_openai:latest
+
+# Or use specific version
+docker pull ghcr.io/eyalrot/ollama_openai:prod
+```
+
+### Docker Compose with Pre-built Images
+
+```yaml
+version: '3.8'
+services:
+  ollama-proxy:
+    image: eyalrot2/ollama-openai-proxy:latest
+    # Alternative: ghcr.io/eyalrot/ollama_openai:latest
+    ports:
+      - "11434:11434"
+    environment:
+      - OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
+      - OPENAI_API_KEY=your_openrouter_key
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+```
+
+### Image Features
+
+- **Size**: 271MB (optimized production build)
+- **Security**: Non-root user, read-only filesystem, no-new-privileges
+- **Performance**: Multi-stage build with optimized dependencies
+- **Compatibility**: Supports OpenRouter, OpenAI, and custom OpenAI-compatible endpoints
+- **SSL Support**: System SSL certificates included for private endpoints
+
+### Available Tags
+
+| Tag | Description | Registry |
+|-----|-------------|----------|
+| `latest` | Latest stable build | Docker Hub & GHCR |
+| `prod` | Production-ready build | Docker Hub & GHCR |
+
+### Quick Test with Pre-built Image
+
+```bash
+# Start with OpenRouter free models
+docker run -d --name ollama-proxy -p 11434:11434 \
+  -e OPENAI_API_BASE_URL=https://openrouter.ai/api/v1 \
+  -e OPENAI_API_KEY=your_key \
+  eyalrot2/ollama-openai-proxy:latest
+
+# Test with free model
+curl -X POST http://localhost:11434/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"model": "google/gemma-2-9b-it:free", "prompt": "Hello!"}'
+```
 
 ## Configuration
 
