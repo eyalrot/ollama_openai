@@ -140,21 +140,23 @@ class Settings(BaseSettings):
             except Exception as e:
                 raise ValueError(f"Error loading model mappings: {e}")
 
-        # Add default mappings if not overridden
-        default_mappings = {
-            "llama2": "meta-llama/Llama-2-7b-chat-hf",
-            "llama2:13b": "meta-llama/Llama-2-13b-chat-hf",
-            "llama2:70b": "meta-llama/Llama-2-70b-chat-hf",
-            "codellama": "codellama/CodeLlama-7b-Instruct-hf",
-            "mistral": "mistralai/Mistral-7B-Instruct-v0.1",
-            "mixtral": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-            "gemma": "google/gemma-7b-it",
-            "phi": "microsoft/phi-2",
-        }
+        # Add default mappings only if a mapping file is explicitly provided
+        # This allows bypassing model mapping entirely when MODEL_MAPPING_FILE is not set
+        if self.MODEL_MAPPING_FILE:
+            default_mappings = {
+                "llama2": "meta-llama/Llama-2-7b-chat-hf",
+                "llama2:13b": "meta-llama/Llama-2-13b-chat-hf",
+                "llama2:70b": "meta-llama/Llama-2-70b-chat-hf",
+                "codellama": "codellama/CodeLlama-7b-Instruct-hf",
+                "mistral": "mistralai/Mistral-7B-Instruct-v0.1",
+                "mixtral": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+                "gemma": "google/gemma-7b-it",
+                "phi": "microsoft/phi-2",
+            }
 
-        for key, value in default_mappings.items():
-            if key not in self._model_mappings:
-                self._model_mappings[key] = value
+            for key, value in default_mappings.items():
+                if key not in self._model_mappings:
+                    self._model_mappings[key] = value
 
         return self._model_mappings
 

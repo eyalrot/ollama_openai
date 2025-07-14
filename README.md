@@ -106,7 +106,7 @@ See the [Configuration Guide](docs/CONFIGURATION.md) for detailed setup instruct
 | `PROXY_PORT` | Port to run proxy on | `11434` |
 | `LOG_LEVEL` | Logging verbosity | `INFO` |
 | `REQUEST_TIMEOUT` | Request timeout in seconds | `60` |
-| `MODEL_MAPPING_FILE` | Path to model mapping JSON | `None` |
+| `MODEL_MAPPING_FILE` | Path to model mapping JSON (optional - models pass through unchanged if not provided) | `None` |
 
 For all configuration options, validation rules, and examples, see the [Configuration Guide](docs/CONFIGURATION.md).
 
@@ -223,9 +223,36 @@ See the [examples/](examples/) directory for:
 
 ## Model Mapping
 
-Configure model name mappings to use familiar Ollama names with any backend. See the [Model Mapping Guide](docs/MODEL_MAPPING.md) for detailed configuration options.
+Configure model name mappings to use familiar Ollama names with any backend. **When no mapping file is provided, all model names pass through unchanged**, enabling direct use of provider model names.
 
-### Quick Example
+### No Mapping Mode (Default)
+
+When `MODEL_MAPPING_FILE` is not set, the proxy passes model names through unchanged:
+
+```bash
+# No MODEL_MAPPING_FILE set - models pass through unchanged
+curl -X POST http://localhost:11434/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-4", "prompt": "Hello!"}'
+# -> Uses "gpt-4" directly with your OpenAI-compatible provider
+```
+
+### With Model Mapping
+
+When `MODEL_MAPPING_FILE` is provided, custom mappings + defaults are loaded:
+
+```json
+{
+  "model_mappings": {
+    "llama2": "meta-llama/Llama-2-7b-chat-hf",
+    "codellama": "codellama/CodeLlama-7b-Instruct-hf",
+    "mistral": "mistralai/Mistral-7B-Instruct-v0.1"
+  },
+  "default_model": "gpt-3.5-turbo"
+}
+```
+
+### Configuration Examples
 
 ```json
 {

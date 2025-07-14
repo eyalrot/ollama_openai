@@ -18,18 +18,45 @@ from src.translators.chat import ChatTranslator
 class TestModelMappingConfig:
     """Test model mapping configuration functionality."""
 
-    def test_default_model_mappings(self):
-        """Test that default model mappings are loaded."""
+    def test_no_model_mappings_without_file(self):
+        """Test that no model mappings are loaded when MODEL_MAPPING_FILE is not provided."""
         settings = Settings(
             OPENAI_API_BASE_URL="http://test:8000/v1", OPENAI_API_KEY="test-key"
         )
 
         mappings = settings.load_model_mappings()
 
-        # Check some default mappings
-        assert mappings["llama2"] == "meta-llama/Llama-2-7b-chat-hf"
-        assert mappings["mistral"] == "mistralai/Mistral-7B-Instruct-v0.1"
-        assert mappings["codellama"] == "codellama/CodeLlama-7b-Instruct-hf"
+        # Should be empty when no mapping file is provided
+        assert mappings == {}
+        
+        # Model names should pass through unchanged
+        assert settings.get_mapped_model_name("llama2") == "llama2"
+        assert settings.get_mapped_model_name("mistral") == "mistral"
+        assert settings.get_mapped_model_name("any-model") == "any-model"
+
+    def test_default_model_mappings_with_file(self):
+        """Test that default model mappings are loaded when a mapping file is provided."""
+        # Create an empty mapping file to trigger default loading
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump({}, f)
+            mapping_file = f.name
+
+        try:
+            settings = Settings(
+                OPENAI_API_BASE_URL="http://test:8000/v1",
+                OPENAI_API_KEY="test-key",
+                MODEL_MAPPING_FILE=mapping_file,
+            )
+
+            mappings = settings.load_model_mappings()
+
+            # Check some default mappings
+            assert mappings["llama2"] == "meta-llama/Llama-2-7b-chat-hf"
+            assert mappings["mistral"] == "mistralai/Mistral-7B-Instruct-v0.1"
+            assert mappings["codellama"] == "codellama/CodeLlama-7b-Instruct-hf"
+
+        finally:
+            Path(mapping_file).unlink()
 
     def test_custom_mapping_file_loads(self):
         """Test loading custom mappings from file."""
@@ -137,17 +164,37 @@ class TestModelMappingConfig:
 
     def test_get_mapped_model_name(self):
         """Test get_mapped_model_name method."""
-        settings = Settings(
+        # Test without mapping file (should pass through unchanged)
+        settings_no_file = Settings(
             OPENAI_API_BASE_URL="http://test:8000/v1", OPENAI_API_KEY="test-key"
         )
+        
+        # Without mapping file, all models should pass through unchanged
+        assert settings_no_file.get_mapped_model_name("llama2") == "llama2"
+        assert settings_no_file.get_mapped_model_name("unknown-model") == "unknown-model"
+        
+        # Test with mapping file (should use default mappings)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump({}, f)
+            mapping_file = f.name
 
-        # Test existing mapping
-        assert (
-            settings.get_mapped_model_name("llama2") == "meta-llama/Llama-2-7b-chat-hf"
-        )
+        try:
+            settings_with_file = Settings(
+                OPENAI_API_BASE_URL="http://test:8000/v1",
+                OPENAI_API_KEY="test-key",
+                MODEL_MAPPING_FILE=mapping_file,
+            )
 
-        # Test non-existent mapping (should return original)
-        assert settings.get_mapped_model_name("unknown-model") == "unknown-model"
+            # Test existing mapping
+            assert (
+                settings_with_file.get_mapped_model_name("llama2") == "meta-llama/Llama-2-7b-chat-hf"
+            )
+
+            # Test non-existent mapping (should return original)
+            assert settings_with_file.get_mapped_model_name("unknown-model") == "unknown-model"
+
+        finally:
+            Path(mapping_file).unlink()
 
     def test_mapping_file_with_comments(self):
         """Test that mapping files with comment fields work correctly."""
