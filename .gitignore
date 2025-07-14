@@ -41,10 +41,11 @@ env/
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.*.local
 !.env.example
-!.env.test
+!.env.ssl.example
 
 # Testing
 .coverage
