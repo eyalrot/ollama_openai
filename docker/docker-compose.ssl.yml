@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  ollama-proxy:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: ollama-openai-proxy:prod-ssl
+    container_name: ollama-proxy-ssl
+    ports:
+      - "${PROXY_PORT:-11434}:11434"
+    environment:
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROXY_PORT=${PROXY_PORT:-11434}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
+      - DEBUG=false
+    volumes:
+      # Mount config directory for model mappings (read-only)
+      - ../config:/app/config:ro
+      # Mount logs directory for persistent logging
+      - ../logs:/app/logs
+      # Conditionally mount SSL certificates if SSL_CERTS_PATH is set
+      # Set SSL_CERTS_PATH=/etc/ssl/certs to enable SSL certificate mounting
+      # Leave SSL_CERTS_PATH empty or unset to disable SSL mounting
+      - ${SSL_CERTS_PATH:-}:/etc/ssl/certs:ro
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "service=ollama-proxy-ssl"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - ollama-network
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+networks:
+  ollama-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
