@@ -1,8 +1,6 @@
 # Docker Compose Override Example
 # Place this file in the project root to override default settings
 
-version: '3.8'
-
 services:
   ollama-proxy:
     # Development overrides

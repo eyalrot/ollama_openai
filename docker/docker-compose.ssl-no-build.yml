@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   ollama-proxy:
     image: eyalrot2/ollama-openai-proxy:prod

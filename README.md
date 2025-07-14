@@ -132,7 +132,6 @@ docker pull ghcr.io/eyalrot/ollama_openai:prod
 ### Docker Compose with Pre-built Images
 
 ```yaml
-version: '3.8'
 services:
   ollama-proxy:
     image: eyalrot2/ollama-openai-proxy:latest
@@ -382,8 +381,6 @@ For advanced mapping strategies and examples, see the [Model Mapping Guide](docs
 Using the provided `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
-
 services:
   ollama-proxy:
     build: .
