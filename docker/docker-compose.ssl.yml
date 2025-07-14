@@ -25,10 +25,9 @@ services:
       - ../config:/app/config:ro
       # Mount logs directory for persistent logging
       - ../logs:/app/logs
-      # Conditionally mount SSL certificates if SSL_CERTS_PATH is set
-      # Set SSL_CERTS_PATH=/etc/ssl/certs to enable SSL certificate mounting
-      # Leave SSL_CERTS_PATH empty or unset to disable SSL mounting
-      - ${SSL_CERTS_PATH:-}:/etc/ssl/certs:ro
+      # Mount SSL certificates for secure communication with private endpoints
+      # SSL_CERTS_PATH should be set to /etc/ssl/certs to enable SSL certificate mounting
+      - /etc/ssl/certs:/etc/ssl/certs:ro
     restart: always
     logging:
       driver: json-file

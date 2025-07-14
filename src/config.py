@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     @classmethod
     def validate_mapping_file(cls, v: Optional[str]) -> Optional[str]:
         """Validate model mapping file exists if specified."""
-        if v is not None:
+        if v is not None and v.strip() != "":
             path = Path(v)
             if not path.exists():
                 raise ValueError(f"Model mapping file not found: {v}")
@@ -93,7 +93,8 @@ class Settings(BaseSettings):
                 raise ValueError(f"Model mapping path is not a file: {v}")
             if path.suffix not in [".json", ".JSON"]:
                 raise ValueError(f"Model mapping file must be JSON: {v}")
-        return v
+            return v
+        return None
 
     @model_validator(mode="after")
     def validate_timeout_vs_retries(self) -> "Settings":

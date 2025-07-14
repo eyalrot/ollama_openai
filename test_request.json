@@ -1,0 +1,5 @@
+{
+  "model": "meta-llama/llama-3.2-3b-instruct:free",
+  "prompt": "Hello! This is a test of the OpenRouter integration.",
+  "stream": false
+}
