@@ -50,7 +50,16 @@ async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
 
     try:
         # Query OpenAI-compatible backend for models
-        async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
+        verify_ssl = not settings.DISABLE_SSL_VERIFICATION
+        logger.info(
+            f"Models router SSL verification: {verify_ssl}",
+            extra={"extra_data": {"ssl_verification": verify_ssl, "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION}}
+        )
+        
+        async with httpx.AsyncClient(
+            timeout=settings.REQUEST_TIMEOUT,
+            verify=verify_ssl
+        ) as client:
             response = await client.get(
                 f"{settings.OPENAI_API_BASE_URL}/models",
                 headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
@@ -256,7 +265,16 @@ async def show_model(
 
     # First, verify the model exists by listing models
     try:
-        async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
+        verify_ssl = not settings.DISABLE_SSL_VERIFICATION
+        logger.info(
+            f"Models router SSL verification: {verify_ssl}",
+            extra={"extra_data": {"ssl_verification": verify_ssl, "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION}}
+        )
+        
+        async with httpx.AsyncClient(
+            timeout=settings.REQUEST_TIMEOUT,
+            verify=verify_ssl
+        ) as client:
             response = await client.get(
                 f"{settings.OPENAI_API_BASE_URL}/models",
                 headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},

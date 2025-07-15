@@ -2,6 +2,7 @@
 Main entry point for the Ollama to OpenAI proxy service.
 """
 
+import os
 import uuid
 from contextlib import asynccontextmanager
 from typing import Any, Dict
@@ -33,6 +34,17 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
+    # Log environment variables for debugging
+    logger.info(
+        "Environment variables for SSL",
+        extra={
+            "extra_data": {
+                "env_DISABLE_SSL_VERIFICATION": os.getenv("DISABLE_SSL_VERIFICATION", "not_set"),
+                "env_DEBUG": os.getenv("DEBUG", "not_set"),
+            }
+        },
+    )
+    
     logger.info(
         "Starting Ollama-OpenAI Proxy",
         extra={
@@ -41,6 +53,9 @@ async def lifespan(app: FastAPI):
                 "target_url": settings.OPENAI_API_BASE_URL,
                 "log_level": settings.LOG_LEVEL,
                 "version": "1.0.0",
+                "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION,
+                "ssl_verification_enabled": not settings.DISABLE_SSL_VERIFICATION,
+                "debug": settings.DEBUG,
             }
         },
     )

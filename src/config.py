@@ -46,6 +46,9 @@ class Settings(BaseSettings):
         default=None, description="Path to optional model name mapping JSON file"
     )
     DEBUG: bool = Field(default=False, description="Enable debug mode")
+    DISABLE_SSL_VERIFICATION: bool = Field(
+        default=False, description="Disable SSL certificate verification (NOT recommended for production)"
+    )
 
     # Runtime properties (not from env)
     _model_mappings: Optional[Dict[str, str]] = None
@@ -188,6 +191,13 @@ def get_settings() -> Settings:
     global _settings
     if _settings is None:
         _settings = Settings()  # type: ignore[call-arg]
+        # Log SSL verification setting on startup
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(
+            f"SSL verification disabled: {_settings.DISABLE_SSL_VERIFICATION}",
+            extra={"extra_data": {"disable_ssl_verification": _settings.DISABLE_SSL_VERIFICATION}}
+        )
     return _settings
 
 

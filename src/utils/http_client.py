@@ -116,11 +116,18 @@ class RetryClient:
             timeout=self.timeout, connect=5.0, read=self.timeout, write=10.0, pool=5.0
         )
 
+        verify_ssl = not settings.DISABLE_SSL_VERIFICATION
+        logger.info(
+            f"HTTP client SSL verification: {verify_ssl}",
+            extra={"extra_data": {"ssl_verification": verify_ssl, "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION}}
+        )
+        
         self.client = httpx.AsyncClient(
             timeout=timeout_config,
             limits=limits,
             follow_redirects=True,
             http2=False,  # HTTP/2 requires additional dependencies
+            verify=verify_ssl,
         )
 
     async def __aenter__(self):
