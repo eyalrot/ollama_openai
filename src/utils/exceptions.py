@@ -166,6 +166,11 @@ class UpstreamError(ProxyException):
             details["upstream_response"] = response_data
         if request_id:
             details["request_id"] = request_id
+            
+        # Include all other kwargs in details
+        for key, value in kwargs.items():
+            if key != "details":
+                details[key] = value
 
         # Set error code based on status code
         if status_code >= 500:

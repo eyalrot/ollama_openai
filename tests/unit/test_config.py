@@ -39,7 +39,16 @@ class TestSettings:
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
-            settings = Settings()
+            # Create a Settings class that doesn't use .env file
+            class TestSettings(Settings):
+                model_config = {
+                    "env_file": None,
+                    "case_sensitive": True,
+                    "extra": "ignore",
+                    "arbitrary_types_allowed": True,
+                }
+            
+            settings = TestSettings()
             assert str(settings.OPENAI_API_BASE_URL) == "https://api.openai.com/v1"
             assert settings.OPENAI_API_KEY == "sk-test123"
             assert settings.PROXY_PORT == 11434
@@ -238,12 +247,11 @@ class TestSettings:
             "OPENAI_API_KEY": "test-key",
         }
 
-        # Test with no mapping file - should use defaults
+        # Test with no mapping file - should return empty dict (no mappings)
         with patch.dict(os.environ, base_env, clear=True):
             settings = Settings()
             mappings = settings.load_model_mappings()
-            assert "llama2" in mappings
-            assert mappings["llama2"] == "meta-llama/Llama-2-7b-chat-hf"
+            assert mappings == {}  # No mappings when MODEL_MAPPING_FILE is not set
 
         # Test with custom mapping file
         custom_mappings = {
@@ -307,23 +315,49 @@ class TestSettings:
             "OPENAI_API_KEY": "test-key",
         }
 
+        # Test with no mapping file - all models should return as-is
         with patch.dict(os.environ, base_env, clear=True):
             settings = Settings()
 
-            # Test default mapping
-            assert (
-                settings.get_mapped_model_name("llama2")
-                == "meta-llama/Llama-2-7b-chat-hf"
-            )
-
-            # Test unmapped model returns as-is
+            # Test model returns as-is when no mapping file is configured
+            assert settings.get_mapped_model_name("llama2") == "llama2"
             assert settings.get_mapped_model_name("unknown-model") == "unknown-model"
+            assert settings.get_mapped_model_name("llama2:13b") == "llama2:13b"
 
-            # Test model variants
-            assert (
-                settings.get_mapped_model_name("llama2:13b")
-                == "meta-llama/Llama-2-13b-chat-hf"
-            )
+        # Test with mapping file - should use default mappings
+        custom_mappings = {"custom-model": "provider/custom-model-v1"}
+        
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(custom_mappings, f)
+            temp_file = f.name
+
+        try:
+            env = {**base_env, "MODEL_MAPPING_FILE": temp_file}
+            with patch.dict(os.environ, env, clear=True):
+                settings = Settings()
+                
+                # Test default mapping (added when mapping file is present)
+                assert (
+                    settings.get_mapped_model_name("llama2")
+                    == "meta-llama/Llama-2-7b-chat-hf"
+                )
+                
+                # Test custom mapping
+                assert (
+                    settings.get_mapped_model_name("custom-model")
+                    == "provider/custom-model-v1"
+                )
+                
+                # Test unmapped model returns as-is
+                assert settings.get_mapped_model_name("unknown-model") == "unknown-model"
+                
+                # Test model variants
+                assert (
+                    settings.get_mapped_model_name("llama2:13b")
+                    == "meta-llama/Llama-2-13b-chat-hf"
+                )
+        finally:
+            os.unlink(temp_file)
 
 
 class TestSingletonPattern:

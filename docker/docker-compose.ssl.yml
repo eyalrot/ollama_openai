@@ -18,6 +18,7 @@ services:
       - MAX_RETRIES=${MAX_RETRIES:-3}
       - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
       - DEBUG=false
+      - DISABLE_SSL_VERIFICATION=${DISABLE_SSL_VERIFICATION:-false}
     volumes:
       # Mount config directory for model mappings (read-only)
       - ../config:/app/config:ro

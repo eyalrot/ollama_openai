@@ -16,6 +16,7 @@ services:
       - MAX_RETRIES=${MAX_RETRIES:-3}
       - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
       - DEBUG=true
+      - DISABLE_SSL_VERIFICATION=${DISABLE_SSL_VERIFICATION:-false}
     volumes:
       # Mount source code for hot-reload
       - ../src:/app/src

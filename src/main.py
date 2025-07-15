@@ -185,7 +185,7 @@ app.include_router(metrics.router, prefix="/v1", tags=["metrics"])
 
 # Also include Ollama-style endpoints
 app.include_router(chat.router, prefix="/api", tags=["ollama-chat"])
-app.include_router(models.router, prefix="/api", tags=["ollama-models"])
+app.include_router(models.router, prefix="/api", tags=["ollama-mode"])
 app.include_router(embeddings.router, prefix="/api", tags=["ollama-embeddings"])
 app.include_router(metrics.router, prefix="/api", tags=["ollama-metrics"])
 
