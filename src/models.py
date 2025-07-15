@@ -135,7 +135,9 @@ class OllamaEmbeddingRequest(BaseModel):
     """Request model for Ollama embeddings endpoint."""
 
     model: str = Field(..., description="Model name to use")
-    prompt: Union[str, List[str]] = Field(..., description="Text to embed (single string or list of strings)")
+    prompt: Union[str, List[str]] = Field(
+        ..., description="Text to embed (single string or list of strings)"
+    )
     options: Optional[OllamaOptions] = Field(None, description="Model options")
     keep_alive: Optional[Union[str, int]] = Field(
         "5m", description="Model keep-alive duration"
@@ -433,9 +435,12 @@ class OpenAIEmbeddingRequest(BaseModel):
         "float", description="Format to return embeddings in"
     )
     dimensions: Optional[int] = Field(
-        None, description="Number of dimensions the resulting output embeddings should have"
+        None,
+        description="Number of dimensions the resulting output embeddings should have",
     )
-    user: Optional[str] = Field(None, description="Unique identifier representing end user")
+    user: Optional[str] = Field(
+        None, description="Unique identifier representing end user"
+    )
 
 
 class OpenAIEmbeddingData(BaseModel):
@@ -450,7 +455,9 @@ class OpenAIEmbeddingResponse(BaseModel):
     """OpenAI embedding response model."""
 
     object: Literal["list"] = Field("list", description="Object type")
-    data: List[OpenAIEmbeddingData] = Field(..., description="List of embedding objects")
+    data: List[OpenAIEmbeddingData] = Field(
+        ..., description="List of embedding objects"
+    )
     model: str = Field(..., description="ID of the model used")
     usage: OpenAIUsage = Field(..., description="Usage statistics")
 

@@ -51,7 +51,11 @@ async def make_openai_embedding_request(
             "extra_data": {
                 "url": url,
                 "model": openai_request.model,
-                "input_count": len(openai_request.input) if isinstance(openai_request.input, list) else 1,
+                "input_count": (
+                    len(openai_request.input)
+                    if isinstance(openai_request.input, list)
+                    else 1
+                ),
                 "encoding_format": openai_request.encoding_format,
             }
         },
@@ -106,7 +110,9 @@ async def make_openai_embedding_request(
 
 
 @router.post("/embeddings", response_model=OllamaEmbeddingResponse)
-@router.post("/api/embeddings", response_model=OllamaEmbeddingResponse)  # Ollama-style endpoint
+@router.post(
+    "/api/embeddings", response_model=OllamaEmbeddingResponse
+)  # Ollama-style endpoint
 async def create_embeddings(
     request: OllamaEmbeddingRequest,
     fastapi_request: Request,
@@ -126,7 +132,9 @@ async def create_embeddings(
                 "request_id": request_id,
                 "model": request.model,
                 "prompt_type": "list" if isinstance(request.prompt, list) else "string",
-                "prompt_count": len(request.prompt) if isinstance(request.prompt, list) else 1,
+                "prompt_count": (
+                    len(request.prompt) if isinstance(request.prompt, list) else 1
+                ),
             }
         },
     )
@@ -163,7 +171,11 @@ async def create_embeddings(
                 "extra_data": {
                     "request_id": request_id,
                     "embedding_dimension": len(ollama_response.embedding),
-                    "tokens_used": openai_response.usage.total_tokens if openai_response.usage else 0,
+                    "tokens_used": (
+                        openai_response.usage.total_tokens
+                        if openai_response.usage
+                        else 0
+                    ),
                 }
             },
         )

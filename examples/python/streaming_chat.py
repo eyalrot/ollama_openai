@@ -3,17 +3,17 @@
 Streaming chat example with conversation history.
 """
 
+
 from ollama import Client
-import sys
 
 # Initialize client
-client = Client(host='http://localhost:11434')
+client = Client(host="http://localhost:11434")
 
 # Conversation history
 messages = [
     {
-        'role': 'system',
-        'content': 'You are a helpful AI assistant. Keep responses concise.'
+        "role": "system",
+        "content": "You are a helpful AI assistant. Keep responses concise.",
     }
 ]
 
@@ -24,55 +24,45 @@ print("-" * 50)
 while True:
     # Get user input
     user_input = input("\nYou: ").strip()
-    
-    if user_input.lower() == 'quit':
+
+    if user_input.lower() == "quit":
         print("Goodbye!")
         break
-    
-    if user_input.lower() == 'clear':
+
+    if user_input.lower() == "clear":
         messages = messages[:1]  # Keep system message
         print("Conversation cleared.")
         continue
-    
+
     # Add user message
-    messages.append({
-        'role': 'user',
-        'content': user_input
-    })
-    
+    messages.append({"role": "user", "content": user_input})
+
     # Stream response
-    print("Assistant: ", end='', flush=True)
-    
+    print("Assistant: ", end="", flush=True)
+
     try:
         # Collect full response for history
         full_response = ""
-        
+
         # Stream the response
-        stream = client.chat(
-            model='gpt-3.5-turbo',
-            messages=messages,
-            stream=True
-        )
-        
+        stream = client.chat(model="gpt-3.5-turbo", messages=messages, stream=True)
+
         for chunk in stream:
-            if 'message' in chunk and 'content' in chunk['message']:
-                content = chunk['message']['content']
-                print(content, end='', flush=True)
+            if "message" in chunk and "content" in chunk["message"]:
+                content = chunk["message"]["content"]
+                print(content, end="", flush=True)
                 full_response += content
-        
+
         print()  # New line after response
-        
+
         # Add assistant response to history
-        messages.append({
-            'role': 'assistant',
-            'content': full_response
-        })
-        
+        messages.append({"role": "assistant", "content": full_response})
+
         # Keep conversation size manageable
         if len(messages) > 20:
             # Keep system message and last 18 messages
             messages = messages[:1] + messages[-18:]
-            
+
     except KeyboardInterrupt:
         print("\n\nInterrupted!")
         break
