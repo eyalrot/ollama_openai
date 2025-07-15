@@ -4,13 +4,18 @@ Main entry point for the Ollama to OpenAI proxy service.
 
 import os
 import uuid
-import atexit
+from contextlib import asynccontextmanager
 from typing import Any, Dict
 
-from flask import Flask, request, jsonify, g
-from flask_cors import CORS
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.config import get_settings
+from src.middleware.logging_middleware import LoggingMiddleware
+from src.middleware.metrics_middleware import MetricsMiddleware
+from src.routers import chat, embeddings, metrics, models
 from src.utils.exceptions import ProxyException, UpstreamError
 from src.utils.http_client import close_global_client
 from src.utils.logging import get_logger, setup_logging
@@ -20,56 +25,88 @@ settings = get_settings()
 setup_logging(level=settings.LOG_LEVEL)
 logger = get_logger(__name__)
 
-# Log environment variables for debugging
-logger.info(
-    "Environment variables for SSL",
-    extra={
-        "extra_data": {
-            "env_DISABLE_SSL_VERIFICATION": os.getenv("DISABLE_SSL_VERIFICATION", "not_set"),
-            "env_DEBUG": os.getenv("DEBUG", "not_set"),
-        }
-    },
-)
 
-logger.info(
-    "Starting Ollama-OpenAI Proxy",
-    extra={
-        "extra_data": {
-            "proxy_port": settings.PROXY_PORT,
-            "target_url": settings.OPENAI_API_BASE_URL,
-            "log_level": settings.LOG_LEVEL,
-            "version": "1.0.0",
-            "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION,
-            "ssl_verification_enabled": not settings.DISABLE_SSL_VERIFICATION,
-            "debug": settings.DEBUG,
-        }
-    },
-)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Manage application lifecycle.
 
-# Create Flask app
-app = Flask(__name__)
+    Handles startup and shutdown events.
+    """
+    # Startup
+    # Log environment variables for debugging
+    logger.info(
+        "Environment variables for SSL",
+        extra={
+            "extra_data": {
+                "env_DISABLE_SSL_VERIFICATION": os.getenv("DISABLE_SSL_VERIFICATION", "not_set"),
+                "env_DEBUG": os.getenv("DEBUG", "not_set"),
+            }
+        },
+    )
+    
+    logger.info(
+        "Starting Ollama-OpenAI Proxy",
+        extra={
+            "extra_data": {
+                "proxy_port": settings.PROXY_PORT,
+                "target_url": settings.OPENAI_API_BASE_URL,
+                "log_level": settings.LOG_LEVEL,
+                "version": "1.0.0",
+                "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION,
+                "ssl_verification_enabled": not settings.DISABLE_SSL_VERIFICATION,
+                "debug": settings.DEBUG,
+            }
+        },
+    )
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down Ollama-OpenAI Proxy")
+
+    # Close global HTTP client
+    await close_global_client()
+
+
+# Create FastAPI app
+app = FastAPI(
+    title="Ollama-OpenAI Proxy",
+    description="Proxy service to translate Ollama API calls to OpenAI format",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+)
 
 # Configure CORS
-CORS(app, 
-     origins=["*"],
-     allow_headers=["*"],
-     methods=["*"],
-     expose_headers=["X-Request-ID"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
+)
 
 
-# Request ID middleware
-@app.before_request
-def add_request_id():
+# Add request ID middleware
+@app.middleware("http")
+async def add_request_id_middleware(request: Request, call_next):
     """Add unique request ID to each request."""
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-    g.request_id = request_id
+    request.state.request_id = request_id
 
-
-@app.after_request
-def add_request_id_to_response(response):
-    """Add request ID to response headers."""
-    response.headers["X-Request-ID"] = getattr(g, "request_id", "unknown")
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
     return response
+
+
+# Add metrics middleware (before logging to capture all requests)
+app.add_middleware(MetricsMiddleware, track_request_body=True, track_response_body=True)
+
+# Add logging middleware
+app.add_middleware(LoggingMiddleware)
 
 
 # Error handlers
