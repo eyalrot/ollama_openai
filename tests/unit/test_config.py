@@ -47,7 +47,7 @@ class TestSettings:
                     "extra": "ignore",
                     "arbitrary_types_allowed": True,
                 }
-            
+
             settings = TestSettings()
             assert str(settings.OPENAI_API_BASE_URL) == "https://api.openai.com/v1"
             assert settings.OPENAI_API_KEY == "sk-test123"
@@ -326,7 +326,7 @@ class TestSettings:
 
         # Test with mapping file - should use default mappings
         custom_mappings = {"custom-model": "provider/custom-model-v1"}
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(custom_mappings, f)
             temp_file = f.name
@@ -335,22 +335,24 @@ class TestSettings:
             env = {**base_env, "MODEL_MAPPING_FILE": temp_file}
             with patch.dict(os.environ, env, clear=True):
                 settings = Settings()
-                
+
                 # Test default mapping (added when mapping file is present)
                 assert (
                     settings.get_mapped_model_name("llama2")
                     == "meta-llama/Llama-2-7b-chat-hf"
                 )
-                
+
                 # Test custom mapping
                 assert (
                     settings.get_mapped_model_name("custom-model")
                     == "provider/custom-model-v1"
                 )
-                
+
                 # Test unmapped model returns as-is
-                assert settings.get_mapped_model_name("unknown-model") == "unknown-model"
-                
+                assert (
+                    settings.get_mapped_model_name("unknown-model") == "unknown-model"
+                )
+
                 # Test model variants
                 assert (
                     settings.get_mapped_model_name("llama2:13b")

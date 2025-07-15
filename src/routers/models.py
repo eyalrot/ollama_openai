@@ -53,12 +53,16 @@ async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
         verify_ssl = not settings.DISABLE_SSL_VERIFICATION
         logger.info(
             f"Models router SSL verification: {verify_ssl}",
-            extra={"extra_data": {"ssl_verification": verify_ssl, "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION}}
+            extra={
+                "extra_data": {
+                    "ssl_verification": verify_ssl,
+                    "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION,
+                }
+            },
         )
-        
+
         async with httpx.AsyncClient(
-            timeout=settings.REQUEST_TIMEOUT,
-            verify=verify_ssl
+            timeout=settings.REQUEST_TIMEOUT, verify=verify_ssl
         ) as client:
             response = await client.get(
                 f"{settings.OPENAI_API_BASE_URL}/models",
@@ -268,12 +272,16 @@ async def show_model(
         verify_ssl = not settings.DISABLE_SSL_VERIFICATION
         logger.info(
             f"Models router SSL verification: {verify_ssl}",
-            extra={"extra_data": {"ssl_verification": verify_ssl, "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION}}
+            extra={
+                "extra_data": {
+                    "ssl_verification": verify_ssl,
+                    "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION,
+                }
+            },
         )
-        
+
         async with httpx.AsyncClient(
-            timeout=settings.REQUEST_TIMEOUT,
-            verify=verify_ssl
+            timeout=settings.REQUEST_TIMEOUT, verify=verify_ssl
         ) as client:
             response = await client.get(
                 f"{settings.OPENAI_API_BASE_URL}/models",

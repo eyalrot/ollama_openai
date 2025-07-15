@@ -5,20 +5,17 @@ This module tests the translation of tool calling requests and responses
 between Ollama and OpenAI formats.
 """
 
-import pytest
 from unittest.mock import Mock
 
+import pytest
+
 from src.models import (
-    OllamaChatRequest,
     OllamaChatMessage,
+    OllamaChatRequest,
     OllamaChatResponse,
     OpenAIChatRequest,
-    OpenAIChatResponse,
-    OpenAIMessage,
-    OpenAIChoice,
 )
 from src.translators.chat import ChatTranslator
-from src.utils.exceptions import TranslationError
 
 
 class TestToolCalling:
@@ -39,16 +36,14 @@ class TestToolCalling:
                     "description": "Get weather information",
                     "parameters": {
                         "type": "object",
-                        "properties": {
-                            "location": {"type": "string"}
-                        }
-                    }
-                }
+                        "properties": {"location": {"type": "string"}},
+                    },
+                },
             }
         ]
 
         openai_tools = chat_translator._translate_tools(ollama_tools)
-        
+
         assert len(openai_tools) == 1
         assert openai_tools[0].type == "function"
         assert openai_tools[0].function.name == "get_weather"
@@ -63,15 +58,13 @@ class TestToolCalling:
                 "description": "Perform calculation",
                 "parameters": {
                     "type": "object",
-                    "properties": {
-                        "expression": {"type": "string"}
-                    }
-                }
+                    "properties": {"expression": {"type": "string"}},
+                },
             }
         ]
 
         openai_tools = chat_translator._translate_tools(ollama_tools)
-        
+
         assert len(openai_tools) == 1
         assert openai_tools[0].type == "function"
         assert openai_tools[0].function.name == "calculate"
@@ -88,14 +81,14 @@ class TestToolCalling:
                     "function": {
                         "name": "get_weather",
                         "description": "Get weather",
-                        "parameters": {"type": "object"}
-                    }
+                        "parameters": {"type": "object"},
+                    },
                 }
-            ]
+            ],
         )
 
         result = chat_translator.translate_request(request)
-        
+
         assert isinstance(result, OpenAIChatRequest)
         assert result.tools is not None
         assert len(result.tools) == 1
@@ -109,28 +102,32 @@ class TestToolCalling:
                 "type": "function",
                 "function": {
                     "name": "get_weather",
-                    "arguments": '{"location": "New York"}'
-                }
+                    "arguments": '{"location": "New York"}',
+                },
             }
         ]
 
         ollama_tool_calls = chat_translator._translate_tool_calls(openai_tool_calls)
-        
+
         assert len(ollama_tool_calls) == 1
         assert ollama_tool_calls[0]["id"] == "call_123"
         assert ollama_tool_calls[0]["type"] == "function"
         assert ollama_tool_calls[0]["function"]["name"] == "get_weather"
-        assert ollama_tool_calls[0]["function"]["arguments"] == '{"location": "New York"}'
+        assert (
+            ollama_tool_calls[0]["function"]["arguments"] == '{"location": "New York"}'
+        )
 
     def test_translate_function_call_legacy(self, chat_translator):
         """Test translation of legacy function call to Ollama format."""
         openai_function_call = {
             "name": "get_weather",
-            "arguments": '{"location": "Boston"}'
+            "arguments": '{"location": "Boston"}',
         }
 
-        ollama_tool_calls = chat_translator._translate_function_call(openai_function_call)
-        
+        ollama_tool_calls = chat_translator._translate_function_call(
+            openai_function_call
+        )
+
         assert len(ollama_tool_calls) == 1
         assert ollama_tool_calls[0]["id"] == "call_legacy"
         assert ollama_tool_calls[0]["type"] == "function"
@@ -148,15 +145,15 @@ class TestToolCalling:
                 "type": "function",
                 "function": {
                     "name": "get_weather",
-                    "arguments": '{"location": "Seattle"}'
-                }
+                    "arguments": '{"location": "Seattle"}',
+                },
             }
         ]
-        
+
         openai_choice = Mock()
         openai_choice.message = openai_message
         openai_choice.finish_reason = "tool_calls"
-        
+
         openai_response = Mock()
         openai_response.model = "gpt-4"
         openai_response.choices = [openai_choice]
@@ -164,11 +161,13 @@ class TestToolCalling:
 
         original_request = OllamaChatRequest(
             model="llama2",
-            messages=[OllamaChatMessage(role="user", content="What's the weather?")]
+            messages=[OllamaChatMessage(role="user", content="What's the weather?")],
         )
 
-        result = chat_translator._translate_non_streaming_response(openai_response, original_request)
-        
+        result = chat_translator._translate_non_streaming_response(
+            openai_response, original_request
+        )
+
         assert isinstance(result, OllamaChatResponse)
         assert result.message.role == "assistant"
         assert result.message.content == "I'll get the weather for you."
@@ -183,13 +182,12 @@ class TestToolCalling:
 
     def test_translate_malformed_tool(self, chat_translator):
         """Test handling of malformed tool definition."""
-        malformed_tools = [
-            "not_a_dict",
-            {"missing_function_data": True}
-        ]
+        malformed_tools = ["not_a_dict", {"missing_function_data": True}]
 
         result = chat_translator._translate_tools(malformed_tools)
-        
+
         # Should handle malformed tools gracefully
-        assert len(result) == 1  # Only the second one creates a tool (with empty function)
+        assert (
+            len(result) == 1
+        )  # Only the second one creates a tool (with empty function)
         assert result[0].function.name == ""

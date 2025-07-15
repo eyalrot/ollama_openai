@@ -39,12 +39,14 @@ async def lifespan(app: FastAPI):
         "Environment variables for SSL",
         extra={
             "extra_data": {
-                "env_DISABLE_SSL_VERIFICATION": os.getenv("DISABLE_SSL_VERIFICATION", "not_set"),
+                "env_DISABLE_SSL_VERIFICATION": os.getenv(
+                    "DISABLE_SSL_VERIFICATION", "not_set"
+                ),
                 "env_DEBUG": os.getenv("DEBUG", "not_set"),
             }
         },
     )
-    
+
     logger.info(
         "Starting Ollama-OpenAI Proxy",
         extra={

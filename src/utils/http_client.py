@@ -119,9 +119,14 @@ class RetryClient:
         verify_ssl = not settings.DISABLE_SSL_VERIFICATION
         logger.info(
             f"HTTP client SSL verification: {verify_ssl}",
-            extra={"extra_data": {"ssl_verification": verify_ssl, "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION}}
+            extra={
+                "extra_data": {
+                    "ssl_verification": verify_ssl,
+                    "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION,
+                }
+            },
         )
-        
+
         self.client = httpx.AsyncClient(
             timeout=timeout_config,
             limits=limits,

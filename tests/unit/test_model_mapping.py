@@ -28,7 +28,7 @@ class TestModelMappingConfig:
 
         # Should be empty when no mapping file is provided
         assert mappings == {}
-        
+
         # Model names should pass through unchanged
         assert settings.get_mapped_model_name("llama2") == "llama2"
         assert settings.get_mapped_model_name("mistral") == "mistral"
@@ -168,11 +168,13 @@ class TestModelMappingConfig:
         settings_no_file = Settings(
             OPENAI_API_BASE_URL="http://test:8000/v1", OPENAI_API_KEY="test-key"
         )
-        
+
         # Without mapping file, all models should pass through unchanged
         assert settings_no_file.get_mapped_model_name("llama2") == "llama2"
-        assert settings_no_file.get_mapped_model_name("unknown-model") == "unknown-model"
-        
+        assert (
+            settings_no_file.get_mapped_model_name("unknown-model") == "unknown-model"
+        )
+
         # Test with mapping file (should use default mappings)
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump({}, f)
@@ -187,11 +189,15 @@ class TestModelMappingConfig:
 
             # Test existing mapping
             assert (
-                settings_with_file.get_mapped_model_name("llama2") == "meta-llama/Llama-2-7b-chat-hf"
+                settings_with_file.get_mapped_model_name("llama2")
+                == "meta-llama/Llama-2-7b-chat-hf"
             )
 
             # Test non-existent mapping (should return original)
-            assert settings_with_file.get_mapped_model_name("unknown-model") == "unknown-model"
+            assert (
+                settings_with_file.get_mapped_model_name("unknown-model")
+                == "unknown-model"
+            )
 
         finally:
             Path(mapping_file).unlink()

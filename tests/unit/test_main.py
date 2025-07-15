@@ -176,13 +176,15 @@ class TestErrorHandlers:
 
     def test_general_exception_handler(self, client):
         """Test general exception handling."""
-        
+
         # Test the general exception handler by directly calling it
-        from src.main import general_exception_handler
-        from fastapi import Request
-        from unittest.mock import Mock
         import asyncio
-        
+        from unittest.mock import Mock
+
+        from fastapi import Request
+
+        from src.main import general_exception_handler
+
         # Create a mock request
         request = Mock(spec=Request)
         request.state = Mock()
@@ -190,20 +192,21 @@ class TestErrorHandlers:
         request.url = Mock()
         request.url.path = "/test-path"
         request.method = "GET"
-        
+
         # Create a test exception
         test_exception = ValueError("Unexpected error")
-        
+
         # Call the handler directly
         response = asyncio.run(general_exception_handler(request, test_exception))
-        
+
         # Check the response
         assert response.status_code == 500
         assert "x-request-id" in response.headers
         assert response.headers["x-request-id"] == "test-request-id"
-        
+
         # Parse the response body
         import json
+
         data = json.loads(response.body)
         assert "error" in data
         assert data["error"]["message"] == "Internal server error"
@@ -217,11 +220,11 @@ class TestRouterIntegration:
     def test_openai_routes_included(self, client):
         """Test OpenAI-style routes are included."""
         from unittest.mock import patch
-        
+
         # Mock the HTTP client to avoid real requests
-        with patch('src.utils.http_client.get_retry_client') as mock_client:
+        with patch("src.utils.http_client.get_retry_client") as mock_client:
             mock_client.return_value.get.return_value.status_code = 500
-            
+
             # These should return 405 Method Not Allowed for GET
             # (they expect POST)
             response = client.get("/v1/chat/completions")
@@ -241,11 +244,11 @@ class TestRouterIntegration:
     def test_ollama_routes_included(self, client):
         """Test Ollama-style routes are included."""
         from unittest.mock import patch
-        
+
         # Mock the HTTP client to avoid real requests
-        with patch('src.utils.http_client.get_retry_client') as mock_client:
+        with patch("src.utils.http_client.get_retry_client") as mock_client:
             mock_client.return_value.get.return_value.status_code = 500
-            
+
             # These should return 405 Method Not Allowed for GET
             # (they expect POST)
             response = client.get("/api/generate")

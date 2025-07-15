@@ -209,7 +209,7 @@ class ChatTranslator(
                 delta = choice.get("delta", {})
                 content = delta.get("content", "")
                 finish_reason = choice.get("finish_reason")
-                
+
                 # Handle tool calls in streaming (Phase 2 feature)
                 if "tool_calls" in delta and delta["tool_calls"]:
                     tool_calls = self._translate_tool_calls(delta["tool_calls"])
@@ -229,7 +229,7 @@ class ChatTranslator(
             # Add finish reason if present
             if finish_reason:
                 response["done_reason"] = finish_reason
-                
+
             # Add tool calls if present (Phase 2 feature)
             if tool_calls:
                 response["tool_calls"] = tool_calls
@@ -286,19 +286,16 @@ class ChatTranslator(
                 openai_function = OpenAIFunction(
                     name=function_def.get("name", ""),
                     description=function_def.get("description", ""),
-                    parameters=function_def.get("parameters", {})
+                    parameters=function_def.get("parameters", {}),
                 )
 
                 # Create OpenAI tool object
-                openai_tool = OpenAITool(
-                    type="function",
-                    function=openai_function
-                )
+                openai_tool = OpenAITool(type="function", function=openai_function)
                 openai_tools.append(openai_tool)
 
             self.logger.debug(
                 f"Translated {len(ollama_tools)} tools to OpenAI format",
-                extra={"extra_data": {"tool_count": len(openai_tools)}}
+                extra={"extra_data": {"tool_count": len(openai_tools)}},
             )
             return openai_tools
 
@@ -306,7 +303,9 @@ class ChatTranslator(
             self.logger.error(f"Failed to translate tools: {e}")
             raise TranslationError(f"Tool translation failed: {e}")
 
-    def _translate_tool_calls(self, openai_tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _translate_tool_calls(
+        self, openai_tool_calls: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Translate OpenAI tool calls to Ollama format.
 
@@ -327,14 +326,16 @@ class ChatTranslator(
                     "type": tool_call.get("type", "function"),
                     "function": {
                         "name": tool_call.get("function", {}).get("name", ""),
-                        "arguments": tool_call.get("function", {}).get("arguments", "{}")
-                    }
+                        "arguments": tool_call.get("function", {}).get(
+                            "arguments", "{}"
+                        ),
+                    },
                 }
                 ollama_tool_calls.append(ollama_tool_call)
 
             self.logger.debug(
                 f"Translated {len(openai_tool_calls)} tool calls to Ollama format",
-                extra={"extra_data": {"tool_call_count": len(ollama_tool_calls)}}
+                extra={"extra_data": {"tool_call_count": len(ollama_tool_calls)}},
             )
             return ollama_tool_calls
 
@@ -342,7 +343,9 @@ class ChatTranslator(
             self.logger.error(f"Failed to translate tool calls: {e}")
             raise TranslationError(f"Tool call translation failed: {e}")
 
-    def _translate_function_call(self, openai_function_call: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _translate_function_call(
+        self, openai_function_call: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """
         Translate OpenAI function call (legacy) to Ollama tool calls format.
 
@@ -358,13 +361,17 @@ class ChatTranslator(
                 "type": "function",
                 "function": {
                     "name": openai_function_call.get("name", ""),
-                    "arguments": openai_function_call.get("arguments", "{}")
-                }
+                    "arguments": openai_function_call.get("arguments", "{}"),
+                },
             }
 
             self.logger.debug(
                 "Translated legacy function call to Ollama format",
-                extra={"extra_data": {"function_name": ollama_tool_call["function"]["name"]}}
+                extra={
+                    "extra_data": {
+                        "function_name": ollama_tool_call["function"]["name"]
+                    }
+                },
             )
             return [ollama_tool_call]
 
@@ -372,7 +379,9 @@ class ChatTranslator(
             self.logger.error(f"Failed to translate function call: {e}")
             raise TranslationError(f"Function call translation failed: {e}")
 
-    def _convert_message_content(self, message: OllamaChatMessage) -> Union[str, List[Dict[str, Any]]]:
+    def _convert_message_content(
+        self, message: OllamaChatMessage
+    ) -> Union[str, List[Dict[str, Any]]]:
         """
         Convert Ollama message content to OpenAI multimodal format.
 
@@ -387,38 +396,40 @@ class ChatTranslator(
         """
         try:
             # Check if message has images (multimodal)
-            if hasattr(message, 'images') and message.images:
+            if hasattr(message, "images") and message.images:
                 # Create multimodal content array
                 content_parts = []
-                
+
                 # Add text content if present
                 if message.content:
-                    content_parts.append({
-                        "type": "text",
-                        "text": message.content
-                    })
-                
+                    content_parts.append({"type": "text", "text": message.content})
+
                 # Add image content
                 for image_data in message.images:
                     # Validate base64 image data
                     if not isinstance(image_data, str):
-                        self.logger.warning(f"Invalid image data type: {type(image_data)}")
+                        self.logger.warning(
+                            f"Invalid image data type: {type(image_data)}"
+                        )
                         continue
-                        
+
                     # Create image content object
                     image_content = {
                         "type": "image_url",
-                        "image_url": {
-                            "url": self._format_image_url(image_data)
-                        }
+                        "image_url": {"url": self._format_image_url(image_data)},
                     }
                     content_parts.append(image_content)
-                
+
                 self.logger.debug(
                     f"Converted multimodal message with {len(content_parts)} content parts",
-                    extra={"extra_data": {"text_parts": 1 if message.content else 0, "image_parts": len(message.images)}}
+                    extra={
+                        "extra_data": {
+                            "text_parts": 1 if message.content else 0,
+                            "image_parts": len(message.images),
+                        }
+                    },
                 )
-                
+
                 return content_parts
             else:
                 # Simple text content
@@ -441,7 +452,7 @@ class ChatTranslator(
         # If already a data URL, return as-is
         if image_data.startswith("data:"):
             return image_data
-            
+
         # Assume JPEG by default (common for Ollama)
         # TODO: Add image type detection based on header
         return f"data:image/jpeg;base64,{image_data}"
@@ -480,17 +491,15 @@ class ChatTranslator(
 
                 # Handle multimodal content (Phase 2 feature)
                 content = self._convert_message_content(msg)
-                
+
                 # Handle tool calls if present
                 tool_calls = None
-                if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                if hasattr(msg, "tool_calls") and msg.tool_calls:
                     tool_calls = msg.tool_calls
 
-                messages.append(OpenAIMessage(
-                    role=role, 
-                    content=content,
-                    tool_calls=tool_calls
-                ))  # type: ignore[call-arg]
+                messages.append(
+                    OpenAIMessage(role=role, content=content, tool_calls=tool_calls)
+                )  # type: ignore[call-arg]
 
         return messages
 
@@ -557,23 +566,26 @@ class ChatTranslator(
             choice = openai_response.choices[0]
             if choice.message:
                 content = choice.message.content or ""  # type: ignore[assignment]
-                
+
                 # Handle tool calls (Phase 2 feature)
-                if hasattr(choice.message, 'tool_calls') and choice.message.tool_calls:
+                if hasattr(choice.message, "tool_calls") and choice.message.tool_calls:
                     tool_calls = self._translate_tool_calls(choice.message.tool_calls)
-                elif hasattr(choice.message, 'function_call') and choice.message.function_call:
+                elif (
+                    hasattr(choice.message, "function_call")
+                    and choice.message.function_call
+                ):
                     # Handle legacy function_call format
-                    tool_calls = self._translate_function_call(choice.message.function_call)
-                    
+                    tool_calls = self._translate_function_call(
+                        choice.message.function_call
+                    )
+
             finish_reason = choice.finish_reason or "stop"
 
         # Build response - use appropriate response type
         if tool_calls:
             # For responses with tool calls, use OllamaChatResponse with message
             message = OllamaChatMessage(
-                role="assistant",
-                content=content,
-                tool_calls=tool_calls
+                role="assistant", content=content, tool_calls=tool_calls
             )
             response = OllamaChatResponse(  # type: ignore[call-arg]
                 model=self.reverse_map_model_name(openai_response.model),

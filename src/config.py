@@ -47,7 +47,8 @@ class Settings(BaseSettings):
     )
     DEBUG: bool = Field(default=False, description="Enable debug mode")
     DISABLE_SSL_VERIFICATION: bool = Field(
-        default=False, description="Disable SSL certificate verification (NOT recommended for production)"
+        default=False,
+        description="Disable SSL certificate verification (NOT recommended for production)",
     )
 
     # Runtime properties (not from env)
@@ -193,10 +194,15 @@ def get_settings() -> Settings:
         _settings = Settings()  # type: ignore[call-arg]
         # Log SSL verification setting on startup
         import logging
+
         logger = logging.getLogger(__name__)
         logger.info(
             f"SSL verification disabled: {_settings.DISABLE_SSL_VERIFICATION}",
-            extra={"extra_data": {"disable_ssl_verification": _settings.DISABLE_SSL_VERIFICATION}}
+            extra={
+                "extra_data": {
+                    "disable_ssl_verification": _settings.DISABLE_SSL_VERIFICATION
+                }
+            },
         )
     return _settings
 

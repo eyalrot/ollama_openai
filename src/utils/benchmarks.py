@@ -276,14 +276,14 @@ class MetricsBenchmark:
         min_time = min(times)
         max_time = max(times)
         p50_time = statistics.median(times)
-        
+
         # Handle cases with insufficient data points for quantiles
         if len(times) >= 2:
             try:
                 p95_time = statistics.quantiles(times, n=20)[18]  # 95th percentile
             except statistics.StatisticsError:
                 p95_time = statistics.median(times)
-            
+
             try:
                 p99_time = statistics.quantiles(times, n=100)[98]  # 99th percentile
             except statistics.StatisticsError:
