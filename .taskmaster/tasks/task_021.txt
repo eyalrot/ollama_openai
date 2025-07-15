@@ -1,0 +1,152 @@
+# Task ID: 21
+# Title: Complete Embedding Feature Implementation
+# Status: pending
+# Dependencies: 6, 12
+# Priority: high
+# Description: Implement full embedding endpoint functionality for the Ollama-OpenAI proxy, replacing the current 501 'Not Implemented' response with complete OpenAI-compatible embedding support including data models, request/response translation, and router implementation
+# Details:
+Implement complete embedding functionality following the existing chat implementation patterns:
+
+1. **Create Embedding Data Models** (src/models/embedding.py):
+```python
+from pydantic import BaseModel, Field
+from typing import List, Optional, Union
+
+class OllamaEmbeddingRequest(BaseModel):
+    model: str
+    prompt: Union[str, List[str]]
+    options: Optional[Dict[str, Any]] = None
+    keep_alive: Optional[str] = None
+
+class OpenAIEmbeddingRequest(BaseModel):
+    model: str
+    input: Union[str, List[str], List[int], List[List[int]]]
+    encoding_format: Optional[str] = Field(default="float")
+    dimensions: Optional[int] = None
+    user: Optional[str] = None
+
+class OpenAIEmbeddingResponse(BaseModel):
+    object: str = "list"
+    data: List[Dict[str, Any]]
+    model: str
+    usage: Dict[str, int]
+
+class OllamaEmbeddingResponse(BaseModel):
+    embedding: List[float]
+```
+
+2. **Implement Embedding Translator** (src/translators/embedding.py):
+```python
+from .base import BaseTranslator
+from ..models import (
+    OllamaEmbeddingRequest, OpenAIEmbeddingRequest,
+    OllamaEmbeddingResponse, OpenAIEmbeddingResponse
+)
+
+class EmbeddingTranslator(BaseTranslator):
+    def translate_request(self, ollama_request: OllamaEmbeddingRequest) -> OpenAIEmbeddingRequest:
+        return OpenAIEmbeddingRequest(
+            model=self._map_model_name(ollama_request.model),
+            input=ollama_request.prompt
+        )
+    
+    def translate_response(self, openai_response: OpenAIEmbeddingResponse) -> OllamaEmbeddingResponse:
+        # Extract first embedding from OpenAI response
+        embedding_data = openai_response.data[0]["embedding"]
+        return OllamaEmbeddingResponse(embedding=embedding_data)
+```
+
+3. **Update Embedding Router** (src/routers/embeddings.py):
+```python
+from fastapi import APIRouter, HTTPException
+import httpx
+import logging
+from ..models import OllamaEmbeddingRequest, OllamaEmbeddingResponse
+from ..translators.embedding import EmbeddingTranslator
+from ..config import settings
+from ..utils.exceptions import UpstreamError
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+translator = EmbeddingTranslator()
+
+@router.post("/embeddings", response_model=OllamaEmbeddingResponse)
+@router.post("/api/embeddings", response_model=OllamaEmbeddingResponse)
+async def create_embedding(request: OllamaEmbeddingRequest):
+    try:
+        # Translate to OpenAI format
+        openai_request = translator.translate_request(request)
+        
+        # Make request to OpenAI-compatible backend
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{settings.openai_api_base_url}/embeddings",
+                json=openai_request.dict(),
+                headers={"Authorization": f"Bearer {settings.openai_api_key}"},
+                timeout=settings.request_timeout
+            )
+            
+        if response.status_code != 200:
+            raise UpstreamError(f"Upstream returned {response.status_code}: {response.text}")
+            
+        # Translate response back to Ollama format
+        openai_response = OpenAIEmbeddingResponse(**response.json())
+        return translator.translate_response(openai_response)
+        
+    except Exception as e:
+        logger.error(f"Embedding error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+4. **Handle Batch Embeddings**:
+```python
+# In translator, handle multiple prompts
+def translate_request(self, ollama_request: OllamaEmbeddingRequest) -> OpenAIEmbeddingRequest:
+    # Ensure input is always a list for OpenAI
+    input_data = ollama_request.prompt if isinstance(ollama_request.prompt, list) else [ollama_request.prompt]
+    return OpenAIEmbeddingRequest(
+        model=self._map_model_name(ollama_request.model),
+        input=input_data
+    )
+```
+
+5. **Add Model Mapping Support**:
+   - Update model mapper to handle embedding model names
+   - Common mappings: 'mxbai-embed-large' -> 'text-embedding-ada-002'
+   - Support dimension configuration for models that allow it
+
+6. **Integration Points**:
+   - Import and register router in src/main.py
+   - Add embedding models to model listing endpoint
+   - Update error handling middleware to cover embedding errors
+
+# Test Strategy:
+Comprehensive testing for embedding functionality:
+
+1. **Unit Tests** (tests/test_embeddings.py):
+   - Test single string embedding request translation
+   - Test batch embedding request translation (list of strings)
+   - Verify response translation preserves embedding vectors
+   - Test error handling for invalid models
+   - Mock OpenAI API responses for different scenarios
+
+2. **Integration Tests**:
+   - Test full embedding pipeline with mocked backend
+   - Verify both /embeddings and /api/embeddings endpoints work
+   - Test with various embedding models (ada-002, text-embedding-3-small)
+   - Verify proper error propagation from backend
+
+3. **Response Format Validation**:
+   - Ensure Ollama response has 'embedding' field with float array
+   - Verify OpenAI response translation handles 'usage' stats
+   - Test dimension handling for models supporting custom dimensions
+
+4. **Performance Tests**:
+   - Test batch embedding performance with 100+ strings
+   - Verify timeout handling for large requests
+   - Check memory usage with large embedding vectors
+
+5. **End-to-End Validation**:
+   - Use curl to test Ollama-style embedding requests
+   - Compare embedding results with direct OpenAI API calls
+   - Verify compatibility with Ollama client libraries

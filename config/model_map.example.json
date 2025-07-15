@@ -11,6 +11,13 @@
   "llama2:13b": "meta-llama/Llama-2-13b-chat-hf",
   "llama2:70b": "meta-llama/Llama-2-70b-chat-hf",
   
+  "_embedding_mappings": "Common embedding model mappings",
+  "mxbai-embed-large": "text-embedding-ada-002",
+  "nomic-embed-text": "text-embedding-ada-002", 
+  "all-minilm": "text-embedding-ada-002",
+  "bge-large": "text-embedding-3-large",
+  "bge-small": "text-embedding-3-small",
+  
   "_custom_mappings": "Add your custom mappings below",
   "my-custom-model": "organization/custom-model-name",
   "local-fine-tuned": "path/to/local/model"

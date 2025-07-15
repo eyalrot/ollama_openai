@@ -4,6 +4,12 @@
 
 **IMPORTANT**: All Python commands in this project must be executed within the virtual environment.
 
+#Project overview and structure
+- you can use @README.md and @ARCHITECTURE.md to understand the project structure
+- you can also use serena MCP server to understand project structure and Serena memory files
+
+
+
 ### Activate Virtual Environment
 
 ```bash

@@ -8,7 +8,8 @@
 [![GHCR](https://img.shields.io/badge/ghcr.io-available-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A transparent proxy service that allows legacy applications using the Ollama Python SDK to seamlessly work with OpenAI-compatible LLM servers like VLLM.
+A transparent proxy service that allows legacy applications using the Ollama Python SDK to seamlessly work with OpenAI-compatible LLM servers like vLLM, OpenRouter, LiteLLM,
+it also enables to work with N8N Ollama Model against local LLM servers with OpenAI compitable API as N8N does't support OpenAI compitable LLM servers.
 
 ## Features
 

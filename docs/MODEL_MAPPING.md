@@ -21,6 +21,20 @@ The proxy includes the following default model mappings:
 | `gemma` | `google/gemma-7b-it` |
 | `phi` | `microsoft/phi-2` |
 
+### Embedding Models
+
+The proxy also supports mapping embedding model names for the `/embeddings` endpoint:
+
+| Ollama Embedding Model | OpenAI/VLLM Embedding Model |
+|------------------------|------------------------------|
+| `mxbai-embed-large` | `text-embedding-ada-002` |
+| `nomic-embed-text` | `text-embedding-ada-002` |
+| `all-minilm` | `text-embedding-ada-002` |
+| `bge-large` | `text-embedding-3-large` |
+| `bge-small` | `text-embedding-3-small` |
+
+**Note**: Your OpenAI-compatible backend must support the embedding models you map to.
+
 ## Custom Mapping Configuration
 
 ### 1. Create a Mapping File

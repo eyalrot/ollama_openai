@@ -135,7 +135,7 @@ class OllamaEmbeddingRequest(BaseModel):
     """Request model for Ollama embeddings endpoint."""
 
     model: str = Field(..., description="Model name to use")
-    prompt: str = Field(..., description="Text to embed")
+    prompt: Union[str, List[str]] = Field(..., description="Text to embed (single string or list of strings)")
     options: Optional[OllamaOptions] = Field(None, description="Model options")
     keep_alive: Optional[Union[str, int]] = Field(
         "5m", description="Model keep-alive duration"
@@ -420,6 +420,39 @@ class OpenAIChatResponse(BaseModel):
     choices: List[OpenAIChoice] = Field(..., description="Response choices")
     usage: Optional[OpenAIUsage] = Field(None, description="Token usage")
     system_fingerprint: Optional[str] = Field(None, description="System fingerprint")
+
+
+class OpenAIEmbeddingRequest(BaseModel):
+    """OpenAI embedding request model."""
+
+    model: str = Field(..., description="ID of the model to use")
+    input: Union[str, List[str], List[int], List[List[int]]] = Field(
+        ..., description="Input text to embed, encoded as a string or array of tokens"
+    )
+    encoding_format: Optional[Literal["float", "base64"]] = Field(
+        "float", description="Format to return embeddings in"
+    )
+    dimensions: Optional[int] = Field(
+        None, description="Number of dimensions the resulting output embeddings should have"
+    )
+    user: Optional[str] = Field(None, description="Unique identifier representing end user")
+
+
+class OpenAIEmbeddingData(BaseModel):
+    """Individual embedding data in OpenAI response."""
+
+    object: Literal["embedding"] = Field("embedding", description="Object type")
+    index: int = Field(..., description="Index of the embedding in the list")
+    embedding: List[float] = Field(..., description="Embedding vector")
+
+
+class OpenAIEmbeddingResponse(BaseModel):
+    """OpenAI embedding response model."""
+
+    object: Literal["list"] = Field("list", description="Object type")
+    data: List[OpenAIEmbeddingData] = Field(..., description="List of embedding objects")
+    model: str = Field(..., description="ID of the model used")
+    usage: OpenAIUsage = Field(..., description="Usage statistics")
 
 
 # OpenAI Streaming Models

@@ -29,3 +29,5 @@ activate it
 #run corrsponding unit test
 for the releated unit test RUN  the unit tests and create a report
 
+#create a Detailed report
+Create details report and save it as test_before_commit.md

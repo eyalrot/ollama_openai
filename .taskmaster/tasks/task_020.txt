@@ -114,3 +114,35 @@ Comprehensive testing approach for Phase 2 features:
    - Verify curl examples work correctly
    - Check Python client examples
    - Validate migration guide accuracy
+
+# Subtasks:
+## 1. Create phase-2 branch and prepare development environment [done]
+### Dependencies: None
+### Description: Set up the phase-2 feature branch from the current master branch and ensure development environment is ready for Phase 2 implementation
+### Details:
+Create a new branch 'phase-2' from master branch. Set up local development environment with all dependencies. Verify that all Phase 1 tests are passing on the new branch as a baseline. Update any development documentation or setup scripts if needed to support Phase 2 development workflow.
+
+## 2. Remove Phase 1 validation blocks for tools and images [done]
+### Dependencies: 20.1
+### Description: Remove all validation code that blocks tool calling and image input support, enabling the proxy to accept these new message types
+### Details:
+Locate and remove tool calling validation blocks in src/translators/chat.py that currently reject messages with tools. Remove image input validation blocks in request models (likely in src/models/ollama.py and src/models/openai.py). Update error handling to gracefully handle new message types instead of rejecting them. Ensure backwards compatibility with standard text-only messages.
+
+## 3. Implement tool calling translation between Ollama and OpenAI formats [done]
+### Dependencies: 20.2
+### Description: Implement bidirectional translation logic for function/tool calling, converting between Ollama's tool format and OpenAI's function format
+### Details:
+Implement _translate_tools() method in src/translators/chat.py to convert Ollama tool definitions to OpenAI function format. Implement _translate_tool_calls() to convert OpenAI's function_call and tool_calls responses back to Ollama format. Update request models to include tools and tool_choice fields. Ensure proper handling of tool IDs and function arguments. Handle streaming responses that include tool calls.
+
+## 4. Implement multimodal image input translation [pending]
+### Dependencies: 20.2
+### Description: Implement translation logic for image inputs, converting Ollama's image format to OpenAI's multimodal content format
+### Details:
+Implement _translate_image_content() in src/translators/chat.py to convert Ollama's 'images' array to OpenAI's multimodal content format. Update OllamaChatMessage model to support 'images' field containing base64 encoded images. Update OpenAIMessage to handle content as either string or array of content objects. Ensure proper base64 encoding/decoding and data URI formatting. Handle mixed text and image content in single messages.
+
+## 5. Comprehensive testing, documentation, and PR preparation [pending]
+### Dependencies: 20.3, 20.4
+### Description: Create comprehensive test suites for Phase 2 features, update all documentation, and prepare for pull request submission
+### Details:
+Create tests/test_phase2_tool_calling.py with scenarios for tool definition, invocation, and response handling. Create tests/test_phase2_multimodal.py for image input scenarios including single/multiple images and mixed content. Update README.md with Phase 2 feature examples and migration guide. Create docs/TOOL_CALLING.md with detailed usage examples and supported tool schemas. Create docs/MULTIMODAL.md with image input examples and format specifications. Update CHANGELOG.md with Phase 2 features. Run full test suite and ensure 100% pass rate. Create comprehensive PR description with feature overview, breaking changes (if any), and migration notes.
+
