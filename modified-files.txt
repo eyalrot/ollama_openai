@@ -1,4 +1,0 @@
-src/main.py
-src/utils/exceptions.py
-tests/unit/test_config.py
-tests/unit/test_main.py
