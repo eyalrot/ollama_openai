@@ -68,6 +68,10 @@ where = ["src"]
 [tool.setuptools.package-dir]
 "" = "src"
 
+[tool.setuptools]
+# Include standalone Python files that aren't in packages
+py-modules = ["_version", "config", "models", "main"]
+
 [tool.setuptools.dynamic]
 version = {attr = "_version.__version__"}
 
