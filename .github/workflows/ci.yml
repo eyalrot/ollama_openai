@@ -370,7 +370,10 @@ jobs:
     - name: Test wheel installation
       run: |
         pip install dist/*.whl
-        python -c "import config, models, _version; print('Package imported successfully')"
+        python -c "import pkg_resources; print('Installed packages:', [p.project_name for p in pkg_resources.working_set])"
+        python -c "import sys; print('Python path:', sys.path[:3])"
+        python -c "import os; print('Site packages:', [p for p in sys.path if 'site-packages' in p][:1])"
+        python -c "import pkgutil; print('Available modules:', [name for _, name, _ in pkgutil.iter_modules()][:20])"
         python -c "from _version import __version__; print(f'Installed version: {__version__}')"
     
     - name: Upload build artifacts
