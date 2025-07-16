@@ -12,7 +12,7 @@
 
 A transparent proxy service that allows applications to use both Ollama and OpenAI API formats seamlessly with OpenAI-compatible LLM servers like **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, and any other OpenAI-compatible API provider.
 
-**New in v0.6.0**: Enhanced version management system with automated Docker publishing! Full dual API format support! Use your existing Ollama clients OR OpenAI clients - both work with the same proxy instance.
+**Perfect for N8N**: Enables using N8N's Ollama model node against OpenAI-compatible API servers. N8N's OpenAI models only support the hardcoded OpenAI URL (https://api.openai.com/v1) and cannot be configured, but the Ollama model node allows custom endpoints - making this proxy ideal for connecting N8N to any OpenAI-compatible LLM provider.
 
 ## Features
 
