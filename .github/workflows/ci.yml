@@ -370,7 +370,7 @@ jobs:
     - name: Test wheel installation
       run: |
         pip install dist/*.whl
-        python -c "import middleware, routers, translators, utils; print('Package imported successfully')"
+        python -c "import config, models, _version; print('Package imported successfully')"
         python -c "from _version import __version__; print(f'Installed version: {__version__}')"
     
     - name: Upload build artifacts

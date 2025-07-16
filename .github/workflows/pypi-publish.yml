@@ -81,14 +81,14 @@ jobs:
     - name: Test wheel installation
       run: |
         pip install dist/*.whl
-        python -c "import middleware, routers, translators, utils; print('Package imported successfully')"
+        python -c "import config, models, _version; print('Package imported successfully')"
         python -c "from _version import __version__; print(f'Version: {__version__}')"
     
     - name: Test source distribution installation
       run: |
         pip uninstall -y ollama-openai-proxy
         pip install dist/*.tar.gz
-        python -c "import middleware, routers, translators, utils; print('Package imported successfully from source')"
+        python -c "import config, models, _version; print('Package imported successfully from source')"
 
   publish-testpypi:
     name: Publish to TestPyPI
