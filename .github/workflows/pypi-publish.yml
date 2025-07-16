@@ -36,7 +36,7 @@ jobs:
     - name: Verify package configuration
       run: |
         python -c "from src._version import __version__; print(f'Package version: {__version__}')"
-        python -c "import src; print(f'Package can be imported successfully')"
+        python -c "import src.main, src.config, src.models; print(f'Package can be imported successfully')"
     
     - name: Build package
       run: |
@@ -77,14 +77,14 @@ jobs:
     - name: Test wheel installation
       run: |
         pip install dist/*.whl
-        python -c "import src; print('Package imported successfully')"
-        python -c "from src._version import __version__; print(f'Version: {__version__}')"
+        python -c "import middleware, routers, translators, utils; print('Package imported successfully')"
+        python -c "from _version import __version__; print(f'Version: {__version__}')"
     
     - name: Test source distribution installation
       run: |
         pip uninstall -y ollama-openai-proxy
         pip install dist/*.tar.gz
-        python -c "import src; print('Package imported successfully from source')"
+        python -c "import middleware, routers, translators, utils; print('Package imported successfully from source')"
 
   publish-testpypi:
     name: Publish to TestPyPI
