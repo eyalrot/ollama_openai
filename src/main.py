@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from src._version import get_version, get_version_info
 from src.config import get_settings
 from src.middleware.logging_middleware import LoggingMiddleware
 from src.middleware.metrics_middleware import MetricsMiddleware
@@ -19,7 +20,6 @@ from src.routers import chat, embeddings, metrics, models, version
 from src.utils.exceptions import ProxyException, UpstreamError
 from src.utils.http_client import close_global_client
 from src.utils.logging import get_logger, setup_logging
-from src._version import get_version, get_version_info
 
 # Initialize settings and logging
 settings = get_settings()

@@ -6,12 +6,12 @@ This module provides version information about the running service.
 
 import os
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from src._version import get_version_info, get_version
+from src._version import get_version, get_version_info
 from src.utils.logging import get_logger
 
 router = APIRouter()
