@@ -5,8 +5,8 @@
 [![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/graph/badge.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
 [![Security Scan](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml)
 [![Docker Build](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml)
-[![Docker Hub](https://img.shields.io/docker/pulls/eyalrot2/ollama-openai-proxy.svg)](https://hub.docker.com/r/eyalrot2/ollama-openai-proxy)
-[![Docker Image Size](https://img.shields.io/docker/image-size/eyalrot2/ollama-openai-proxy/latest)](https://hub.docker.com/r/eyalrot2/ollama-openai-proxy)
+[![GHCR](https://img.shields.io/badge/ghcr.io-available-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
+[![Docker Image Size](https://img.shields.io/docker/image-size/ghcr.io/eyalrot/ollama_openai/latest)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A transparent proxy service that allows applications to use both Ollama and OpenAI API formats seamlessly with OpenAI-compatible LLM servers like **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, and any other OpenAI-compatible API provider.
@@ -118,21 +118,7 @@ For more examples and detailed setup instructions, see the [Quick Start Guide](d
 
 ### Pre-built Docker Images
 
-Ready-to-use production images are available on both Docker Hub and GitHub Container Registry:
-
-#### Docker Hub 🐳
-```bash
-# Pull and run latest
-docker pull eyalrot2/ollama-openai-proxy:latest
-docker run -d -p 11434:11434 \
-  -e OPENAI_API_BASE_URL=https://openrouter.ai/api/v1 \
-  -e OPENAI_API_KEY=your_key \
-  eyalrot2/ollama-openai-proxy:latest
-
-# Or use specific version
-docker pull eyalrot2/ollama-openai-proxy:0.6.0
-# Available tags: latest, 0.6.0, 0.6, 0
-```
+Ready-to-use production images are available on GitHub Container Registry:
 
 #### GitHub Container Registry 📦
 ```bash
@@ -144,16 +130,20 @@ docker run -d -p 11434:11434 \
   ghcr.io/eyalrot/ollama_openai:latest
 
 # Or use specific version
-docker pull ghcr.io/eyalrot/ollama_openai:prod
+docker pull ghcr.io/eyalrot/ollama_openai:0.6.0
+# Available tags: latest, 0.6.0, 0.6, 0
 ```
+
+#### Multi-Architecture Support 🏗️
+- **linux/amd64** (Intel/AMD processors)
+- **linux/arm64** (ARM processors, Apple Silicon, Raspberry Pi)
 
 ### Docker Compose with Pre-built Images
 
 ```yaml
 services:
   ollama-proxy:
-    image: eyalrot2/ollama-openai-proxy:latest
-    # Alternative: ghcr.io/eyalrot/ollama_openai:latest
+    image: ghcr.io/eyalrot/ollama_openai:latest
     ports:
       - "11434:11434"
     environment:

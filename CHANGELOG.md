@@ -47,10 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Updated architecture documentation to reflect v2.1 changes
 
 ### Infrastructure
-- **Docker Publishing**: Automated multi-architecture Docker image publishing
+- **Docker Publishing**: Automated multi-architecture Docker image publishing to GHCR
 - **Version Control**: Centralized version management with `src/_version.py`
 - **API Versioning**: Consistent API versioning strategy across all endpoints
 - **Monitoring**: Enhanced service monitoring with version and health endpoints
+- **Container Registry**: Migrated to GitHub Container Registry (ghcr.io)
 
 ## [2.1.0] - 2025-07-10 (Previous Architecture Version)
 
