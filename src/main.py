@@ -264,7 +264,8 @@ async def root() -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the CLI."""
     uvicorn.run(
         "src.main:app",
         host="0.0.0.0",
@@ -272,3 +273,7 @@ if __name__ == "__main__":
         reload=settings.DEBUG,
         log_level=settings.LOG_LEVEL.lower(),
     )
+
+
+if __name__ == "__main__":
+    main()

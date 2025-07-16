@@ -1,6 +1,7 @@
 # Ollama to OpenAI Proxy
 
 [![Version](https://img.shields.io/github/v/release/eyalrot/ollama_openai?label=version)](https://github.com/eyalrot/ollama_openai/releases)
+[![PyPI](https://img.shields.io/pypi/v/ollama-openai-proxy)](https://pypi.org/project/ollama-openai-proxy/)
 [![CI Status](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml)
 [![Test Coverage](https://img.shields.io/badge/coverage-65.4%25-green.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
 [![Security Scan](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml)
@@ -68,7 +69,26 @@ docker-compose up -d
 curl http://localhost:11434/health
 ```
 
-### Using Python
+### Using PyPI Package (Recommended)
+
+```bash
+# Install from PyPI
+pip install ollama-openai-proxy
+
+# Create configuration file
+cat > .env << EOF
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=your-api-key-here
+EOF
+
+# Run the proxy (method 1: using installed command)
+ollama-openai-proxy
+
+# Or run using Python module (method 2)
+python -c "from src.main import main; main()"
+```
+
+### Using Python Source
 
 ```bash
 # Setup

@@ -49,6 +49,9 @@ dev = [
     "psutil>=5.9.0",
 ]
 
+[project.scripts]
+ollama-openai-proxy = "src.main:main"
+
 [project.urls]
 "Homepage" = "https://github.com/eyalrot/ollama_openai"
 "Bug Reports" = "https://github.com/eyalrot/ollama_openai/issues"
