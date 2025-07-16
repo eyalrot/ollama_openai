@@ -149,6 +149,8 @@ jobs:
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
+        env_vars: OS,PYTHON
+        slug: eyalrot/ollama_openai
 
     - name: Upload coverage HTML report
       uses: actions/upload-artifact@v4

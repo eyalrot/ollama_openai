@@ -1,7 +1,7 @@
 # Ollama to OpenAI Proxy
 
 [![CI Status](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml)
-[![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/branch/master/graph/badge.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
+[![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/graph/badge.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
 [![Security Scan](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml)
 [![Docker Build](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml)
 [![Docker Hub](https://img.shields.io/docker/pulls/eyalrot2/ollama-openai-proxy.svg)](https://hub.docker.com/r/eyalrot2/ollama-openai-proxy)

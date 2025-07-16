@@ -25,7 +25,7 @@ activate it
 for the releated unit test RUN  the unit tests and create a report
 
 # Create a Detailed report
-Create details report and save it as test_before_commit.md
+Create details report and save it as test_before_push.md
 
 #Issue a warning in case of an error
 in case there is violation or unit test is not passing add a clear messaged
