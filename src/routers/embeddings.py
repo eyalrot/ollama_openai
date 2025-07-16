@@ -116,7 +116,7 @@ async def embeddings_handler(
 ) -> JSONResponse:
     """Route to the appropriate embeddings handler based on the path prefix."""
     path = fastapi_request.url.path
-    
+
     # Check if this is an Ollama-style request (/api/embeddings)
     if path.startswith("/api/"):
         return await create_embeddings_ollama_style(fastapi_request)
@@ -130,12 +130,12 @@ async def create_embeddings_openai_style(
 ) -> JSONResponse:
     """
     Create embeddings using OpenAI-style format.
-    
+
     This endpoint accepts OpenAI-style embedding requests and forwards them
     directly to the OpenAI backend without translation.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     # Get request body using the utility function
     try:
         request = await get_body_json(fastapi_request)
@@ -145,9 +145,9 @@ async def create_embeddings_openai_style(
         logger.error(f"Failed to parse request body: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid request body: {str(e)}"
+            detail=f"Invalid request body: {str(e)}",
         )
-    
+
     logger.info(
         "OpenAI embedding request received",
         extra={
@@ -158,7 +158,7 @@ async def create_embeddings_openai_style(
             }
         },
     )
-    
+
     try:
         async with retry_client_context() as client:
             # Forward request directly to OpenAI
@@ -166,16 +166,16 @@ async def create_embeddings_openai_style(
                 "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
                 "Content-Type": "application/json",
             }
-            
+
             url = f"{settings.OPENAI_API_BASE_URL}/embeddings"
-            
+
             response = await client.request_with_retry(
                 "POST",
                 url,
                 json=request,
                 headers=headers,
             )
-            
+
             if response.status_code != 200:
                 logger.error(
                     "OpenAI backend error",
@@ -186,20 +186,20 @@ async def create_embeddings_openai_style(
                         }
                     },
                 )
-                
+
                 raise UpstreamError(
                     "OpenAI backend returned error",
                     status_code=response.status_code,
                     service="openai",
                     details={"response": response.text[:500]},
                 )
-            
+
             # Return response directly
             return JSONResponse(
                 content=response.json(),
                 headers={"X-Request-ID": request_id},
             )
-            
+
     except UpstreamError as e:
         raise HTTPException(
             status_code=e.status_code,
@@ -223,7 +223,7 @@ async def create_embeddings_ollama_style(
     translates to OpenAI embeddings API, and returns in Ollama format.
     """
     request_id = getattr(fastapi_request.state, "request_id", "unknown")
-    
+
     # Get request body using the utility function
     try:
         request_dict = await get_body_json(fastapi_request)
@@ -234,7 +234,7 @@ async def create_embeddings_ollama_style(
         logger.error(f"Failed to parse request body: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid request body: {str(e)}"
+            detail=f"Invalid request body: {str(e)}",
         )
 
     logger.info(

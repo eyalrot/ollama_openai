@@ -15,7 +15,11 @@ from src.models import (
     OpenAIEmbeddingResponse,
     OpenAIUsage,
 )
-from src.routers.embeddings import create_embeddings_ollama_style, embeddings_handler, router
+from src.routers.embeddings import (
+    create_embeddings_ollama_style,
+    embeddings_handler,
+    router,
+)
 from src.utils.exceptions import ValidationError
 
 

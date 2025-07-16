@@ -105,7 +105,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 # For chat endpoints, model is typically in the body
                 if "chat" in request.url.path or "completions" in request.url.path:
                     # Check if body was already read by another middleware
-                    if hasattr(request, '_body'):
+                    if hasattr(request, "_body"):
                         body = request._body
                     else:
                         # We need to read the body carefully to avoid consuming it
@@ -136,7 +136,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
         try:
             # First check if body was stored in _body by another middleware
-            if hasattr(request, '_body'):
+            if hasattr(request, "_body"):
                 return len(request._body)
 
             # Then check if we stored it in state

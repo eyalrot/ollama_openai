@@ -219,7 +219,7 @@ async def openai_chat_completions(
         logger.error(f"Failed to parse request body: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid request body: {str(e)}"
+            detail=f"Invalid request body: {str(e)}",
         )
 
     logger.info(
@@ -322,7 +322,7 @@ async def openai_completions(
         logger.error(f"Failed to parse request body: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid request body: {str(e)}"
+            detail=f"Invalid request body: {str(e)}",
         )
 
     logger.info(
@@ -364,7 +364,7 @@ async def generate(
         logger.error(f"Failed to parse request body: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid request body: {str(e)}"
+            detail=f"Invalid request body: {str(e)}",
         )
 
     logger.info(
@@ -461,7 +461,7 @@ async def ollama_chat(
         logger.error(f"Failed to parse request body: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid request body: {str(e)}"
+            detail=f"Invalid request body: {str(e)}",
         )
 
     logger.info(

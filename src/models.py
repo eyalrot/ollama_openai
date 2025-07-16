@@ -400,7 +400,9 @@ class OpenAIUsage(BaseModel):
     """OpenAI token usage model."""
 
     prompt_tokens: int = Field(..., description="Tokens in prompt")
-    completion_tokens: Optional[int] = Field(None, description="Tokens in completion (not used for embeddings)")
+    completion_tokens: Optional[int] = Field(
+        None, description="Tokens in completion (not used for embeddings)"
+    )
     total_tokens: int = Field(..., description="Total tokens used")
 
 

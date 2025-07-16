@@ -28,10 +28,10 @@ class TestGetBodyBytes:
         # Setup cached body
         test_body = b'{"test": "data"}'
         mock_request._body = test_body
-        
+
         # Call function
         result = await get_body_bytes(mock_request)
-        
+
         # Verify result
         assert result == test_body
 
@@ -41,10 +41,10 @@ class TestGetBodyBytes:
         # Setup state body
         test_body = b'{"test": "data"}'
         mock_request.state.body = test_body
-        
+
         # Call function
         result = await get_body_bytes(mock_request)
-        
+
         # Verify result
         assert result == test_body
 
@@ -53,14 +53,14 @@ class TestGetBodyBytes:
         """Test getting body bytes from request.state.body when it's a string."""
         # Setup state body as string (should be ignored)
         mock_request.state.body = "string_body"
-        
+
         # Mock the request.body() method
         test_body = b'{"test": "data"}'
         mock_request.body = AsyncMock(return_value=test_body)
-        
+
         # Call function
         result = await get_body_bytes(mock_request)
-        
+
         # Verify result
         assert result == test_body
         mock_request.body.assert_called_once()
@@ -71,14 +71,14 @@ class TestGetBodyBytes:
         # Setup request body method
         test_body = b'{"test": "data"}'
         mock_request.body = AsyncMock(return_value=test_body)
-        
+
         # Call function
         result = await get_body_bytes(mock_request)
-        
+
         # Verify result
         assert result == test_body
         mock_request.body.assert_called_once()
-        
+
         # Verify body was cached
         assert mock_request._body == test_body
 
@@ -87,11 +87,11 @@ class TestGetBodyBytes:
         """Test handling of body read failure."""
         # Setup request body method to raise exception
         mock_request.body = AsyncMock(side_effect=RuntimeError("Body already consumed"))
-        
+
         # Call function and expect HTTPException
         with pytest.raises(HTTPException) as exc_info:
             await get_body_bytes(mock_request)
-        
+
         # Verify exception
         assert exc_info.value.status_code == 400
         assert "already been consumed" in str(exc_info.value.detail)
@@ -102,13 +102,13 @@ class TestGetBodyBytes:
         # Setup both cached and state body
         cached_body = b'{"cached": "data"}'
         state_body = b'{"state": "data"}'
-        
+
         mock_request._body = cached_body
         mock_request.state.body = state_body
-        
+
         # Call function
         result = await get_body_bytes(mock_request)
-        
+
         # Verify cached body was used
         assert result == cached_body
 
@@ -119,13 +119,13 @@ class TestGetBodyBytes:
         mock_request = Mock(spec=Request)
         mock_request.state = Mock()
         # No request_id attribute
-        
+
         test_body = b'{"test": "data"}'
         mock_request.body = AsyncMock(return_value=test_body)
-        
+
         # Call function (should not raise exception)
         result = await get_body_bytes(mock_request)
-        
+
         # Verify result
         assert result == test_body
 
@@ -147,14 +147,14 @@ class TestGetBodyJson:
         # Setup test data
         test_data = {"key": "value", "number": 42, "nested": {"inner": "data"}}
         test_body = json.dumps(test_data).encode()
-        
+
         # Mock get_body_bytes
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.return_value = test_body
-            
+
             # Call function
             result = await get_body_json(mock_request)
-            
+
             # Verify result
             assert result == test_data
             mock_get_body_bytes.assert_called_once_with(mock_request)
@@ -165,14 +165,14 @@ class TestGetBodyJson:
         # Setup test data
         test_data = {}
         test_body = json.dumps(test_data).encode()
-        
+
         # Mock get_body_bytes
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.return_value = test_body
-            
+
             # Call function
             result = await get_body_json(mock_request)
-            
+
             # Verify result
             assert result == test_data
 
@@ -182,14 +182,14 @@ class TestGetBodyJson:
         # Setup test data
         test_data = [{"item": 1}, {"item": 2}, {"item": 3}]
         test_body = json.dumps(test_data).encode()
-        
+
         # Mock get_body_bytes
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.return_value = test_body
-            
+
             # Call function
             result = await get_body_json(mock_request)
-            
+
             # Verify result
             assert result == test_data
 
@@ -198,15 +198,15 @@ class TestGetBodyJson:
         """Test handling of invalid JSON."""
         # Setup invalid JSON
         test_body = b'{"invalid": json}'
-        
+
         # Mock get_body_bytes
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.return_value = test_body
-            
+
             # Call function and expect HTTPException
             with pytest.raises(HTTPException) as exc_info:
                 await get_body_json(mock_request)
-            
+
             # Verify exception
             assert exc_info.value.status_code == 400
             assert "Invalid JSON" in str(exc_info.value.detail)
@@ -215,16 +215,16 @@ class TestGetBodyJson:
     async def test_get_body_json_empty_body(self, mock_request):
         """Test handling of empty body."""
         # Setup empty body
-        test_body = b''
-        
+        test_body = b""
+
         # Mock get_body_bytes
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.return_value = test_body
-            
+
             # Call function and expect HTTPException
             with pytest.raises(HTTPException) as exc_info:
                 await get_body_json(mock_request)
-            
+
             # Verify exception
             assert exc_info.value.status_code == 400
             assert "Invalid JSON" in str(exc_info.value.detail)
@@ -234,15 +234,15 @@ class TestGetBodyJson:
         """Test handling of malformed JSON."""
         # Setup malformed JSON
         test_body = b'{"key": "value", "missing_quote: "value"}'
-        
+
         # Mock get_body_bytes
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.return_value = test_body
-            
+
             # Call function and expect HTTPException
             with pytest.raises(HTTPException) as exc_info:
                 await get_body_json(mock_request)
-            
+
             # Verify exception
             assert exc_info.value.status_code == 400
             assert "Invalid JSON" in str(exc_info.value.detail)
@@ -253,14 +253,13 @@ class TestGetBodyJson:
         # Mock get_body_bytes to raise HTTPException
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.side_effect = HTTPException(
-                status_code=400, 
-                detail="Body already consumed"
+                status_code=400, detail="Body already consumed"
             )
-            
+
             # Call function and expect same HTTPException
             with pytest.raises(HTTPException) as exc_info:
                 await get_body_json(mock_request)
-            
+
             # Verify exception
             assert exc_info.value.status_code == 400
             assert "Body already consumed" in str(exc_info.value.detail)
@@ -270,15 +269,15 @@ class TestGetBodyJson:
         """Test JSON parsing with unicode content."""
         # Setup test data with unicode
         test_data = {"message": "Hello 世界", "emoji": "🌍", "special": "café"}
-        test_body = json.dumps(test_data, ensure_ascii=False).encode('utf-8')
-        
+        test_body = json.dumps(test_data, ensure_ascii=False).encode("utf-8")
+
         # Mock get_body_bytes
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.return_value = test_body
-            
+
             # Call function
             result = await get_body_json(mock_request)
-            
+
             # Verify result
             assert result == test_data
 
@@ -289,16 +288,16 @@ class TestGetBodyJson:
         mock_request = Mock(spec=Request)
         mock_request.state = Mock()
         # No request_id attribute
-        
+
         test_data = {"test": "data"}
         test_body = json.dumps(test_data).encode()
-        
+
         # Mock get_body_bytes
         with patch("src.utils.request_body.get_body_bytes") as mock_get_body_bytes:
             mock_get_body_bytes.return_value = test_body
-            
+
             # Call function (should not raise exception)
             result = await get_body_json(mock_request)
-            
+
             # Verify result
             assert result == test_data
