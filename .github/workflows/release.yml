@@ -5,8 +5,8 @@ on:
     types: [ published ]
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/eyalrot/ollama_openai
+  GHCR_IMAGE_NAME: ghcr.io/eyalrot/ollama_openai
+  DOCKERHUB_IMAGE_NAME: eyalrot2/ollama-openai-proxy
 
 jobs:
   post-release-tasks:
@@ -31,8 +31,9 @@ jobs:
         # Update version badge in README
         sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+/version-${{ steps.version.outputs.version }}/g" README.md || true
         
-        # Update Docker image badge
+        # Update Docker image badges
         sed -i "s/ghcr\.io\/eyalrot\/ollama_openai:[0-9]\+\.[0-9]\+\.[0-9]\+/ghcr.io\/eyalrot\/ollama_openai:${{ steps.version.outputs.version }}/g" README.md || true
+        sed -i "s/eyalrot2\/ollama-openai-proxy:[0-9]\+\.[0-9]\+\.[0-9]\+/eyalrot2\/ollama-openai-proxy:${{ steps.version.outputs.version }}/g" README.md || true
         
         # Check if any changes were made
         if git diff --quiet; then
@@ -55,11 +56,17 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Published Artifacts:" >> $GITHUB_STEP_SUMMARY
         echo "- 📦 **PyPI**: https://pypi.org/project/ollama-openai-proxy/${{ steps.version.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
-        echo "- 🐳 **Docker Images**: https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai" >> $GITHUB_STEP_SUMMARY
+        echo "- 🐳 **GHCR**: https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai" >> $GITHUB_STEP_SUMMARY
+        echo "- 🐳 **Docker Hub**: https://hub.docker.com/r/eyalrot2/ollama-openai-proxy" >> $GITHUB_STEP_SUMMARY
         echo "- 📋 **GitHub Release**: https://github.com/eyalrot/ollama_openai/releases/tag/${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Docker Installation:" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-        echo "docker pull ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-        echo "docker pull ${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+        echo "# From GitHub Container Registry" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.GHCR_IMAGE_NAME }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.GHCR_IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "# From Docker Hub" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
