@@ -2,11 +2,11 @@
 
 [![Version](https://img.shields.io/github/v/release/eyalrot/ollama_openai?label=version)](https://github.com/eyalrot/ollama_openai/releases)
 [![CI Status](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml)
-[![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/graph/badge.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
+[![Test Coverage](https://img.shields.io/badge/coverage-65.4%25-green.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
 [![Security Scan](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml)
 [![Docker Build](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml)
 [![GHCR](https://img.shields.io/badge/ghcr.io-available-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
-[![Docker Image Size](https://img.shields.io/docker/image-size/ghcr.io/eyalrot/ollama_openai/latest)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
+[![Docker Image Size](https://img.shields.io/badge/docker%20image-271MB-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A transparent proxy service that allows applications to use both Ollama and OpenAI API formats seamlessly with OpenAI-compatible LLM servers like **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, and any other OpenAI-compatible API provider.
