@@ -349,6 +349,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install build twine setuptools wheel
     
+    - name: Install project dependencies
+      run: |
+        pip install -e .
+    
     - name: Verify package configuration
       run: |
         python -c "from src._version import __version__; print(f'Package version: {__version__}')"
