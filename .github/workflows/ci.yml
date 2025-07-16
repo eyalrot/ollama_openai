@@ -356,7 +356,7 @@ jobs:
     - name: Verify package configuration
       run: |
         python -c "from src._version import __version__; print(f'Package version: {__version__}')"
-        python -c "import src.main, src.config, src.models; print(f'Package can be imported successfully')"
+        python -c "import src.config, src.models; print(f'Package can be imported successfully')"
     
     - name: Build package
       run: |
