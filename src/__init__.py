@@ -1,7 +1,7 @@
 """
 Ollama-OpenAI Proxy Service
 
-A transparent proxy service that allows applications to use both Ollama and OpenAI API 
+A transparent proxy service that allows applications to use both Ollama and OpenAI API
 formats seamlessly with OpenAI-compatible LLM servers.
 """
 

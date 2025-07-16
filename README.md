@@ -11,7 +11,7 @@
 
 A transparent proxy service that allows applications to use both Ollama and OpenAI API formats seamlessly with OpenAI-compatible LLM servers like **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, and any other OpenAI-compatible API provider.
 
-**New in v2.1**: Full dual API format support! Use your existing Ollama clients OR OpenAI clients - both work with the same proxy instance.
+**New in v0.6.0**: Enhanced version management system with automated Docker publishing! Full dual API format support! Use your existing Ollama clients OR OpenAI clients - both work with the same proxy instance.
 
 ## Features
 
@@ -100,7 +100,7 @@ client = Client(host='http://localhost:11434')
 response = client.generate(model='gpt-3.5-turbo', prompt='Hello!')
 print(response['response'])
 
-# Option 2: Use OpenAI client (new in v2.1!)
+# Option 2: Use OpenAI client (new in v0.6.0!)
 import openai
 openai.api_base = "http://localhost:11434/v1"
 openai.api_key = "your-api-key"

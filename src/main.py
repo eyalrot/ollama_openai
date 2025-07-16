@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
             }
         },
     )
-    
+
     # Log environment variables for debugging
     logger.info(
         "Environment variables for SSL",

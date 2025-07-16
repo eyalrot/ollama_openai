@@ -21,12 +21,16 @@ API_VERSION = "v1"
 
 # Project information
 PROJECT_NAME = "Ollama-OpenAI Proxy"
-PROJECT_DESCRIPTION = "A proxy service that translates between Ollama and OpenAI API formats"
+PROJECT_DESCRIPTION = (
+    "A proxy service that translates between Ollama and OpenAI API formats"
+)
 PROJECT_URL = "https://github.com/eyalrot/ollama_openai"
+
 
 def get_version() -> str:
     """Get the current version string."""
     return __version__
+
 
 def get_version_info() -> dict:
     """Get detailed version information."""
@@ -44,10 +48,17 @@ def get_version_info() -> dict:
         "project_url": PROJECT_URL,
     }
 
+
 def get_short_version() -> str:
     """Get a short version string for display."""
     return f"v{__version__}"
 
+
 def is_development_version() -> bool:
     """Check if this is a development version."""
-    return "dev" in __version__ or "rc" in __version__ or "alpha" in __version__ or "beta" in __version__
+    return (
+        "dev" in __version__
+        or "rc" in __version__
+        or "alpha" in __version__
+        or "beta" in __version__
+    )

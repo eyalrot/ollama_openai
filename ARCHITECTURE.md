@@ -564,12 +564,18 @@ Performance validated under various load conditions:
 
 ---
 
-**Document Version**: 2.1  
+**Document Version**: 0.6.0  
 **Last Updated**: 2025-07-16  
 **Project Status**: Production Ready (100% Complete)  
 **Next Phase**: Phase 2 planning (Tool calling, Image support)
 
-## Recent Updates (v2.1)
+## Recent Updates (v0.6.0)
+
+### Version Management System
+- **Centralized Version Control**: New `src/_version.py` file with comprehensive version metadata
+- **Version API Endpoints**: `/v1/version` and `/v1/health` endpoints for service monitoring
+- **Enhanced Release Pipeline**: Automated Docker image building and publishing to GHCR
+- **GitHub Releases**: Automated release notes and GitHub release creation
 
 ### Dual API Format Support
 - **Enhanced Architecture**: Now supports both Ollama and OpenAI API formats simultaneously
