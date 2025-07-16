@@ -7,6 +7,7 @@
 [![Security Scan](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml)
 [![Docker Build](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml)
 [![GHCR](https://img.shields.io/badge/ghcr.io-available-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
+[![Docker Hub](https://img.shields.io/badge/docker%20hub-available-blue)](https://hub.docker.com/r/eyalrot2/ollama-openai-proxy)
 [![Docker Image Size](https://img.shields.io/badge/docker%20image-271MB-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -138,7 +139,21 @@ For more examples and detailed setup instructions, see the [Quick Start Guide](d
 
 ### Pre-built Docker Images
 
-Ready-to-use production images are available on GitHub Container Registry:
+Ready-to-use production images are available on both Docker Hub and GitHub Container Registry:
+
+#### Docker Hub 🐳 (Recommended)
+```bash
+# Pull and run latest
+docker pull eyalrot2/ollama-openai-proxy:latest
+docker run -d -p 11434:11434 \
+  -e OPENAI_API_BASE_URL=https://openrouter.ai/api/v1 \
+  -e OPENAI_API_KEY=your_key \
+  eyalrot2/ollama-openai-proxy:latest
+
+# Or use specific version
+docker pull eyalrot2/ollama-openai-proxy:0.6.3
+# Available tags: latest, 0.6.3, 0.6, 0
+```
 
 #### GitHub Container Registry 📦
 ```bash
@@ -150,8 +165,8 @@ docker run -d -p 11434:11434 \
   ghcr.io/eyalrot/ollama_openai:latest
 
 # Or use specific version
-docker pull ghcr.io/eyalrot/ollama_openai:0.6.0
-# Available tags: latest, 0.6.0, 0.6, 0
+docker pull ghcr.io/eyalrot/ollama_openai:0.6.3
+# Available tags: latest, 0.6.3, 0.6, 0
 ```
 
 #### Multi-Architecture Support 🏗️
@@ -163,7 +178,10 @@ docker pull ghcr.io/eyalrot/ollama_openai:0.6.0
 ```yaml
 services:
   ollama-proxy:
-    image: ghcr.io/eyalrot/ollama_openai:latest
+    # Use Docker Hub (recommended)
+    image: eyalrot2/ollama-openai-proxy:latest
+    # Or use GitHub Container Registry
+    # image: ghcr.io/eyalrot/ollama_openai:latest
     ports:
       - "11434:11434"
     environment:
@@ -183,19 +201,27 @@ services:
 
 ### Available Tags
 
-| Tag | Description | Registry |
-|-----|-------------|----------|
-| `latest` | Latest stable build | Docker Hub & GHCR |
-| `prod` | Production-ready build | Docker Hub & GHCR |
+| Tag | Description | Docker Hub | GitHub Container Registry |
+|-----|-------------|------------|---------------------------|
+| `latest` | Latest stable build | `eyalrot2/ollama-openai-proxy:latest` | `ghcr.io/eyalrot/ollama_openai:latest` |
+| `0.6.3` | Specific version | `eyalrot2/ollama-openai-proxy:0.6.3` | `ghcr.io/eyalrot/ollama_openai:0.6.3` |
+| `0.6` | Major.minor version | `eyalrot2/ollama-openai-proxy:0.6` | `ghcr.io/eyalrot/ollama_openai:0.6` |
+| `0` | Major version | `eyalrot2/ollama-openai-proxy:0` | `ghcr.io/eyalrot/ollama_openai:0` |
 
 ### Quick Test with Pre-built Image
 
 ```bash
-# Start with OpenRouter free models
+# Start with OpenRouter free models (using Docker Hub)
 docker run -d --name ollama-proxy -p 11434:11434 \
   -e OPENAI_API_BASE_URL=https://openrouter.ai/api/v1 \
   -e OPENAI_API_KEY=your_key \
   eyalrot2/ollama-openai-proxy:latest
+
+# Or using GitHub Container Registry
+# docker run -d --name ollama-proxy -p 11434:11434 \
+#   -e OPENAI_API_BASE_URL=https://openrouter.ai/api/v1 \
+#   -e OPENAI_API_KEY=your_key \
+#   ghcr.io/eyalrot/ollama_openai:latest
 
 # Test with free model (Ollama format)
 curl -X POST http://localhost:11434/api/generate \
