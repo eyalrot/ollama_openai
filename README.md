@@ -1,11 +1,12 @@
 # Ollama to OpenAI Proxy
 
+[![Version](https://img.shields.io/github/v/release/eyalrot/ollama_openai?label=version)](https://github.com/eyalrot/ollama_openai/releases)
 [![CI Status](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/ci.yml)
 [![Test Coverage](https://codecov.io/gh/eyalrot/ollama_openai/graph/badge.svg)](https://codecov.io/gh/eyalrot/ollama_openai)
 [![Security Scan](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/security.yml)
 [![Docker Build](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml/badge.svg)](https://github.com/eyalrot/ollama_openai/actions/workflows/docker.yml)
 [![Docker Hub](https://img.shields.io/docker/pulls/eyalrot2/ollama-openai-proxy.svg)](https://hub.docker.com/r/eyalrot2/ollama-openai-proxy)
-[![GHCR](https://img.shields.io/badge/ghcr.io-available-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
+[![Docker Image Size](https://img.shields.io/docker/image-size/eyalrot2/ollama-openai-proxy/latest)](https://hub.docker.com/r/eyalrot2/ollama-openai-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A transparent proxy service that allows applications to use both Ollama and OpenAI API formats seamlessly with OpenAI-compatible LLM servers like **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, and any other OpenAI-compatible API provider.
@@ -85,6 +86,12 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 11434
 
 ### Quick Test
 
+```bash
+# Check version and health
+curl http://localhost:11434/v1/version
+curl http://localhost:11434/v1/health
+```
+
 ```python
 # Option 1: Use Ollama client (existing code works unchanged)
 from ollama import Client
@@ -123,7 +130,8 @@ docker run -d -p 11434:11434 \
   eyalrot2/ollama-openai-proxy:latest
 
 # Or use specific version
-docker pull eyalrot2/ollama-openai-proxy:prod
+docker pull eyalrot2/ollama-openai-proxy:0.6.0
+# Available tags: latest, 0.6.0, 0.6, 0
 ```
 
 #### GitHub Container Registry 📦

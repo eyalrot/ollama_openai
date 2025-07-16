@@ -15,10 +15,11 @@ from fastapi.responses import JSONResponse
 from src.config import get_settings
 from src.middleware.logging_middleware import LoggingMiddleware
 from src.middleware.metrics_middleware import MetricsMiddleware
-from src.routers import chat, embeddings, metrics, models
+from src.routers import chat, embeddings, metrics, models, version
 from src.utils.exceptions import ProxyException, UpstreamError
 from src.utils.http_client import close_global_client
 from src.utils.logging import get_logger, setup_logging
+from src._version import get_version, get_version_info
 
 # Initialize settings and logging
 settings = get_settings()
@@ -34,6 +35,21 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
+    # Log version information
+    version_info = get_version_info()
+    logger.info(
+        "Ollama-OpenAI Proxy starting",
+        extra={
+            "extra_data": {
+                "version": version_info["version"],
+                "build_date": version_info["build_date"],
+                "commit_sha": os.getenv("GITHUB_SHA", "development"),
+                "api_version": version_info["api_version"],
+                "project_name": version_info["project_name"],
+            }
+        },
+    )
+    
     # Log environment variables for debugging
     logger.info(
         "Environment variables for SSL",
@@ -54,7 +70,7 @@ async def lifespan(app: FastAPI):
                 "proxy_port": settings.PROXY_PORT,
                 "target_url": settings.OPENAI_API_BASE_URL,
                 "log_level": settings.LOG_LEVEL,
-                "version": "1.0.0",
+                "version": get_version(),
                 "disable_ssl_verification": settings.DISABLE_SSL_VERIFICATION,
                 "ssl_verification_enabled": not settings.DISABLE_SSL_VERIFICATION,
                 "debug": settings.DEBUG,
@@ -180,6 +196,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 # Include routers
+app.include_router(version.router, prefix="/v1", tags=["version"])
 app.include_router(chat.router, prefix="/v1", tags=["chat"])
 app.include_router(models.router, prefix="/v1", tags=["models"])
 app.include_router(embeddings.router, prefix="/v1", tags=["embeddings"])

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ollama-openai-proxy"
-version = "1.0.0"
+dynamic = ["version"]
 description = "A proxy service that translates Ollama API requests to OpenAI-compatible backends"
 readme = "README.md"
 license = {text = "MIT"}
@@ -60,6 +60,9 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools.dynamic]
+version = {attr = "_version.__version__"}
 
 # Coverage Configuration
 [tool.coverage.run]
