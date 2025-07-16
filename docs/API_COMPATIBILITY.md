@@ -4,20 +4,29 @@ This document provides a detailed mapping between Ollama API endpoints and their
 
 ## Overview
 
-The Ollama to OpenAI proxy translates between two API formats:
-- **Ollama API**: Used by the Ollama Python/JS SDKs
-- **OpenAI API**: Supported by VLLM, OpenAI, and compatible servers
+The Ollama to OpenAI proxy supports **dual API formats** simultaneously:
+- **Ollama API**: Used by the Ollama Python/JS SDKs (`/api/*` endpoints)
+- **OpenAI API**: Used by OpenAI clients and compatible libraries (`/v1/*` endpoints)
+
+**New in v2.1**: The proxy now supports both formats simultaneously! You can use either Ollama clients OR OpenAI clients against the same proxy instance, with automatic format detection based on the URL path.
 
 ## Endpoint Compatibility Matrix
 
-### ✅ Fully Supported Endpoints
+### ✅ Dual API Format Support
 
-| Ollama Endpoint | OpenAI Equivalent | Method | Status | Notes |
-|-----------------|-------------------|---------|---------|--------|
+The proxy now supports both Ollama and OpenAI endpoints simultaneously:
+
+| Ollama Endpoint | OpenAI Endpoint | Method | Status | Notes |
+|-----------------|-----------------|---------|---------|--------|
 | `/api/generate` | `/v1/chat/completions` | POST | ✅ Full Support | Text generation with streaming |
 | `/api/chat` | `/v1/chat/completions` | POST | ✅ Full Support | Chat with message history |
 | `/api/tags` | `/v1/models` | GET | ✅ Full Support | List available models |
 | `/api/embeddings` | `/v1/embeddings` | POST | ✅ Full Support | Generate embeddings |
+
+**Usage**: Choose the endpoint style that matches your client:
+- Use `/api/*` endpoints with Ollama clients
+- Use `/v1/*` endpoints with OpenAI clients  
+- Both route to the same backend with format translation
 
 ### ℹ️ Informational Endpoints
 
@@ -241,8 +250,8 @@ data: [DONE]
 
 ### Basic Generation
 
+**Ollama-style request:**
 ```bash
-# Ollama-style request
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{
@@ -252,8 +261,21 @@ curl -X POST http://localhost:11434/api/generate \
   }'
 ```
 
+**OpenAI-style request (same backend):**
+```bash
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "model": "llama2",
+    "messages": [{"role": "user", "content": "Explain quantum computing"}],
+    "stream": false
+  }'
+```
+
 ### Chat with History
 
+**Using Ollama client:**
 ```python
 from ollama import Client
 
@@ -264,6 +286,22 @@ response = client.chat(
     messages=[
         {'role': 'system', 'content': 'You are a physics teacher'},
         {'role': 'user', 'content': 'What is quantum entanglement?'}
+    ]
+)
+```
+
+**Using OpenAI client (same backend):**
+```python
+import openai
+
+openai.api_base = "http://localhost:11434/v1"
+openai.api_key = "your-api-key"
+
+response = openai.ChatCompletion.create(
+    model="llama2",
+    messages=[
+        {"role": "system", "content": "You are a physics teacher"},
+        {"role": "user", "content": "What is quantum entanglement?"}
     ]
 )
 ```
@@ -289,12 +327,22 @@ for await (const chunk of stream) {
 
 ### Embeddings
 
+**Using Ollama client:**
 ```python
 response = client.embeddings(
     model='llama2',
     prompt='Machine learning is fascinating'
 )
 embedding_vector = response['embedding']
+```
+
+**Using OpenAI client (same backend):**
+```python
+response = openai.Embedding.create(
+    model="llama2",
+    input="Machine learning is fascinating"
+)
+embedding_vector = response['data'][0]['embedding']
 ```
 
 ## Model Name Resolution

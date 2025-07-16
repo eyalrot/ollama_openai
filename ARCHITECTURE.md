@@ -17,6 +17,17 @@ This document describes the architecture of the Ollama to OpenAI Proxy Service, 
        │                        │ - Response mapping        │
        │                        │ - Model name mapping      │
        └────────────────────────┴────────────────────────────┘
+
+┌─────────────────┐     ┌─────────────────────┐     ┌──────────────────┐
+│  OpenAI Client  │────▶│  Ollama-OpenAI      │────▶│ OpenAI-Compatible│
+│  (Direct API)   │     │  Proxy Service      │     │  Backend Server  │
+└─────────────────┘     └─────────────────────┘     └──────────────────┘
+       │                         │                            │
+       │ OpenAI API             │ Pass-through Layer        │ OpenAI API
+       │ (v1/*)                 │ - Request forwarding      │ (same format)
+       │                        │ - Response forwarding     │
+       │                        │ - Header management       │
+       └────────────────────────┴────────────────────────────┘
 ```
 
 ## Core Components
@@ -44,13 +55,16 @@ This document describes the architecture of the Ollama to OpenAI Proxy Service, 
   - Chat translator: Ollama chat ↔ OpenAI chat completions
   - Embeddings translator: Ollama embeddings ↔ OpenAI embeddings
   - Generate translator: Ollama generate → OpenAI completions
+- **Pass-through Support**: Direct OpenAI API forwarding with minimal processing
 
 ### 4. API Routers (`src/routers/`)
 - **Purpose**: FastAPI route handlers for each endpoint
 - **Endpoints**:
-  - `/api/chat` - Chat completions
-  - `/api/generate` - Text generation
-  - `/api/embeddings` - Text embeddings
+  - `/api/chat` - Chat completions (Ollama-style)
+  - `/api/generate` - Text generation (Ollama-style)
+  - `/api/embeddings` - Text embeddings (Ollama-style)
+  - `/v1/chat/completions` - Chat completions (OpenAI-style)
+  - `/v1/embeddings` - Text embeddings (OpenAI-style)
   - `/api/tags` - Model listing
   - `/api/show` - Model information
 
@@ -58,6 +72,7 @@ This document describes the architecture of the Ollama to OpenAI Proxy Service, 
 - **Logging**: Structured JSON logging with request tracking
 - **Exceptions**: Custom exception hierarchy for error handling
 - **HTTP Client**: Async HTTP client with retry logic
+- **Request Body Handling**: Cached request body management for dual-format support
 
 ## Requirements
 
@@ -66,6 +81,7 @@ This document describes the architecture of the Ollama to OpenAI Proxy Service, 
    - Full compatibility with Ollama Python SDK
    - Support for all major Ollama endpoints
    - Transparent request/response translation
+   - Native OpenAI API support for direct clients
 
 2. **Model Management**
    - Configurable model name mapping
@@ -330,7 +346,7 @@ flowchart TB
 |-----------|--------|----------|-------------|----------|-------|
 | **Chat API** | ✅ Complete | 85% | < 10ms overhead | ✅ OWASP Compliant | Streaming + Non-streaming |
 | **Models API** | ✅ Complete | 88% | < 5ms overhead | ✅ Validated | List, Show, Version endpoints |
-| **Embeddings API** | ✅ Complete | 82% | < 15ms overhead | ✅ Validated | Text embeddings support |
+| **Embeddings API** | ✅ Complete | 82% | < 15ms overhead | ✅ Validated | Dual-format support |
 | **Translation Layer** | ✅ Complete | 88% | < 5ms overhead | ✅ Input Validation | Ollama ↔ OpenAI conversion |
 | **Error Handling** | ✅ Complete | 90% | N/A | ✅ Secure Messages | Graceful degradation |
 | **Connection Pool** | ✅ Complete | 85% | 1000+ req/sec | ✅ Rate Limited | Retry with backoff |
@@ -444,6 +460,18 @@ flowchart LR
    - Machine-readable format
    - Consistent field structure
 
+6. **Dual API Support**
+   - Path-based routing between Ollama and OpenAI formats
+   - Cached request body handling for performance
+   - Minimal processing overhead for OpenAI pass-through
+   - Unified error handling across both formats
+
+7. **Request Body Caching**
+   - Middleware-level request body caching
+   - Prevents request body consumption issues
+   - Enables dual-format endpoint support
+   - Maintains FastAPI/Starlette compatibility
+
 ## Future Enhancements
 
 1. **Multi-Backend Support**
@@ -536,7 +564,33 @@ Performance validated under various load conditions:
 
 ---
 
-**Document Version**: 2.0  
-**Last Updated**: 2025-07-10  
+**Document Version**: 2.1  
+**Last Updated**: 2025-07-16  
 **Project Status**: Production Ready (100% Complete)  
 **Next Phase**: Phase 2 planning (Tool calling, Image support)
+
+## Recent Updates (v2.1)
+
+### Dual API Format Support
+- **Enhanced Architecture**: Now supports both Ollama and OpenAI API formats simultaneously
+- **Path-based Routing**: Automatic detection and routing based on URL path (`/api/*` vs `/v1/*`)
+- **Request Body Caching**: Middleware-level caching prevents request body consumption issues
+- **Pass-through Optimization**: OpenAI requests forwarded with minimal processing overhead
+
+### Request Body Handling Improvements
+- **Cached Body Management**: Solves Starlette request body consumption limitations
+- **Dual Format Support**: Single endpoint can handle both Ollama and OpenAI formats
+- **Performance Optimization**: Cached bodies eliminate re-parsing overhead
+- **Error Handling**: Unified error responses across both API formats
+
+### Testing and Validation
+- **Comprehensive Testing**: All endpoints tested with both Ollama and OpenAI formats
+- **Performance Validation**: Sub-second response times for all endpoints
+- **Error Resolution**: Fixed hanging issues and JSON parsing errors
+- **Production Ready**: Full compatibility with OpenAI backend services
+
+### Key Technical Achievements
+- **Embeddings Dual Support**: Both `/api/embeddings` and `/v1/embeddings` working
+- **Chat Dual Support**: Both `/api/chat` and `/v1/chat/completions` working
+- **Generate Support**: Ollama-style `/api/generate` endpoint fully functional
+- **Model Compatibility**: Fixed OpenAI usage field compatibility for embeddings

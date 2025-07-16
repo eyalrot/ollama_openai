@@ -10,6 +10,13 @@
 
 
 
+#testing the app from bash
+- when making code change you need to restart the server
+- when running the server with bash command you need to run it async so your seesion will not wait for the bash complete any you will be able run commands again it 
+
+
+
+
 ### Activate Virtual Environment
 
 ```bash

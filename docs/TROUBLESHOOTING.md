@@ -2,11 +2,15 @@
 
 This guide helps you diagnose and resolve common issues with the Ollama to OpenAI proxy.
 
+**New in v2.1**: Added troubleshooting for dual API format support and request body handling issues.
+
 ## Table of Contents
 
 - [Connection Issues](#connection-issues)
 - [Authentication Errors](#authentication-errors)
 - [Model Problems](#model-problems)
+- [Dual API Format Issues](#dual-api-format-issues)
+- [Request Body Issues](#request-body-issues)
 - [Performance Issues](#performance-issues)
 - [Response Errors](#response-errors)
 - [Docker Issues](#docker-issues)
@@ -220,6 +224,146 @@ UpstreamError: Connection to OpenAI backend failed
    ```bash
    # Test parsing
    python -m json.tool model_mapping.json
+   ```
+
+## Dual API Format Issues
+
+### Problem: OpenAI Client Not Working
+
+**Error Message:**
+```
+404 Not Found: /v1/chat/completions
+```
+
+**Causes & Solutions:**
+
+1. **Using wrong endpoint URL**
+   ```python
+   # Wrong - points to Ollama endpoint
+   openai.api_base = "http://localhost:11434"
+   
+   # Correct - points to OpenAI-compatible endpoint
+   openai.api_base = "http://localhost:11434/v1"
+   ```
+
+2. **Missing Authorization header**
+   ```python
+   # Ensure API key is set
+   openai.api_key = "your-api-key"
+   
+   # Or use environment variable
+   export OPENAI_API_KEY="your-api-key"
+   ```
+
+### Problem: Ollama Client Format Issues
+
+**Error Message:**
+```
+422 Unprocessable Entity: Invalid request format
+```
+
+**Solutions:**
+
+1. **Verify endpoint path**
+   ```python
+   # Correct Ollama client usage
+   client = Client(host='http://localhost:11434')  # No /v1 suffix
+   
+   # Use Ollama format endpoints
+   response = client.generate(model='gpt-3.5-turbo', prompt='Hello')
+   ```
+
+2. **Check request body format**
+   ```bash
+   # Test Ollama format
+   curl -X POST http://localhost:11434/api/generate \
+     -H "Content-Type: application/json" \
+     -d '{"model": "gpt-3.5-turbo", "prompt": "Hello"}'
+   ```
+
+### Problem: Mixed API Format Confusion
+
+**Symptoms:**
+- Ollama client trying to use OpenAI format
+- OpenAI client trying to use Ollama format
+
+**Solutions:**
+
+1. **Use correct client for format**
+   ```python
+   # For Ollama format - use Ollama client
+   from ollama import Client
+   client = Client(host='http://localhost:11434')
+   
+   # For OpenAI format - use OpenAI client
+   import openai
+   openai.api_base = "http://localhost:11434/v1"
+   ```
+
+2. **Verify endpoint mapping**
+   - Ollama endpoints: `/api/generate`, `/api/chat`, `/api/embeddings`
+   - OpenAI endpoints: `/v1/chat/completions`, `/v1/embeddings`
+
+## Request Body Issues
+
+### Problem: Request Body Already Consumed
+
+**Error Message:**
+```
+400 Bad Request: Request body has already been consumed and is not available
+```
+
+**Causes & Solutions:**
+
+1. **Middleware conflict** (Fixed in v2.1)
+   - This was a common issue in v2.0 and earlier
+   - Fixed by implementing request body caching
+   - Upgrade to v2.1 if experiencing this issue
+
+2. **Custom middleware interference**
+   ```python
+   # If using custom middleware, ensure it doesn't consume request body
+   # Use request body caching utility if needed
+   from src.utils.request_body import get_body_json
+   
+   async def custom_middleware(request: Request, call_next):
+       # Use cached body reading
+       body = await get_body_json(request)
+       # Process body without consuming it
+       return await call_next(request)
+   ```
+
+### Problem: Invalid JSON in Request Body
+
+**Error Message:**
+```
+400 Bad Request: Invalid JSON in request body
+```
+
+**Solutions:**
+
+1. **Validate JSON format**
+   ```bash
+   # Test with curl
+   curl -X POST http://localhost:11434/api/generate \
+     -H "Content-Type: application/json" \
+     -d '{"model": "gpt-3.5-turbo", "prompt": "Hello"}'  # Valid JSON
+   ```
+
+2. **Check for escape characters**
+   ```bash
+   # Avoid invalid escape sequences
+   # Wrong:
+   curl -d '{"prompt": "Hello \"world\""}'
+   
+   # Correct:
+   curl -d '{"prompt": "Hello \"world\""}'
+   ```
+
+3. **Verify content-type header**
+   ```bash
+   # Always include content-type
+   curl -H "Content-Type: application/json" ...
    ```
 
 ## Performance Issues

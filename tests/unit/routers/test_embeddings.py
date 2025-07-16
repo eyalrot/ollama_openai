@@ -15,7 +15,7 @@ from src.models import (
     OpenAIEmbeddingResponse,
     OpenAIUsage,
 )
-from src.routers.embeddings import create_embeddings, router
+from src.routers.embeddings import create_embeddings_ollama_style, embeddings_handler, router
 from src.utils.exceptions import ValidationError
 
 
@@ -84,7 +84,9 @@ class TestEmbeddingsEndpoint:
         mock_translator.translate_response.return_value = mock_ollama_response
 
         # Call the endpoint
-        result = await create_embeddings(sample_ollama_request, mock_request)
+        with patch("src.routers.embeddings.get_body_json") as mock_get_body:
+            mock_get_body.return_value = sample_ollama_request.model_dump()
+            result = await create_embeddings_ollama_style(mock_request)
 
         # Verify result
         assert isinstance(result, JSONResponse)
@@ -109,8 +111,10 @@ class TestEmbeddingsEndpoint:
         )
 
         # Call the endpoint and expect HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            await create_embeddings(sample_ollama_request, mock_request)
+        with patch("src.routers.embeddings.get_body_json") as mock_get_body:
+            mock_get_body.return_value = sample_ollama_request.model_dump()
+            with pytest.raises(HTTPException) as exc_info:
+                await create_embeddings_ollama_style(mock_request)
 
         assert exc_info.value.status_code == 422
         assert "Invalid model" in str(exc_info.value.detail)
@@ -136,8 +140,10 @@ class TestEmbeddingsEndpoint:
         mock_translator.translate_request.return_value = Mock()
 
         # Call the endpoint and expect HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            await create_embeddings(sample_ollama_request, mock_request)
+        with patch("src.routers.embeddings.get_body_json") as mock_get_body:
+            mock_get_body.return_value = sample_ollama_request.model_dump()
+            with pytest.raises(HTTPException) as exc_info:
+                await create_embeddings_ollama_style(mock_request)
 
         assert exc_info.value.status_code == 500
 
@@ -161,8 +167,10 @@ class TestEmbeddingsEndpoint:
         mock_translator.translate_request.return_value = Mock()
 
         # Call the endpoint and expect HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            await create_embeddings(sample_ollama_request, mock_request)
+        with patch("src.routers.embeddings.get_body_json") as mock_get_body:
+            mock_get_body.return_value = sample_ollama_request.model_dump()
+            with pytest.raises(HTTPException) as exc_info:
+                await create_embeddings_ollama_style(mock_request)
 
         assert exc_info.value.status_code == 504
 
@@ -186,8 +194,10 @@ class TestEmbeddingsEndpoint:
         mock_translator.translate_request.return_value = Mock()
 
         # Call the endpoint and expect HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            await create_embeddings(sample_ollama_request, mock_request)
+        with patch("src.routers.embeddings.get_body_json") as mock_get_body:
+            mock_get_body.return_value = sample_ollama_request.model_dump()
+            with pytest.raises(HTTPException) as exc_info:
+                await create_embeddings_ollama_style(mock_request)
 
         assert exc_info.value.status_code == 502
 
@@ -232,7 +242,9 @@ class TestEmbeddingsEndpoint:
             mock_translator.translate_response.return_value = mock_ollama_response
 
             # Call the endpoint
-            result = await create_embeddings(batch_request, mock_request)
+            with patch("src.routers.embeddings.get_body_json") as mock_get_body:
+                mock_get_body.return_value = batch_request.model_dump()
+                result = await create_embeddings_ollama_style(mock_request)
 
             # Verify result
             assert isinstance(result, JSONResponse)
@@ -243,9 +255,8 @@ class TestEmbeddingsEndpoint:
         # Check that router has the endpoints
         routes = [route.path for route in router.routes]
         assert "/embeddings" in routes
-        assert "/api/embeddings" in routes
 
         # Check the endpoints accept POST
         for route in router.routes:
-            if route.path in ["/embeddings", "/api/embeddings"]:
+            if route.path == "/embeddings":
                 assert "POST" in route.methods

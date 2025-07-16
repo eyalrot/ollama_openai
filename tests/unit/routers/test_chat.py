@@ -135,7 +135,10 @@ class TestChatRouterGenerate:
             # Call endpoint
             from src.routers.chat import generate
 
-            response = await generate(ollama_generate_request, mock_request)
+            # Mock request body handling
+            with patch("src.routers.chat.get_body_json") as mock_get_body:
+                mock_get_body.return_value = ollama_generate_request.model_dump()
+                response = await generate(mock_request)
 
             # Verify
             assert response.status_code == 200
@@ -195,7 +198,10 @@ class TestChatRouterGenerate:
             # Call endpoint
             from src.routers.chat import generate
 
-            response = await generate(request, mock_request)
+            # Mock request body handling
+            with patch("src.routers.chat.get_body_json") as mock_get_body:
+                mock_get_body.return_value = request.model_dump()
+                response = await generate(mock_request)
 
             # Verify streaming response
             assert response.status_code == 200
@@ -215,8 +221,11 @@ class TestChatRouterGenerate:
         # Call endpoint
         from src.routers.chat import generate
 
-        with pytest.raises(HTTPException) as exc_info:
-            await generate(ollama_generate_request, mock_request)
+        # Mock request body handling
+        with patch("src.routers.chat.get_body_json") as mock_get_body:
+            mock_get_body.return_value = ollama_generate_request.model_dump()
+            with pytest.raises(HTTPException) as exc_info:
+                await generate(mock_request)
 
         assert exc_info.value.status_code == 400
         assert "Model name cannot be empty" in str(exc_info.value.detail)
@@ -247,8 +256,11 @@ class TestChatRouterGenerate:
             # Call endpoint
             from src.routers.chat import generate
 
-            with pytest.raises(HTTPException) as exc_info:
-                await generate(ollama_generate_request, mock_request)
+            # Mock request body handling
+            with patch("src.routers.chat.get_body_json") as mock_get_body:
+                mock_get_body.return_value = ollama_generate_request.model_dump()
+                with pytest.raises(HTTPException) as exc_info:
+                    await generate(mock_request)
 
             assert exc_info.value.status_code == 503
             assert "Upstream error" in str(exc_info.value.detail)
@@ -299,9 +311,12 @@ class TestChatRouterChat:
             mock_client.request_with_retry.return_value = mock_response
 
             # Call endpoint
-            from src.routers.chat import chat
+            from src.routers.chat import ollama_chat
 
-            response = await chat(ollama_chat_request, mock_request)
+            # Mock request body handling
+            with patch("src.routers.chat.get_body_json") as mock_get_body:
+                mock_get_body.return_value = ollama_chat_request.model_dump()
+                response = await ollama_chat(mock_request)
 
             # Verify
             assert response.status_code == 200
@@ -332,10 +347,13 @@ class TestChatRouterChat:
             )
 
             # Call endpoint
-            from src.routers.chat import chat
+            from src.routers.chat import ollama_chat
 
-            with pytest.raises(HTTPException) as exc_info:
-                await chat(ollama_chat_request, mock_request)
+            # Mock request body handling
+            with patch("src.routers.chat.get_body_json") as mock_get_body:
+                mock_get_body.return_value = ollama_chat_request.model_dump()
+                with pytest.raises(HTTPException) as exc_info:
+                    await ollama_chat(mock_request)
 
             assert exc_info.value.status_code == 504
             assert "Request timeout" in str(exc_info.value.detail)

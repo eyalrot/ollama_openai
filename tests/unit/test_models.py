@@ -813,6 +813,16 @@ class TestOpenAIModels:
         assert model.object == "model"
         assert model.owned_by == "openai"
 
+    def test_model_info_without_owned_by(self):
+        """Test model information without owned_by field (for OpenRouter compatibility)."""
+        model = OpenAIModel(
+            id="anthropic/claude-3-sonnet",
+            created=1234567890,
+        )
+        assert model.id == "anthropic/claude-3-sonnet"
+        assert model.object == "model"
+        assert model.owned_by is None
+
     def test_models_response(self):
         """Test models listing response."""
         models = [

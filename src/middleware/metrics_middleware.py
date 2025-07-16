@@ -104,15 +104,22 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             if request.headers.get("content-type", "").startswith("application/json"):
                 # For chat endpoints, model is typically in the body
                 if "chat" in request.url.path or "completions" in request.url.path:
-                    # We need to read the body carefully to avoid consuming it
-                    body = await request.body()
+                    # Check if body was already read by another middleware
+                    if hasattr(request, '_body'):
+                        body = request._body
+                    else:
+                        # We need to read the body carefully to avoid consuming it
+                        body = await request.body()
+                        # Store body for later use by other handlers
+                        request._body = body
+
                     if body:
                         import json
 
                         try:
                             data = json.loads(body)
                             model = data.get("model", "")
-                            # Store body for later use by the actual handler
+                            # Also store in state for backward compatibility
                             request.state.body = body
                             return model
                         except json.JSONDecodeError:
@@ -128,7 +135,11 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             return 0
 
         try:
-            # If we already read the body for model extraction, use that
+            # First check if body was stored in _body by another middleware
+            if hasattr(request, '_body'):
+                return len(request._body)
+
+            # Then check if we stored it in state
             if hasattr(request.state, "body"):
                 return len(request.state.body)
 

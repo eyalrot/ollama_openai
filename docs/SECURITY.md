@@ -4,6 +4,8 @@
 
 This project follows industry-standard security guidelines and best practices to ensure the safety and integrity of the Ollama-OpenAI proxy service.
 
+**New in v2.1**: Enhanced security with improved request body handling and dual API format validation.
+
 ### 🔒 OWASP Compliance
 
 We adhere to the following OWASP security standards:
@@ -20,6 +22,8 @@ We adhere to the following OWASP security standards:
 - **Request Size Limits**: Maximum request payload size enforced (configurable, default 10MB)
 - **Content Type Validation**: Strict content-type checking for all endpoints
 - **Parameter Sanitization**: All query parameters and path variables are validated and sanitized
+- **Request Body Security**: Secure request body caching prevents body consumption attacks (v2.1)
+- **Dual API Format Validation**: Both Ollama and OpenAI formats undergo strict validation
 
 ```python
 # Example: Strict validation in chat requests
@@ -51,6 +55,32 @@ try:
 except HTTPError as e:
     # Generic error - no backend details exposed
     raise ProxyError("Request failed", status_code=502)
+```
+
+### 🔐 Request Body Security (v2.1)
+
+Enhanced request body handling prevents common security vulnerabilities:
+
+- **Body Consumption Protection**: Middleware-level body caching prevents request body consumption attacks
+- **Memory-Safe Caching**: Bounded memory usage prevents DoS through large request bodies
+- **Concurrent Access Safety**: Thread-safe body caching for high-concurrency scenarios
+- **Format Validation**: Strict validation for both Ollama and OpenAI request formats
+
+```python
+# Example: Secure request body handling
+async def get_body_json(request: Request) -> Dict[str, Any]:
+    """Safely get request body as parsed JSON with caching."""
+    # Check multiple cached locations for security
+    if hasattr(request, '_body'):
+        return json.loads(request._body)
+    
+    # Secure body reading with error handling
+    try:
+        body = await request.body()
+        request._body = body  # Cache for future use
+        return json.loads(body)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid request body")
 ```
 
 ### ⚡ Rate Limiting & DoS Protection

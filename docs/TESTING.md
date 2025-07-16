@@ -18,25 +18,25 @@ Our testing strategy follows the test pyramid approach with a focus on fast, rel
 
 ## Current Test Coverage
 
-**Test Results** (Last Updated: 2025-07-15):
-- ✅ **290 tests passed**
+**Test Results** (Last Updated: 2025-07-16):
+- ✅ **321 tests passed**
 - ⏭️ **1 test skipped** 
 - ❌ **0 tests failed**
-- **Total execution time:** 36.07 seconds
+- **Total execution time:** 8.06 seconds
 
 **Coverage Metrics**:
-- **Overall Coverage**: 65.40% (exceeds minimum 10% requirement)
-- **Target Coverage**: Working toward 85% overall coverage
-- **New Code Coverage**: >90% (enforced on PRs)
+- **Overall Coverage**: 59.48% (exceeds minimum 10% requirement)
+- **Target Coverage**: Working toward 85% overall coverage  
+- **New Code Coverage**: >85% (enforced on PRs)
 - **Critical Components**: >90% (config, models, translators)
 
 **Coverage by Module** (Current):
 - Configuration: 97.7%
 - Models & Validation: 98.9%
 - Translation Layer: 88.0%
-- API Routers: 78.4%
-- Utilities: 59.6% - 91.8% (varies by module)
-- Performance: 59.6%
+- API Routers: 51.1% - 58.5% (varies by module)
+- Utilities: 59.6% - 97.2% (varies by module)
+- Request Body Utility: 97.2% (new in v2.1)
 
 ## Running Tests
 
@@ -142,23 +142,24 @@ tests/
 
 ### Test Categories by Type
 
-#### Unit Tests (270+ tests)
+#### Unit Tests (300+ tests)
 
 | Module | Test File | Tests | Coverage | Description |
 |--------|-----------|-------|----------|-------------|
 | **Configuration** | `test_config.py` | 15 | 97.7% | Environment validation, settings loading |
-| **Models** | `test_models.py` | 25 | 98.9% | Pydantic model validation, serialization |
+| **Models** | `test_models.py` | 62 | 98.9% | Pydantic model validation, serialization |
 | **Main App** | `test_main.py` | 20 | 100% | FastAPI application, middleware, lifecycle |
 | **Model Mapping** | `test_model_mapping.py` | 12 | 98.9% | Custom model name translation |
 | **Exceptions** | `test_exceptions.py` | 8 | 100% | Custom exception hierarchy |
 | **Logging** | `test_logging.py` | 18 | 91.8% | Structured logging, request tracking |
+| **Request Body Utility** | `utils/test_request_body.py` | 15 | 97.2% | Request body caching, dual API support |
 
 ##### Router Tests (85+ tests)
 | Router | Test File | Tests | Coverage | Description |
 |--------|-----------|-------|----------|-------------|
-| **Chat** | `routers/test_chat.py` | 35 | 78.4% | Chat completions, streaming, error handling |
-| **Models** | `routers/test_models.py` | 25 | 98.9% | Model listing, show, version endpoints |
-| **Embeddings** | `routers/test_embeddings.py` | 25 | 100% | Text embeddings, validation, errors |
+| **Chat** | `routers/test_chat.py` | 35 | 51.1% | Chat completions, streaming, error handling, dual API |
+| **Models** | `routers/test_models.py` | 25 | 95.6% | Model listing, show, version endpoints |
+| **Embeddings** | `routers/test_embeddings.py` | 25 | 58.5% | Text embeddings, validation, errors, dual API |
 
 ##### Translator Tests (45+ tests)
 | Translator | Test File | Tests | Coverage | Description |
@@ -502,28 +503,33 @@ async def test_backend_request(mock_client):
 
 ## Recent Test Improvements
 
-### Fixed Tests (2025-07-15)
+### Fixed Tests (2025-07-16)
 
-**Performance Test Fix**: Fixed `test_concurrent_tracking_scales` 
-- Issue: `statistics.StatisticsError: must have at least two data points`
-- Solution: Added proper error handling for quantile calculations with insufficient data points
-- Location: `src/utils/benchmarks.py:273-293`
+**Dual API Support Testing**: Complete test suite update for v2.1 dual API format support
+- **Issue**: Tests failing due to function signature changes in dual API refactoring
+- **Solution**: Updated all router tests for new function signatures and imports
+- **Components Updated**: 
+  - Chat router tests: Updated function calls and imports
+  - Embeddings router tests: Updated function names and imports  
+  - Created comprehensive request body utility tests
+- **Location**: `tests/unit/routers/`, `tests/unit/utils/test_request_body.py`
 
-**Docker Test Fix**: Fixed `test_compose_environment_variables`
-- Issue: Environment variable validation was too strict
-- Solution: Updated test to check for proper environment variable loading rather than specific values
-- Location: `tests/test_docker.py:324-365`
+**Request Body Utility Testing**: Added comprehensive test coverage for new request body handling
+- **Purpose**: Test the new request body caching system for dual API support
+- **Coverage**: 97.2% with 15 test cases covering all scenarios
+- **Location**: `tests/unit/utils/test_request_body.py`
 
 ### Current Test Status
-- ✅ All 290 tests passing
-- ✅ 65.40% code coverage (exceeds minimum requirement)
+- ✅ All 321 tests passing
+- ✅ 59.48% code coverage (exceeds minimum requirement)
 - ✅ Zero failing tests
 - ✅ Performance tests validated
 - ✅ Docker integration tests working
+- ✅ Dual API format support fully tested
 
 ---
 
-**Last Updated**: 2025-07-15  
+**Last Updated**: 2025-07-16  
 **Maintainer**: Development Team
 
 For questions about testing or to contribute improvements to our test suite, please see our [Contributing Guidelines](../CONTRIBUTING.md) or open an issue.

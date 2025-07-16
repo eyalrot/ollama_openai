@@ -2,10 +2,12 @@
 
 Get the Ollama to OpenAI proxy running in under 5 minutes!
 
+**New in v2.1**: Dual API format support! Use both Ollama and OpenAI clients with the same proxy instance.
+
 ## Prerequisites
 
 - Python 3.8+ OR Docker
-- An OpenAI-compatible API endpoint (OpenAI, VLLM, OpenRouter, etc.)
+- An OpenAI-compatible API endpoint (OpenAI, VLLM, LiteLLM, OpenRouter, Ollama, etc.)
 - API key for your chosen provider
 
 ## Option 1: Docker (Fastest)
@@ -44,12 +46,21 @@ curl http://localhost:11434/health
 # List models
 curl http://localhost:11434/api/tags
 
-# Test generation
+# Test generation (Ollama format)
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-3.5-turbo",
     "prompt": "Hello, world!"
+  }'
+
+# Test generation (OpenAI format)
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [{"role": "user", "content": "Hello, world!"}]
   }'
 ```
 
@@ -92,6 +103,8 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 11434 --reload
 
 ## Quick Test with Python
 
+### Using Ollama Client
+
 ```python
 from ollama import Client
 
@@ -104,6 +117,23 @@ response = client.generate(
     prompt='Tell me a joke'
 )
 print(response['response'])
+```
+
+### Using OpenAI Client (Same Backend!)
+
+```python
+import openai
+
+# Point to your proxy's OpenAI-compatible endpoint
+openai.api_base = "http://localhost:11434/v1"
+openai.api_key = "your-api-key"
+
+# Use exactly as you would with OpenAI
+response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Tell me a joke"}]
+)
+print(response.choices[0].message.content)
 ```
 
 ## Using with OpenRouter (Free Testing)
@@ -125,12 +155,21 @@ OPENAI_API_KEY=sk-or-v1-your-openrouter-key
 # List available models
 curl http://localhost:11434/api/tags
 
-# Use a free model
+# Use a free model (Ollama format)
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{
     "model": "google/gemma-2-9b-it:free",
     "prompt": "Explain quantum computing in simple terms"
+  }'
+
+# Use a free model (OpenAI format)
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-or-v1-your-openrouter-key" \
+  -d '{
+    "model": "google/gemma-2-9b-it:free",
+    "messages": [{"role": "user", "content": "Explain quantum computing in simple terms"}]
   }'
 ```
 
@@ -138,9 +177,24 @@ curl -X POST http://localhost:11434/api/generate \
 
 ### Chat Completion
 
+**Ollama format:**
 ```bash
 curl -X POST http://localhost:11434/api/chat \
   -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant"},
+      {"role": "user", "content": "What is the capital of France?"}
+    ]
+  }'
+```
+
+**OpenAI format:**
+```bash
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
   -d '{
     "model": "gpt-3.5-turbo",
     "messages": [

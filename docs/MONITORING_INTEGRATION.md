@@ -2,6 +2,8 @@
 
 This guide provides comprehensive instructions for integrating the Ollama-OpenAI proxy metrics system with external monitoring tools like Prometheus, Grafana, and alerting systems.
 
+**Updated for v2.1**: Enhanced metrics collection with dual API format support and improved performance tracking.
+
 ## Overview
 
 The proxy provides three main metrics endpoints:
@@ -9,6 +11,8 @@ The proxy provides three main metrics endpoints:
 - `/v1/metrics` - Comprehensive JSON metrics
 - `/v1/metrics/prometheus` - Prometheus-compatible format
 - `/v1/metrics/health` - Essential health indicators
+
+All metrics are updated in real-time and track performance across both Ollama and OpenAI API formats.
 
 ## Available Metrics
 
@@ -33,6 +37,14 @@ The proxy provides three main metrics endpoints:
 | `http_request_duration_per_endpoint_seconds{endpoint}` | Gauge | Average duration per endpoint |
 | `http_request_errors_per_endpoint_total{endpoint}` | Counter | Total errors per endpoint |
 | `http_streaming_requests_per_endpoint_total{endpoint}` | Counter | Streaming requests per endpoint |
+
+**Endpoint Labels** (v2.1):
+- `api_generate` - Ollama-style text generation
+- `api_chat` - Ollama-style chat completion
+- `api_embeddings` - Ollama-style embeddings
+- `v1_chat_completions` - OpenAI-style chat completion
+- `v1_embeddings` - OpenAI-style embeddings
+- `v1_models` - OpenAI-style model listing
 
 ### Streaming Metrics
 

@@ -2,36 +2,44 @@
 
 The Ollama-OpenAI proxy supports configurable model name mapping, allowing you to translate Ollama model names to their OpenAI/VLLM equivalents.
 
+**New in v2.1**: Enhanced provider compatibility with support for OpenAI, vLLM, LiteLLM, OpenRouter, Ollama, and any OpenAI-compatible API provider.
+
 ## Overview
 
-When Ollama clients request models like `llama2` or `mistral`, the proxy can automatically map these to their full Hugging Face model identifiers like `meta-llama/Llama-2-7b-chat-hf` or `mistralai/Mistral-7B-Instruct-v0.1`.
+When Ollama clients request models like `llama2` or `mistral`, the proxy can automatically map these to their full provider-specific model identifiers like `meta-llama/Llama-2-7b-chat-hf` or `mistralai/Mistral-7B-Instruct-v0.1`. The same mapping works for OpenAI format clients using the `/v1/*` endpoints.
 
-## Default Mappings
+## Provider Compatibility
 
-The proxy includes the following default model mappings:
+The proxy supports model name mapping for all OpenAI-compatible providers:
 
-| Ollama Model | OpenAI/VLLM Model |
-|--------------|-------------------|
-| `llama2` | `meta-llama/Llama-2-7b-chat-hf` |
-| `llama2:13b` | `meta-llama/Llama-2-13b-chat-hf` |
-| `llama2:70b` | `meta-llama/Llama-2-70b-chat-hf` |
-| `codellama` | `codellama/CodeLlama-7b-Instruct-hf` |
-| `mistral` | `mistralai/Mistral-7B-Instruct-v0.1` |
-| `mixtral` | `mistralai/Mixtral-8x7B-Instruct-v0.1` |
-| `gemma` | `google/gemma-7b-it` |
-| `phi` | `microsoft/phi-2` |
+### Supported Providers
+- **OpenAI**: Direct model names (`gpt-3.5-turbo`, `gpt-4`, etc.)
+- **vLLM**: Hugging Face model identifiers (`meta-llama/Llama-2-7b-chat-hf`)
+- **LiteLLM**: Model routing format (`openai/gpt-3.5-turbo`, `anthropic/claude-3-sonnet`)
+- **OpenRouter**: Provider-specific names (`google/gemma-2-9b-it:free`, `anthropic/claude-3-sonnet`)
+- **Ollama**: Local model names (`llama2`, `mistral`, `codellama`)
+- **Custom APIs**: Any OpenAI-compatible model names
+
+### Model Mapping Examples
+
+| Ollama Model | OpenAI | vLLM | LiteLLM | OpenRouter |
+|--------------|--------|------|---------|------------|
+| `llama2` | `gpt-3.5-turbo` | `meta-llama/Llama-2-7b-chat-hf` | `ollama/llama2` | `meta-llama/llama-2-7b-chat` |
+| `codellama` | `gpt-4` | `codellama/CodeLlama-7b-Instruct-hf` | `ollama/codellama` | `codellama/codellama-7b-instruct` |
+| `mistral` | `gpt-3.5-turbo` | `mistralai/Mistral-7B-Instruct-v0.1` | `mistral/mistral-7b-instruct` | `mistralai/mistral-7b-instruct` |
+| `gemma` | `gpt-3.5-turbo` | `google/gemma-7b-it` | `google/gemma-7b-it` | `google/gemma-2-9b-it:free` |
 
 ### Embedding Models
 
-The proxy also supports mapping embedding model names for the `/embeddings` endpoint:
+The proxy also supports mapping embedding model names for both `/api/embeddings` and `/v1/embeddings` endpoints:
 
-| Ollama Embedding Model | OpenAI/VLLM Embedding Model |
-|------------------------|------------------------------|
-| `mxbai-embed-large` | `text-embedding-ada-002` |
-| `nomic-embed-text` | `text-embedding-ada-002` |
-| `all-minilm` | `text-embedding-ada-002` |
-| `bge-large` | `text-embedding-3-large` |
-| `bge-small` | `text-embedding-3-small` |
+| Ollama Embedding Model | OpenAI | vLLM | LiteLLM | OpenRouter |
+|------------------------|--------|------|---------|------------|
+| `mxbai-embed-large` | `text-embedding-ada-002` | `sentence-transformers/all-MiniLM-L6-v2` | `openai/text-embedding-ada-002` | `openai/text-embedding-ada-002` |
+| `nomic-embed-text` | `text-embedding-ada-002` | `nomic-ai/nomic-embed-text-v1` | `nomic-ai/nomic-embed-text-v1` | `nomic-ai/nomic-embed-text-v1` |
+| `all-minilm` | `text-embedding-ada-002` | `sentence-transformers/all-MiniLM-L6-v2` | `huggingface/all-MiniLM-L6-v2` | `huggingface/all-MiniLM-L6-v2` |
+| `bge-large` | `text-embedding-3-large` | `BAAI/bge-large-en-v1.5` | `huggingface/bge-large-en-v1.5` | `huggingface/bge-large-en-v1.5` |
+| `bge-small` | `text-embedding-3-small` | `BAAI/bge-small-en-v1.5` | `huggingface/bge-small-en-v1.5` | `huggingface/bge-small-en-v1.5` |
 
 **Note**: Your OpenAI-compatible backend must support the embedding models you map to.
 

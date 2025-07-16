@@ -70,6 +70,32 @@ def openai_models_response():
     }
 
 
+@pytest.fixture
+def openrouter_models_response():
+    """Sample OpenRouter models response (without owned_by field)."""
+    return {
+        "object": "list",
+        "data": [
+            {
+                "id": "anthropic/claude-3-sonnet",
+                "object": "model",
+                "created": 1677649963,
+                # Note: OpenRouter doesn't include owned_by field
+            },
+            {
+                "id": "openai/gpt-4",
+                "object": "model",
+                "created": 1687882411,
+            },
+            {
+                "id": "meta-llama/llama-2-7b-chat",
+                "object": "model",
+                "created": 1671217299,
+            },
+        ],
+    }
+
+
 class TestModelListing:
     """Test model listing functionality."""
 
@@ -132,6 +158,41 @@ class TestModelListing:
 
             assert isinstance(result, OllamaModelsResponse)
             assert len(result.models) == 0
+
+    @pytest.mark.asyncio
+    async def test_list_models_openrouter_without_owned_by(
+        self, mock_settings, mock_request, openrouter_models_response
+    ):
+        """Test successful model listing with OpenRouter response (no owned_by field)."""
+        with patch("src.routers.models.httpx.AsyncClient") as mock_client_class:
+            # Mock the async client
+            mock_client = AsyncMock()
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            # Mock response
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = openrouter_models_response
+            mock_client.get.return_value = mock_response
+
+            # Call endpoint
+            from src.routers.models import list_models
+
+            result = await list_models(mock_request)
+
+            # Verify result
+            assert isinstance(result, OllamaModelsResponse)
+            assert len(result.models) == 3
+
+            # Check first model (should handle missing owned_by gracefully)
+            model = result.models[0]
+            assert model.name == "anthropic/claude-3-sonnet"
+            assert model.model == "anthropic/claude-3-sonnet"
+            assert model.size == 0
+            assert model.digest.startswith("sha256:")
+            # Should default to "unknown" when owned_by is missing
+            assert model.details["family"] == "unknown"
+            assert model.details["families"] == ["unknown"]
 
     @pytest.mark.asyncio
     async def test_list_models_upstream_error(self, mock_settings, mock_request):

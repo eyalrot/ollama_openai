@@ -8,13 +8,15 @@
 [![GHCR](https://img.shields.io/badge/ghcr.io-available-blue)](https://github.com/eyalrot/ollama_openai/pkgs/container/ollama_openai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A transparent proxy service that allows legacy applications using the Ollama Python SDK to seamlessly work with OpenAI-compatible LLM servers like vLLM, OpenRouter, and LiteLLM.
-It also enables N8N Ollama Model to work with local LLM servers that have OpenAI-compatible APIs, since N8N doesn't natively support OpenAI-compatible LLM servers.
+A transparent proxy service that allows applications to use both Ollama and OpenAI API formats seamlessly with OpenAI-compatible LLM servers like **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, and any other OpenAI-compatible API provider.
+
+**New in v2.1**: Full dual API format support! Use your existing Ollama clients OR OpenAI clients - both work with the same proxy instance.
 
 ## Features
 
 - ✅ Drop-in replacement for Ollama server
 - ✅ Zero changes required to existing code
+- ✅ **Dual API format support**: Both Ollama and OpenAI endpoints
 - ✅ Supports text generation and chat endpoints
 - ✅ Streaming and non-streaming responses
 - ✅ Model listing from backend
@@ -84,16 +86,23 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 11434
 ### Quick Test
 
 ```python
+# Option 1: Use Ollama client (existing code works unchanged)
 from ollama import Client
 client = Client(host='http://localhost:11434')
 
-# Use any model name directly - no mapping needed!
 response = client.generate(model='gpt-3.5-turbo', prompt='Hello!')
 print(response['response'])
 
-# OpenRouter free models work directly too
-response = client.generate(model='google/gemma-2-9b-it:free', prompt='Hello!')
-print(response['response'])
+# Option 2: Use OpenAI client (new in v2.1!)
+import openai
+openai.api_base = "http://localhost:11434/v1"
+openai.api_key = "your-api-key"
+
+response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)
 ```
 
 For more examples and detailed setup instructions, see the [Quick Start Guide](docs/QUICK_START.md).
@@ -151,7 +160,7 @@ services:
 - **Size**: 271MB (optimized production build)
 - **Security**: Non-root user, read-only filesystem, no-new-privileges
 - **Performance**: Multi-stage build with optimized dependencies
-- **Compatibility**: Supports OpenRouter, OpenAI, and custom OpenAI-compatible endpoints
+- **Compatibility**: Supports **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, and any OpenAI-compatible API provider
 - **SSL Support**: System SSL certificates included for private endpoints
 
 ### Available Tags
@@ -170,10 +179,16 @@ docker run -d --name ollama-proxy -p 11434:11434 \
   -e OPENAI_API_KEY=your_key \
   eyalrot2/ollama-openai-proxy:latest
 
-# Test with free model
+# Test with free model (Ollama format)
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{"model": "google/gemma-2-9b-it:free", "prompt": "Hello!"}'
+
+# Or test with OpenAI format
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_key" \
+  -d '{"model": "google/gemma-2-9b-it:free", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
 ## Configuration
@@ -198,14 +213,38 @@ See the [Configuration Guide](docs/CONFIGURATION.md) for detailed setup instruct
 
 For all configuration options, validation rules, and examples, see the [Configuration Guide](docs/CONFIGURATION.md).
 
-### Quick Testing with OpenRouter
+### Quick Testing with Different Providers
 
+#### OpenRouter (Free Models Available)
 ```env
 OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
 OPENAI_API_KEY=sk-or-v1-your-key
 ```
-
 Free models: `google/gemma-2-9b-it:free`, `meta-llama/llama-3.2-3b-instruct:free`
+
+#### OpenAI
+```env
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=sk-proj-your-key
+```
+
+#### vLLM Server
+```env
+OPENAI_API_BASE_URL=http://your-vllm-server:8000/v1
+OPENAI_API_KEY=your-api-key-or-none
+```
+
+#### LiteLLM Proxy
+```env
+OPENAI_API_BASE_URL=http://your-litellm-proxy:4000
+OPENAI_API_KEY=your-litellm-key
+```
+
+#### Local Ollama Server
+```env
+OPENAI_API_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=ollama  # or any value
+```
 
 ## API Compatibility
 
@@ -215,17 +254,26 @@ See the [API Compatibility Matrix](docs/API_COMPATIBILITY.md) for detailed endpo
 
 | Endpoint | Method | Status | Description |
 |----------|--------|---------|-------------|
-| `/api/generate` | POST | ✅ Full Support | Text generation |
-| `/api/chat` | POST | ✅ Full Support | Chat completion |
+| `/api/generate` | POST | ✅ Full Support | Text generation (Ollama-style) |
+| `/api/chat` | POST | ✅ Full Support | Chat completion (Ollama-style) |
 | `/api/tags` | GET | ✅ Full Support | List models |
-| `/api/embeddings` | POST | ✅ Full Support | Generate embeddings |
+| `/api/embeddings` | POST | ✅ Full Support | Generate embeddings (Ollama-style) |
 
-### OpenAI Compatibility
+### Dual API Format Support ✨
 
-The proxy also exposes OpenAI-style endpoints:
+The proxy now supports **both Ollama and OpenAI API formats simultaneously**:
+
+#### Ollama-Style Endpoints
+- `/api/generate` - Text generation
+- `/api/chat` - Chat completion  
+- `/api/embeddings` - Generate embeddings
+
+#### OpenAI-Style Endpoints
 - `/v1/chat/completions` - Chat completions
 - `/v1/models` - List models  
 - `/v1/embeddings` - Generate embeddings
+
+**Choose the format that works best for your application!** The proxy automatically detects the API format based on the URL path (`/api/*` vs `/v1/*`) and routes accordingly.
 
 For detailed parameter mappings, response formats, and examples, see the [API Compatibility Matrix](docs/API_COMPATIBILITY.md).
 
@@ -304,10 +352,11 @@ For comprehensive Phase 2 examples and integration guides, see the [examples/pha
 ## Examples
 
 See the [examples/](examples/) directory for:
-- Python client examples (basic, streaming, batch processing, LangChain)
-- JavaScript/Node.js examples
+- Python client examples (Ollama SDK, OpenAI SDK, streaming, batch processing, LangChain)
+- JavaScript/Node.js examples (both Ollama and OpenAI formats)
 - Configuration templates
 - Docker and Nginx setup examples
+- Dual API format usage patterns
 
 ## Model Mapping
 
@@ -318,19 +367,22 @@ See the [examples/](examples/) directory for:
 **When `MODEL_MAPPING_FILE` is not configured (recommended for most users):**
 - Model names are passed directly to your provider as-is
 - No configuration needed - just use your provider's exact model names
-- Perfect for OpenRouter, OpenAI, and most OpenAI-compatible APIs
+- Perfect for **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, and any OpenAI-compatible API
 
 ```bash
 # Direct model usage (no mapping file needed)
+# Ollama format:
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{"model": "google/gemma-2-9b-it:free", "prompt": "Hello!"}'
-# -> Sends "google/gemma-2-9b-it:free" directly to OpenRouter
 
-curl -X POST http://localhost:11434/api/generate \
+# OpenAI format:
+curl -X POST http://localhost:11434/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4", "prompt": "Hello!"}'
-# -> Sends "gpt-4" directly to OpenAI
+  -H "Authorization: Bearer your_key" \
+  -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello!"}]}'
+
+# Both send model names directly to your OpenAI-compatible provider
 ```
 
 ### Optional: Custom Model Mapping
@@ -353,12 +405,18 @@ Then set in environment:
 MODEL_MAPPING_FILE=./config/model_mapping.json
 ```
 
-With mapping enabled, you can use aliases:
+With mapping enabled, you can use aliases in both formats:
 ```bash
-# Uses alias "free-gemma" -> maps to "google/gemma-2-9b-it:free"
+# Ollama format with alias "free-gemma" -> maps to "google/gemma-2-9b-it:free"
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{"model": "free-gemma", "prompt": "Hello!"}'
+
+# OpenAI format with same alias
+curl -X POST http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_key" \
+  -d '{"model": "free-gemma", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
 ### When to Use Model Mapping
@@ -369,7 +427,7 @@ curl -X POST http://localhost:11434/api/generate \
 - Need consistent model names across different environments
 
 ❌ **Skip model mapping when:**
-- Using OpenRouter, OpenAI, or similar APIs directly (most common)
+- Using **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**, or similar APIs directly (most common)
 - You prefer using the provider's exact model names
 - You want simpler configuration
 
@@ -615,7 +673,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Built for seamless migration from Ollama to OpenAI-compatible servers
+- Built for seamless integration between Ollama and OpenAI API formats
+- Supports major LLM providers: **OpenAI**, **vLLM**, **LiteLLM**, **OpenRouter**, **Ollama**
 - Inspired by the need to preserve existing codebases during infrastructure changes
 - Thanks to all contributors and users providing feedback
 

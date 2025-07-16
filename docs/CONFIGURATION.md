@@ -2,6 +2,8 @@
 
 This guide covers all configuration options for the Ollama to OpenAI proxy service.
 
+**New in v2.1**: Enhanced dual API format support with improved request body handling and caching mechanisms.
+
 ## Configuration Methods
 
 The proxy can be configured using:
@@ -30,6 +32,12 @@ These settings MUST be provided for the proxy to function:
   # OpenRouter
   OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
   
+  # LiteLLM Proxy
+  OPENAI_API_BASE_URL=http://litellm-proxy:4000
+  
+  # Local Ollama Server
+  OPENAI_API_BASE_URL=http://localhost:11434/v1
+  
   # Local LLM Server
   OPENAI_API_BASE_URL=http://localhost:8000/v1
   ```
@@ -51,6 +59,9 @@ These settings MUST be provided for the proxy to function:
   
   # Local/VLLM (if authentication required)
   OPENAI_API_KEY=your-custom-api-key
+  
+  # Local Ollama Server
+  OPENAI_API_KEY=ollama  # or any value
   ```
 
 ## Optional Configuration
@@ -157,6 +168,15 @@ These settings MUST be provided for the proxy to function:
 ```
 
 ## Advanced Configuration
+
+### Dual API Format Support (v2.1)
+
+The proxy now supports both Ollama and OpenAI API formats simultaneously:
+
+- **Path-based Routing**: Automatically detects API format based on URL path (`/api/*` vs `/v1/*`)
+- **Request Body Caching**: Middleware-level caching prevents request body consumption issues
+- **Unified Error Handling**: Consistent error responses across both API formats
+- **Performance Optimized**: Minimal overhead for both formats
 
 ### Connection Pooling (Hardcoded)
 

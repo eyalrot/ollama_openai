@@ -400,7 +400,7 @@ class OpenAIUsage(BaseModel):
     """OpenAI token usage model."""
 
     prompt_tokens: int = Field(..., description="Tokens in prompt")
-    completion_tokens: int = Field(..., description="Tokens in completion")
+    completion_tokens: Optional[int] = Field(None, description="Tokens in completion (not used for embeddings)")
     total_tokens: int = Field(..., description="Total tokens used")
 
 
@@ -511,7 +511,7 @@ class OpenAIModel(BaseModel):
     id: str = Field(..., description="Model ID")
     object: Literal["model"] = Field("model", description="Object type")
     created: int = Field(..., description="Creation timestamp")
-    owned_by: str = Field(..., description="Model owner")
+    owned_by: Optional[str] = Field(None, description="Model owner")
     permission: Optional[List[Dict[str, Any]]] = Field(
         None, description="Model permissions"
     )

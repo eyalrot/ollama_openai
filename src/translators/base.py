@@ -190,6 +190,12 @@ class BaseTranslator(
                         f"Skipping unsupported parameter 'top_k': {value}"
                     )
                     continue
+                elif ollama_key == "num_predict" and value == 0:
+                    # Ollama num_predict=0 means unlimited, which should be None in OpenAI
+                    self.logger.debug(
+                        "Converting num_predict=0 (unlimited) to max_tokens=None"
+                    )
+                    continue  # Skip setting max_tokens, leaving it as None
 
                 result[openai_key] = value
 
