@@ -501,14 +501,6 @@ services:
       retries: 3
 ```
 
-### Kubernetes Deployment
-
-See `deployment/kubernetes/` for example manifests:
-- `deployment.yaml` - Deployment configuration
-- `service.yaml` - Service exposure
-- `configmap.yaml` - Configuration management
-- `secrets.yaml` - Sensitive data storage
-
 ### Production Considerations
 
 1. **Reverse Proxy**: Use nginx/traefik for SSL termination
