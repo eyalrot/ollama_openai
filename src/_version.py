@@ -4,7 +4,7 @@ Version management for Ollama-OpenAI Proxy.
 This module provides centralized version information for the application.
 """
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 __version_info__ = tuple(int(part) for part in __version__.split("."))
 
 # Build and release information
