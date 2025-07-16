@@ -577,7 +577,6 @@ class MetricsCollector:
 
         # Add per-endpoint metrics
         for endpoint, stats in summary["endpoints"].items():
-            safe_endpoint = endpoint.replace("/", "_").replace(" ", "_").lower()
             lines.extend(
                 [
                     "",
@@ -958,3 +957,4 @@ def stop_metrics_collection() -> None:
     global _metrics_collector
     if _metrics_collector:
         _metrics_collector.stop()
+        _metrics_collector = None

@@ -16,10 +16,12 @@ class Settings(BaseSettings):
     # Required settings
     OPENAI_API_BASE_URL: HttpUrl = Field(
         ...,
-        description="Base URL for the OpenAI-compatible API (e.g., http://vllm-server:8000/v1)",
+        description=(
+            "Base URL for OpenAI-compatible API (e.g., http://vllm-server:8000/v1)"
+        )
     )
     OPENAI_API_KEY: str = Field(
-        ..., description="API key for authentication with the OpenAI-compatible server"
+        ..., description="API key for authentication with OpenAI-compatible server"
     )
 
     # Optional settings
@@ -48,7 +50,9 @@ class Settings(BaseSettings):
     DEBUG: bool = Field(default=False, description="Enable debug mode")
     DISABLE_SSL_VERIFICATION: bool = Field(
         default=False,
-        description="Disable SSL certificate verification (NOT recommended for production)",
+        description=(
+            "Disable SSL certificate verification (NOT recommended for production)"
+        )
     )
 
     # Runtime properties (not from env)

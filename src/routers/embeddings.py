@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse
 from src.config import get_settings
 from src.models import (
     OllamaEmbeddingRequest,
-    OllamaEmbeddingResponse,
     OpenAIEmbeddingRequest,
     OpenAIEmbeddingResponse,
 )
