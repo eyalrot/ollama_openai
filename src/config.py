@@ -18,7 +18,7 @@ class Settings(BaseSettings):
         ...,
         description=(
             "Base URL for OpenAI-compatible API (e.g., http://vllm-server:8000/v1)"
-        )
+        ),
     )
     OPENAI_API_KEY: str = Field(
         ..., description="API key for authentication with OpenAI-compatible server"
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
         default=False,
         description=(
             "Disable SSL certificate verification (NOT recommended for production)"
-        )
+        ),
     )
 
     # Runtime properties (not from env)
