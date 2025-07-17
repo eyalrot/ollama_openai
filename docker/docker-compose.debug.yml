@@ -1,0 +1,122 @@
+services:
+  ollama-proxy-debug:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    image: ollama-openai-proxy:debug
+    container_name: ollama-proxy-debug
+    ports:
+      - "${PROXY_PORT:-11434}:11434"
+      - "5678:5678"  # Python debugger port (debugpy)
+      - "8000:8000"  # Alternative API docs port
+    environment:
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROXY_PORT=${PROXY_PORT:-11434}
+      - LOG_LEVEL=DEBUG
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
+      - DEBUG=true
+      - DISABLE_SSL_VERIFICATION=${DISABLE_SSL_VERIFICATION:-false}
+      # Debug-specific environment variables
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - DEBUGPY_WAIT_FOR_CLIENT=${DEBUGPY_WAIT_FOR_CLIENT:-0}
+      - DEBUGPY_LOG_TO_STDERR=${DEBUGPY_LOG_TO_STDERR:-1}
+    volumes:
+      # Mount source code for hot-reload and debugging
+      - ../src:/app/src
+      - ../tests:/app/tests
+      - ../config:/app/config
+      - ../logs:/app/logs
+      # Mount debug scripts and configuration
+      - ../debug:/app/debug
+    restart: "no"  # Don't auto-restart during debugging
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - ollama-network-debug
+    # Enable debugging capabilities
+    stdin_open: true
+    tty: true
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    cap_add:
+      - SYS_PTRACE
+    # Debug command with debugpy
+    command: >
+      sh -c "
+        if [ \"$${DEBUGPY_WAIT_FOR_CLIENT}\" = \"1\" ]; then
+          echo 'Starting with debugpy - waiting for client connection on port 5678'
+          python -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m uvicorn src.main:app --host 0.0.0.0 --port 11434 --reload
+        else
+          echo 'Starting with debugpy - not waiting for client'
+          python -m debugpy --listen 0.0.0.0:5678 -m uvicorn src.main:app --host 0.0.0.0 --port 11434 --reload
+        fi
+      "
+
+  debug-tools:
+    image: python:3.11-slim
+    container_name: ollama-debug-tools
+    volumes:
+      - ../:/app
+    working_dir: /app
+    networks:
+      - ollama-network-debug
+    stdin_open: true
+    tty: true
+    command: >
+      sh -c "
+        pip install ipython ipdb requests httpx &&
+        echo 'Debug tools container ready. Available tools:' &&
+        echo '  - ipython: Interactive Python shell' &&
+        echo '  - ipdb: Python debugger' &&
+        echo '  - requests/httpx: HTTP clients for testing' &&
+        echo 'Connect with: docker exec -it ollama-debug-tools bash' &&
+        tail -f /dev/null
+      "
+
+  redis-debug:
+    image: redis:7-alpine
+    container_name: ollama-redis-debug
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis_debug_data:/data
+    networks:
+      - ollama-network-debug
+    restart: unless-stopped
+
+  postgres-debug:
+    image: postgres:15-alpine
+    container_name: ollama-postgres-debug
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-ollama_debug}
+      - POSTGRES_USER=${POSTGRES_USER:-debug}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-debug123}
+    volumes:
+      - postgres_debug_data:/var/lib/postgresql/data
+      - ../debug/sql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ollama-network-debug
+    restart: unless-stopped
+
+volumes:
+  redis_debug_data:
+  postgres_debug_data:
+
+networks:
+  ollama-network-debug:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

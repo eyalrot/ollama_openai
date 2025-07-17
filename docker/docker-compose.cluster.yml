@@ -1,0 +1,228 @@
+services:
+  # Load balancer using nginx
+  nginx-lb:
+    image: nginx:alpine
+    container_name: ollama-load-balancer
+    ports:
+      - "${LB_PORT:-11434}:80"
+      - "${LB_SSL_PORT:-11443}:443"
+    volumes:
+      - ../config/nginx:/etc/nginx/conf.d:ro
+      - ../ssl:/etc/ssl/certs:ro
+    networks:
+      - ollama-cluster-network
+    restart: unless-stopped
+    depends_on:
+      - ollama-proxy-1
+      - ollama-proxy-2
+      - ollama-proxy-3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Primary proxy instance
+  ollama-proxy-1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+    image: ollama-openai-proxy:cluster
+    container_name: ollama-proxy-1
+    expose:
+      - "11434"
+    environment:
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROXY_PORT=11434
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
+      - DEBUG=false
+      - DISABLE_SSL_VERIFICATION=${DISABLE_SSL_VERIFICATION:-false}
+      - INSTANCE_ID=proxy-1
+      - CLUSTER_MODE=true
+    volumes:
+      - ../config:/app/config:ro
+      - ../logs/proxy-1:/app/logs
+    networks:
+      - ollama-cluster-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; import sys; sys.exit(0 if httpx.get('http://localhost:11434/health').status_code == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Secondary proxy instance
+  ollama-proxy-2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+    image: ollama-openai-proxy:cluster
+    container_name: ollama-proxy-2
+    expose:
+      - "11434"
+    environment:
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROXY_PORT=11434
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
+      - DEBUG=false
+      - DISABLE_SSL_VERIFICATION=${DISABLE_SSL_VERIFICATION:-false}
+      - INSTANCE_ID=proxy-2
+      - CLUSTER_MODE=true
+    volumes:
+      - ../config:/app/config:ro
+      - ../logs/proxy-2:/app/logs
+    networks:
+      - ollama-cluster-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; import sys; sys.exit(0 if httpx.get('http://localhost:11434/health').status_code == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Tertiary proxy instance
+  ollama-proxy-3:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+    image: ollama-openai-proxy:cluster
+    container_name: ollama-proxy-3
+    expose:
+      - "11434"
+    environment:
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROXY_PORT=11434
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - MODEL_MAPPING_FILE=${MODEL_MAPPING_FILE:-}
+      - DEBUG=false
+      - DISABLE_SSL_VERIFICATION=${DISABLE_SSL_VERIFICATION:-false}
+      - INSTANCE_ID=proxy-3
+      - CLUSTER_MODE=true
+    volumes:
+      - ../config:/app/config:ro
+      - ../logs/proxy-3:/app/logs
+    networks:
+      - ollama-cluster-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; import sys; sys.exit(0 if httpx.get('http://localhost:11434/health').status_code == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Redis for session management and caching
+  redis-cluster:
+    image: redis:7-alpine
+    container_name: ollama-redis-cluster
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_cluster_data:/data
+    networks:
+      - ollama-cluster-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # Consul for service discovery (optional)
+  consul:
+    image: consul:latest
+    container_name: ollama-consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    command: >
+      consul agent -server -bootstrap-expect=1 -ui -bind=0.0.0.0
+      -client=0.0.0.0 -datacenter=ollama-cluster
+    volumes:
+      - consul_data:/consul/data
+    networks:
+      - ollama-cluster-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # Health check service
+  health-monitor:
+    image: prom/blackbox-exporter:latest
+    container_name: ollama-health-monitor
+    ports:
+      - "9115:9115"
+    volumes:
+      - ../monitoring/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - ollama-cluster-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
+
+volumes:
+  redis_cluster_data:
+  consul_data:
+
+networks:
+  ollama-cluster-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: ollama-cluster
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
