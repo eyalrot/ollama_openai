@@ -103,3 +103,14 @@ node_modules/
 
 # Serena cache files
 .serena/cache/
+
+logs
+# Dependency directories
+# Editor directories and files
+.idea
+.vscode
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/ 

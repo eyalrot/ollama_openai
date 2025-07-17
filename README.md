@@ -599,6 +599,65 @@ For detailed solutions and error codes, see the [Troubleshooting Guide](docs/TRO
 
 ## Development
 
+### Makefile Usage
+
+This project includes a comprehensive Makefile with 50+ commands for development, testing, deployment, and CI/CD workflows. The Makefile automatically detects your environment and provides intelligent defaults.
+
+#### Quick Start with Makefile
+
+```bash
+# Get help and see all available commands
+make help
+
+# First-time setup (creates venv, installs deps, sets up hooks)
+make first-time-setup
+
+# Daily development workflow
+make dev              # Setup development environment
+make run-local        # Start development server
+make test             # Run all tests
+make lint             # Code quality checks
+```
+
+#### Key Command Categories
+
+- 🏗️ **Environment**: `make dev`, `make venv-create`, `make reset-env`
+- 🧪 **Testing**: `make test`, `make coverage`, `make test-watch`
+- ✨ **Code Quality**: `make lint`, `make format`, `make typecheck`
+- 🐳 **Docker**: `make build`, `make run`, `make compose-dev`
+- 🐳 **Docker Compose**: `make compose-ci`, `make compose-prod`, `make compose-cluster`
+- 📚 **Documentation**: `make docs-serve`, `make openapi-spec`
+- 🚀 **CI/CD**: `make ci`, `make all-checks`, `make dist`
+
+#### Smart Environment Detection
+
+The Makefile automatically detects:
+- **Virtual Environment**: Finds and uses venv, .venv, env, or active environment
+- **Docker Compose**: Auto-detects v1 (`docker-compose`) vs v2 (`docker compose`)
+- **Python/Pip**: Uses python3/pip3 or python/pip based on availability
+
+#### Docker Compose Integration
+
+```bash
+# Development environments
+make compose-dev      # Start development with hot-reload
+make compose-prod     # Start production environment
+make compose-ssl      # Start with SSL support
+make compose-debug    # Start with debugging tools
+
+# CI/CD workflows
+make compose-ci       # Run full CI pipeline
+make compose-test     # Run tests via Docker
+make compose-lint     # Run linting via Docker
+
+# Multi-stack deployments
+make compose-cluster      # Load-balanced cluster
+make compose-full-stack   # Production + monitoring
+make compose-down-all     # Stop all environments
+```
+
+For complete Makefile documentation with examples and troubleshooting, see **[docs/Makefile.md](docs/Makefile.md)**.
+
 ### Project Structure
 
 ```
@@ -619,7 +678,8 @@ ollama_openai/
 ├── tests/                    # Test suite
 ├── docker/                   # Docker configurations
 ├── deployment/               # Deployment manifests
-└── docs/                     # Additional documentation
+├── docs/                     # Additional documentation
+└── Makefile                  # Development automation
 ```
 
 ### Code Style
@@ -660,6 +720,7 @@ make lint
 - [Configuration Guide](docs/CONFIGURATION.md) - Environment variables and settings
 - [API Compatibility Matrix](docs/API_COMPATIBILITY.md) - Supported endpoints and parameters
 - [Model Mapping Guide](docs/MODEL_MAPPING.md) - Custom model name configuration
+- [Makefile Guide](docs/Makefile.md) - Complete development automation documentation
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## Security & Compliance

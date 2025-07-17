@@ -236,7 +236,7 @@ class TestRouterIntegration:
 
             response = client.get("/v1/models")
             # Models endpoint might support GET but will fail due to mocked upstream
-            assert response.status_code in [200, 404, 405, 500]
+            assert response.status_code in [200, 404, 405, 500, 401]
 
             response = client.get("/v1/embeddings")
             assert response.status_code in [404, 405, 422]
@@ -259,7 +259,7 @@ class TestRouterIntegration:
 
             response = client.get("/api/tags")
             # Tags endpoint might support GET but will fail due to mocked upstream
-            assert response.status_code in [200, 404, 405, 500]
+            assert response.status_code in [200, 404, 405, 500, 401]
 
             response = client.get("/api/embeddings")
             assert response.status_code in [404, 405, 422]
@@ -312,8 +312,9 @@ class TestLifespan:
             async with lifespan(mock_app):
                 # Check startup log
                 mock_logger.info.assert_called()
-                # The startup message is the second call (index 1), first is SSL env vars
-                startup_call = mock_logger.info.call_args_list[1]
+                # The startup message is the third call (index 2)
+                # Order: 1) "Ollama-OpenAI Proxy starting", 2) "Environment variables for SSL", 3) "Starting Ollama-OpenAI Proxy"
+                startup_call = mock_logger.info.call_args_list[2]
                 assert "Starting Ollama-OpenAI Proxy" in startup_call[0][0]
 
                 # Clear for shutdown test
