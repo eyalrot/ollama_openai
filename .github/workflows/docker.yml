@@ -44,7 +44,7 @@ jobs:
       uses: docker/login-action@v3
       with:
         registry: ${{ env.DOCKERHUB_REGISTRY }}
-        username: eyalrot2
+        username: ${{ vars.DOCKERHUB_USERNAME || 'eyalrot2' }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
       continue-on-error: true
 

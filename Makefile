@@ -680,6 +680,20 @@ git-hooks-update:
 	pre-commit install --hook-type commit-msg
 	@echo "Git hooks updated successfully"
 
+# Docker Hub token management
+dockerhub-token-update:
+	@echo "To update Docker Hub token:"
+	@echo "1. Go to https://hub.docker.com/settings/security"
+	@echo "2. Create new access token with 'Read, Write, Delete' permissions"
+	@echo "3. Run: gh secret set DOCKERHUB_TOKEN --body='your-token-here'"
+	@echo "4. Test with: make dockerhub-test-auth"
+
+dockerhub-test-auth:
+	@echo "Testing Docker Hub authentication..."
+	@echo "Username: $(shell gh variable get DOCKERHUB_USERNAME 2>/dev/null || echo 'eyalrot2')"
+	@echo "Token status: $(shell gh secret list | grep DOCKERHUB_TOKEN || echo 'NOT SET')"
+	@echo "To test locally: docker login -u eyalrot2 -p [token]"
+
 changelog-generate:
 	git log --oneline --pretty=format:"* %s (%an)" > CHANGELOG_AUTO.md
 	@echo "Automatic changelog generated in CHANGELOG_AUTO.md"
