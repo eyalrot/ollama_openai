@@ -18,6 +18,7 @@ from src.models import (
     OllamaCreateRequest,
     OllamaDeleteRequest,
     OllamaEmbeddingRequest,
+    OllamaEmbedRequest,
     OllamaEmbeddingResponse,
     OllamaGenerateRequest,
     # Ollama Response Models
@@ -302,6 +303,70 @@ class TestOllamaEmbeddingRequest:
         assert req.keep_alive == 300
 
 
+class TestOllamaEmbedRequest:
+    """Test OllamaEmbedRequest model (new /embed endpoint)."""
+
+    def test_minimal_request_single_input(self):
+        """Test minimal embed request with single string input."""
+        req = OllamaEmbedRequest(
+            model="text-embedding-ada-002", 
+            input="Test embedding text"
+        )
+        assert req.model == "text-embedding-ada-002"
+        assert req.input == "Test embedding text"
+        assert req.truncate is None
+        assert req.keep_alive == "5m"
+
+    def test_minimal_request_list_input(self):
+        """Test minimal embed request with list input."""
+        req = OllamaEmbedRequest(
+            model="text-embedding-ada-002", 
+            input=["Text one", "Text two", "Text three"]
+        )
+        assert req.model == "text-embedding-ada-002"
+        assert isinstance(req.input, list)
+        assert len(req.input) == 3
+        assert req.input[0] == "Text one"
+
+    def test_with_all_options(self):
+        """Test embed request with all optional fields."""
+        req = OllamaEmbedRequest(
+            model="text-embedding-ada-002",
+            input="Test text",
+            truncate=True,
+            options=OllamaOptions(temperature=0.5, top_p=0.9),
+            keep_alive="10m"
+        )
+        assert req.model == "text-embedding-ada-002"
+        assert req.input == "Test text"
+        assert req.truncate is True
+        assert req.options.temperature == 0.5
+        assert req.options.top_p == 0.9
+        assert req.keep_alive == "10m"
+
+    def test_validation_missing_required_fields(self):
+        """Test validation errors for missing required fields."""
+        # Missing model
+        with pytest.raises(ValidationError) as exc_info:
+            OllamaEmbedRequest(input="Test text")
+        assert "model" in str(exc_info.value).lower()
+
+        # Missing input
+        with pytest.raises(ValidationError) as exc_info:
+            OllamaEmbedRequest(model="text-embedding-ada-002")
+        assert "input" in str(exc_info.value).lower()
+
+    def test_empty_input_validation(self):
+        """Test validation for empty input."""
+        # Empty string should be allowed
+        req = OllamaEmbedRequest(model="text-embedding-ada-002", input="")
+        assert req.input == ""
+
+        # Empty list should be allowed
+        req = OllamaEmbedRequest(model="text-embedding-ada-002", input=[])
+        assert req.input == []
+
+
 class TestOllamaModelManagementRequests:
     """Test model management request models."""
 
@@ -353,6 +418,24 @@ class TestOllamaModelManagementRequests:
 
         req = OllamaShowRequest(name="llama2", verbose=True)
         assert req.verbose is True
+
+    def test_show_request_with_model_field(self):
+        """Test show request with new 'model' field support."""
+        # Test with 'model' field only
+        req = OllamaShowRequest(model="llama2")
+        assert req.model == "llama2"
+        assert req.name == "llama2"  # Should be copied from model
+        assert req.verbose is False
+
+        # Test with both 'name' and 'model' fields
+        req = OllamaShowRequest(name="llama2", model="llama3")
+        assert req.name == "llama2"  # name takes precedence
+        assert req.model == "llama3"
+
+        # Test with neither field should raise error
+        with pytest.raises(ValidationError) as exc_info:
+            OllamaShowRequest(verbose=True)
+        assert "Either 'name' or 'model' field is required" in str(exc_info.value)
 
 
 class TestOllamaResponses:

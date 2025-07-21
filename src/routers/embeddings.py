@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from src.config import get_settings
 from src.models import (
     OllamaEmbeddingRequest,
+    OllamaEmbedRequest,
     OpenAIEmbeddingRequest,
     OpenAIEmbeddingResponse,
 )
@@ -329,6 +330,149 @@ async def create_embeddings_ollama_style(
     except Exception as e:
         logger.error(
             "Unexpected error in embedding endpoint",
+            exc_info=e,
+            extra={"extra_data": {"request_id": request_id}},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error",
+        )
+
+
+@router.post("/embed")
+async def create_embed_ollama_style(
+    fastapi_request: Request,
+) -> JSONResponse:
+    """
+    Create embeddings using the new Ollama embed endpoint format.
+    
+    This is the new endpoint that replaces /embeddings.
+    It uses 'input' instead of 'prompt' field.
+    """
+    request_id = getattr(fastapi_request.state, "request_id", "unknown")
+
+    # Get request body using the utility function
+    try:
+        request_dict = await get_body_json(fastapi_request)
+        request = OllamaEmbedRequest(**request_dict)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to parse request body: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid request body: {str(e)}",
+        )
+
+    logger.info(
+        "Processing embed request",
+        extra={
+            "extra_data": {
+                "request_id": request_id,
+                "model": request.model,
+                "input_type": "list" if isinstance(request.input, list) else "string",
+                "input_count": (
+                    len(request.input) if isinstance(request.input, list) else 1
+                ),
+            }
+        },
+    )
+
+    # Convert to OllamaEmbeddingRequest format for reuse of existing logic
+    embedding_request = OllamaEmbeddingRequest(
+        model=request.model,
+        prompt=request.input,  # Map 'input' to 'prompt'
+        options=request.options,
+        keep_alive=request.keep_alive,
+    )
+
+    try:
+        # Validate model name
+        translator.validate_model_name(embedding_request.model)
+
+        # Translate Ollama request to OpenAI format
+        openai_request = translator.translate_request(embedding_request)
+
+        # Make request to OpenAI backend
+        async with retry_client_context() as client:
+            response = await make_openai_embedding_request(client, openai_request)
+
+        # Parse OpenAI response
+        try:
+            openai_response_data = response.json()
+            openai_response = OpenAIEmbeddingResponse(**openai_response_data)
+        except Exception as e:
+            logger.error(f"Failed to parse OpenAI embedding response: {e}")
+            raise UpstreamError(
+                "Invalid response from OpenAI backend",
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                service="openai",
+            )
+
+        # Translate response back to Ollama format
+        # Note: For the new embed endpoint, the response format is slightly different
+        ollama_response = translator.translate_response(openai_response, embedding_request)
+        
+        # Convert to new format: {"embeddings": [[...], [...]]} instead of {"embedding": [...]}
+        response_data = {
+            "embeddings": [ollama_response.embedding] if isinstance(embedding_request.prompt, str) 
+                         else [emb for emb in ollama_response.embedding],
+            "model": request.model,  # Use the model from the original request
+        }
+
+        logger.info(
+            "Embed request completed",
+            extra={
+                "extra_data": {
+                    "request_id": request_id,
+                    "embeddings_count": len(response_data["embeddings"]),
+                    "tokens_used": (
+                        openai_response.usage.total_tokens
+                        if openai_response.usage
+                        else 0
+                    ),
+                }
+            },
+        )
+
+        return JSONResponse(
+            content=response_data,
+            headers={"X-Request-ID": request_id},
+        )
+
+    except ValidationError as e:
+        logger.warning(
+            f"Validation error in embed request: {e}",
+            extra={"extra_data": {"request_id": request_id}},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+
+    except TranslationError as e:
+        logger.error(
+            f"Translation error in embed request: {e}",
+            extra={"extra_data": {"request_id": request_id}},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process embed request",
+        )
+
+    except UpstreamError as e:
+        logger.error(
+            f"Upstream error in embed request: {e}",
+            extra={"extra_data": {"request_id": request_id}},
+        )
+        raise HTTPException(
+            status_code=e.status_code,
+            detail=e.message,
+        )
+
+    except Exception as e:
+        logger.error(
+            "Unexpected error in embed endpoint",
             exc_info=e,
             extra={"extra_data": {"request_id": request_id}},
         )

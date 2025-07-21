@@ -1823,11 +1823,145 @@
             "testStrategy": "End-to-end tests making actual embedding requests through the full application stack, verify model listing includes embedding models, test with different embedding model names to ensure mapping works"
           }
         ]
+      },
+      {
+        "id": 22,
+        "title": "Enhance FastAPI OpenAPI Configuration",
+        "description": "Update main.py with comprehensive OpenAPI metadata including title, version, description, contact information, license, and terms of service. Configure custom OpenAPI schema generation with dynamic versioning.",
+        "details": "1. Import version from _version.py for dynamic versioning\n2. Update FastAPI app initialization with OpenAPI parameters:\n   - title='Ollama-OpenAI Proxy API'\n   - version=dynamic_version\n   - description with markdown formatting\n   - contact={'name': 'API Support', 'email': 'support@example.com'}\n   - license_info={'name': 'MIT', 'url': 'https://opensource.org/licenses/MIT'}\n   - servers list for different environments\n3. Configure custom OpenAPI schema generation:\n   - Override app.openapi() method\n   - Add custom x-logo extension\n   - Include security schemes for API key authentication\n4. Add OpenAPI tags for endpoint grouping:\n   - 'Models', 'Chat', 'Completions', 'Embeddings', 'Admin'\n5. Implement custom_openapi() function to enhance schema with additional metadata",
+        "testStrategy": "1. Unit test OpenAPI schema generation\n2. Validate schema against OpenAPI 3.0 specification\n3. Test dynamic version extraction\n4. Verify all metadata fields are properly included\n5. Test schema generation performance impact",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Document All API Endpoints with Examples",
+        "description": "Add comprehensive documentation to all router endpoints including detailed descriptions, request/response examples, parameter documentation, and operation IDs.",
+        "details": "1. Update each router file (chat.py, models.py, completions.py, embeddings.py):\n   - Add docstrings with endpoint descriptions\n   - Include @router decorators with tags, summary, description\n   - Add response_model and status_code parameters\n   - Include operation_id for client generation\n2. Create Pydantic models for all request/response types:\n   - ChatCompletionRequest/Response\n   - CompletionRequest/Response\n   - EmbeddingRequest/Response\n   - ModelListResponse\n3. Add Field descriptions to all Pydantic model attributes:\n   - Include examples using Field(example='value')\n   - Add constraints (min_length, max_length, regex)\n   - Document optional vs required fields\n4. Implement request/response examples:\n   - Use Body(..., example={}) for request examples\n   - Add multiple examples showing different use cases\n   - Include both success and error response examples",
+        "testStrategy": "1. Validate all endpoints have documentation\n2. Test Pydantic model serialization/deserialization\n3. Verify examples are valid JSON\n4. Check operation IDs are unique\n5. Test documentation rendering in Swagger UI",
+        "priority": "high",
+        "dependencies": [
+          22
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Implement Comprehensive Error Documentation",
+        "description": "Document all possible HTTP status codes with error response examples, error structures, and troubleshooting guidance for common error scenarios.",
+        "details": "1. Create error response Pydantic models:\n   - ErrorResponse(error: ErrorDetail)\n   - ErrorDetail(message: str, type: str, code: str)\n2. Document standard HTTP error codes:\n   - 400: Bad Request with validation errors\n   - 401: Unauthorized with auth errors\n   - 403: Forbidden with permission errors\n   - 404: Not Found with resource errors\n   - 429: Rate Limit with retry headers\n   - 500: Internal Server Error\n   - 502: Bad Gateway for upstream errors\n3. Add responses parameter to all endpoints:\n   - responses={400: {'model': ErrorResponse, 'description': 'Invalid request'}}\n   - Include multiple error scenarios per status code\n4. Create error documentation module:\n   - Common error patterns and solutions\n   - Upstream Ollama error mapping\n   - Error code reference table\n5. Implement custom exception handlers with proper error formatting",
+        "testStrategy": "1. Test all error response formats\n2. Validate error models match actual responses\n3. Test exception handler coverage\n4. Verify error documentation completeness\n5. Test upstream error propagation",
+        "priority": "high",
+        "dependencies": [
+          23
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Create Authentication Documentation System",
+        "description": "Document API key requirements, authentication flows, authorization headers, and security best practices with comprehensive examples.",
+        "details": "1. Define security schemes in OpenAPI:\n   - ApiKeyAuth: type='apiKey', in='header', name='Authorization'\n   - BearerAuth: type='http', scheme='bearer'\n2. Add security requirements to endpoints:\n   - Apply security=[{'ApiKeyAuth': []}] to protected endpoints\n   - Document which endpoints require authentication\n3. Create authentication documentation:\n   - API key format and validation rules\n   - Bearer token format 'Bearer <api_key>'\n   - Environment variable configuration\n4. Add authentication examples:\n   - cURL examples with headers\n   - Python requests examples\n   - JavaScript fetch examples\n   - Error responses for auth failures\n5. Document security best practices:\n   - API key rotation guidelines\n   - Secure storage recommendations\n   - Rate limiting and quotas\n   - CORS configuration",
+        "testStrategy": "1. Test authentication flow documentation\n2. Validate security scheme definitions\n3. Test example code snippets\n4. Verify auth error responses\n5. Test security requirement enforcement",
+        "priority": "high",
+        "dependencies": [
+          23
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "Enable Production Documentation Access",
+        "description": "Implement configuration system to enable documentation access in production environments with proper access controls and feature flags.",
+        "details": "1. Update config.py with documentation settings:\n   - DOCS_ENABLED: bool = env('DOCS_ENABLED', False)\n   - DOCS_PATH: str = env('DOCS_PATH', '/docs')\n   - REDOC_PATH: str = env('REDOC_PATH', '/redoc')\n   - DOCS_ACCESS_KEY: Optional[str] = env('DOCS_ACCESS_KEY', None)\n2. Implement conditional documentation mounting:\n   - Check DOCS_ENABLED flag before mounting /docs and /redoc\n   - Add middleware for access control if DOCS_ACCESS_KEY is set\n3. Create documentation access middleware:\n   - Validate access key in query params or headers\n   - Return 403 if invalid key provided\n   - Allow public access if no key configured\n4. Add documentation URL configuration:\n   - Support custom paths for docs/redoc\n   - Configure CDN URLs for assets\n   - Enable/disable try-it-out feature\n5. Implement health check endpoint that reports docs status",
+        "testStrategy": "1. Test documentation access with flag enabled/disabled\n2. Validate access control with/without key\n3. Test custom path configuration\n4. Verify production performance impact\n5. Test documentation asset loading",
+        "priority": "high",
+        "dependencies": [
+          22
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Implement OpenAPI Schema Export Feature",
+        "description": "Create endpoints and functionality to export OpenAPI schema as JSON/YAML with version control integration and CI/CD support.",
+        "details": "1. Create schema export endpoints:\n   - GET /openapi.json - Returns OpenAPI schema as JSON\n   - GET /openapi.yaml - Returns OpenAPI schema as YAML\n   - Add Accept header support for content negotiation\n2. Implement schema generation functions:\n   - get_openapi_schema() to generate current schema\n   - schema_to_yaml() for YAML conversion\n   - Add caching for performance\n3. Create CLI command for schema export:\n   - python -m app.export_schema --format=json/yaml\n   - Save to specified file path\n   - Include version in filename\n4. Add pre-commit hook for schema generation:\n   - Auto-generate schema on commit\n   - Validate schema changes\n   - Update version control\n5. Implement schema validation:\n   - Validate against OpenAPI 3.0 spec\n   - Check for breaking changes\n   - Generate diff reports",
+        "testStrategy": "1. Test JSON/YAML export endpoints\n2. Validate exported schema format\n3. Test CLI export functionality\n4. Verify caching behavior\n5. Test schema validation and diffs",
+        "priority": "medium",
+        "dependencies": [
+          22,
+          26
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Add Interactive Examples and Code Samples",
+        "description": "Enhance documentation with interactive examples, multi-language code samples, and try-it-out functionality for better developer experience.",
+        "details": "1. Configure Swagger UI for interactivity:\n   - Enable tryItOutEnabled=true\n   - Configure requestInterceptor for auth headers\n   - Add default values for common parameters\n2. Create code sample generator:\n   - Templates for Python, JavaScript, cURL, Go\n   - Dynamic example generation from OpenAPI\n   - Include error handling in examples\n3. Add x-code-samples extension:\n   - Language-specific examples for each endpoint\n   - Include setup/installation instructions\n   - Show response parsing examples\n4. Implement example request/response pairs:\n   - Common use cases for each endpoint\n   - Edge cases and error scenarios\n   - Performance optimization examples\n5. Create interactive playground:\n   - Pre-configured example requests\n   - Response visualization\n   - Request history tracking",
+        "testStrategy": "1. Test interactive functionality in Swagger UI\n2. Validate code samples compile/run\n3. Test example request execution\n4. Verify response visualization\n5. Test cross-origin requests",
+        "priority": "medium",
+        "dependencies": [
+          23,
+          24,
+          25
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Document Model Compatibility and Mapping",
+        "description": "Create comprehensive documentation for Ollama model compatibility, OpenAI model mapping, and model-specific features and limitations.",
+        "details": "1. Create model compatibility matrix:\n   - Ollama models vs OpenAI models mapping\n   - Feature support per model (streaming, functions, etc)\n   - Performance characteristics\n   - Context window sizes\n2. Document model-specific parameters:\n   - Temperature, top_p, top_k mappings\n   - Model-specific options and defaults\n   - Unsupported parameter handling\n3. Add model selection guide:\n   - Use case recommendations\n   - Performance vs quality tradeoffs\n   - Cost considerations\n   - Model switching strategies\n4. Create model migration documentation:\n   - OpenAI to Ollama migration guide\n   - Parameter conversion tables\n   - Code migration examples\n   - Common pitfalls and solutions\n5. Implement model info endpoint:\n   - GET /v1/models/{model}/info\n   - Return detailed model capabilities\n   - Include compatibility warnings",
+        "testStrategy": "1. Validate model compatibility matrix\n2. Test parameter mapping accuracy\n3. Verify model info endpoint\n4. Test migration guide examples\n5. Validate model-specific behaviors",
+        "priority": "medium",
+        "dependencies": [
+          23
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Create Developer Guides and Tutorials",
+        "description": "Develop comprehensive quick start guides, integration tutorials, and best practices documentation for common usage patterns.",
+        "details": "1. Create Quick Start Guide:\n   - 5-minute setup tutorial\n   - First API call walkthrough\n   - Common configuration options\n   - Troubleshooting checklist\n2. Develop integration tutorials:\n   - Building a chatbot with Python\n   - RAG implementation guide\n   - Streaming responses tutorial\n   - Function calling examples\n3. Write best practices guide:\n   - Error handling strategies\n   - Retry logic implementation\n   - Connection pooling\n   - Response caching\n   - Rate limiting handling\n4. Create deployment guides:\n   - Docker deployment\n   - Kubernetes configuration\n   - Load balancing setup\n   - Monitoring and logging\n5. Add cookbook examples:\n   - Common prompting patterns\n   - Context management\n   - Multi-turn conversations\n   - Batch processing",
+        "testStrategy": "1. Test all tutorial code examples\n2. Validate deployment configurations\n3. Test best practice implementations\n4. Verify guide completeness\n5. Test example reproducibility",
+        "priority": "low",
+        "dependencies": [
+          27,
+          28,
+          29
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "Implement Documentation Testing and Validation",
+        "description": "Create comprehensive test suite for documentation completeness, accuracy, and functionality with CI/CD integration.",
+        "details": "1. Create documentation test suite:\n   - Test all endpoints have documentation\n   - Validate example requests/responses\n   - Check for missing parameters\n   - Verify error documentation coverage\n2. Implement schema validation tests:\n   - OpenAPI 3.0 specification compliance\n   - Schema completeness checks\n   - Breaking change detection\n   - Version consistency validation\n3. Add example validation:\n   - Parse and validate all JSON examples\n   - Test code samples compilation\n   - Verify curl commands syntax\n   - Check response format matching\n4. Create documentation coverage report:\n   - Endpoint documentation percentage\n   - Parameter documentation coverage\n   - Example coverage metrics\n   - Missing documentation alerts\n5. Integrate with CI/CD:\n   - Pre-commit documentation checks\n   - PR validation for doc changes\n   - Automated schema generation\n   - Documentation deployment pipeline",
+        "testStrategy": "1. Run full documentation test suite\n2. Validate CI/CD integration\n3. Test coverage report accuracy\n4. Verify automated checks\n5. Test documentation deployment",
+        "priority": "low",
+        "dependencies": [
+          27,
+          28
+        ],
+        "status": "pending",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-09T10:50:08.658Z",
-      "updated": "2025-07-15T20:12:29.451Z",
+      "updated": "2025-07-17T11:28:50.317Z",
       "description": "Tasks for master context"
     }
   }

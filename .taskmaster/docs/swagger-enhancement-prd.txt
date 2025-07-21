@@ -1,0 +1,221 @@
+# Product Requirements Document: Swagger/OpenAPI Documentation Enhancement
+
+## Problem Statement
+
+The current Swagger documentation for the Ollama-OpenAI Proxy is incomplete and missing critical elements:
+- Missing API examples for request/response formats
+- Incomplete error code documentation
+- Missing API endpoints in the documentation
+- Poor developer experience for API consumers
+- Documentation only available in DEBUG mode
+
+## Product Vision
+
+Create comprehensive, production-ready Swagger/OpenAPI documentation that provides developers with complete API reference including examples, error codes, authentication details, and usage guidelines.
+
+## Target Users
+
+- API developers integrating with the Ollama-OpenAI Proxy
+- DevOps engineers deploying the proxy service
+- Technical writers creating integration guides
+- QA engineers testing API functionality
+
+## Core Requirements
+
+### 1. Complete API Documentation
+- Document all available endpoints (/api/* and /v1/*)
+- Include comprehensive request/response examples
+- Document all supported parameters and their validation rules
+- Add detailed descriptions for each endpoint's purpose and usage
+
+### 2. Error Code Documentation
+- Document all possible HTTP status codes
+- Include error response examples with proper error structures
+- Add troubleshooting guidance for common error scenarios
+- Document upstream error handling and propagation
+
+### 3. Authentication Documentation
+- Document API key requirements and format
+- Include authentication examples for different endpoint types
+- Document authorization header requirements
+- Add security best practices
+
+### 4. Production Accessibility
+- Enable documentation access in production environments
+- Add configuration options for documentation visibility
+- Implement proper access controls if needed
+- Create schema export capabilities for CI/CD integration
+
+### 5. Developer Experience Enhancements
+- Add interactive examples users can test directly
+- Include code samples for different programming languages
+- Document model compatibility and mapping
+- Add quick start guides and common usage patterns
+
+## Technical Requirements
+
+### 1. FastAPI Configuration Enhancement
+- Update main.py with comprehensive OpenAPI metadata
+- Implement dynamic versioning from _version.py
+- Add contact information, license, and terms of service
+- Configure custom OpenAPI schema generation
+
+### 2. Router Documentation
+- Enhance all router files with detailed endpoint documentation
+- Add Pydantic model examples and descriptions
+- Include proper response model documentation
+- Add operation IDs for better client generation
+
+### 3. Schema Export Features
+- Create endpoint to export OpenAPI schema as JSON/YAML
+- Add pre-generated schema files for version control
+- Implement schema validation in test suite
+- Add CI/CD integration for schema consistency
+
+### 4. Configuration Management
+- Add documentation-specific environment variables
+- Update config.py with new documentation settings
+- Implement feature flags for documentation access
+- Add runtime configuration for documentation customization
+
+## Success Criteria
+
+### Primary Success Metrics
+- All API endpoints documented with examples
+- Complete error code reference available
+- Production documentation access enabled
+- Developer onboarding time reduced by 50%
+
+### Secondary Success Metrics
+- Schema export functionality working
+- Automated tests validate documentation completeness
+- Integration examples for major programming languages
+- Positive feedback from API consumers
+
+## Implementation Phases
+
+### Phase 1: Core Documentation (High Priority)
+- FastAPI configuration enhancement
+- Basic endpoint documentation
+- Error code documentation
+- Production access enablement
+
+### Phase 2: Advanced Features (Medium Priority)
+- Schema export capabilities
+- Enhanced examples and code samples
+- Interactive documentation features
+- Authentication flow documentation
+
+### Phase 3: Developer Experience (Low Priority)
+- Multi-language code examples
+- Integration guides and tutorials
+- Advanced configuration documentation
+- Performance and monitoring guides
+
+## Constraints and Considerations
+
+### Technical Constraints
+- Must maintain backward compatibility with existing API
+- Documentation should not impact runtime performance
+- Must work with existing FastAPI infrastructure
+- Should integrate with current logging and monitoring
+
+### Security Considerations
+- Documentation access should be configurable
+- No sensitive information should be exposed in examples
+- API key handling must be documented securely
+- Production documentation access should be controllable
+
+### Performance Considerations
+- Documentation generation should not slow down API responses
+- Schema export should be efficient and cacheable
+- Interactive examples should have appropriate rate limiting
+- Documentation assets should be optimized for loading
+
+## Acceptance Criteria
+
+### Must Have
+- All endpoints documented with request/response examples
+- Complete error code reference with examples
+- Production documentation access configurable
+- Schema export functionality working
+- Authentication requirements clearly documented
+
+### Should Have
+- Interactive examples for testing
+- Code samples for popular languages
+- Model compatibility documentation
+- Quick start integration guides
+
+### Could Have
+- Advanced theming and customization
+- Multi-version documentation support
+- Analytics on documentation usage
+- Community contribution guidelines
+
+## Dependencies
+
+### Internal Dependencies
+- Existing FastAPI application structure
+- Pydantic models for automatic schema generation
+- Current router organization and structure
+- Version management system
+
+### External Dependencies
+- FastAPI OpenAPI generation capabilities
+- Swagger UI and ReDoc for documentation rendering
+- Pydantic for model validation and schema generation
+- Current CI/CD pipeline for integration
+
+## Timeline
+
+### Week 1: Foundation
+- FastAPI configuration enhancement
+- Basic endpoint documentation
+- Production access configuration
+
+### Week 2: Core Features
+- Complete error code documentation
+- Schema export implementation
+- Authentication documentation
+
+### Week 3: Enhancement
+- Advanced examples and code samples
+- Interactive documentation features
+- Testing and validation
+
+### Week 4: Finalization
+- Documentation review and refinement
+- Performance optimization
+- Deployment and validation
+
+## Risk Mitigation
+
+### Technical Risks
+- Documentation changes breaking existing functionality
+- Performance impact from enhanced documentation
+- Compatibility issues with FastAPI versions
+
+### Mitigation Strategies
+- Comprehensive testing before deployment
+- Performance monitoring during implementation
+- Incremental rollout with feature flags
+- Rollback procedures for production issues
+
+## Success Measurement
+
+### Quantitative Metrics
+- API documentation completeness score (100%)
+- Error code coverage (100%)
+- Developer onboarding time reduction (50%)
+- Documentation access uptime (99.9%)
+
+### Qualitative Metrics
+- Developer satisfaction with documentation quality
+- Ease of integration for new users
+- Reduction in support tickets related to API usage
+- Positive feedback from development community
+
+## Conclusion
+
+This enhancement will transform the Ollama-OpenAI Proxy documentation from a basic DEBUG-only feature into a comprehensive, production-ready API reference that significantly improves the developer experience and reduces integration complexity.

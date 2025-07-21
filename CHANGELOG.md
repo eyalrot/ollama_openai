@@ -7,22 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Version management system with centralized version control
-- Version API endpoint (`/v1/version`) for service information
-- Health check endpoint (`/v1/health`) for service monitoring
-- Enhanced Docker release pipeline with automated tagging
-- Comprehensive release workflow with GitHub Releases
+## [0.6.9] - 2025-07-21
 
-### Changed
-- Upgraded project to use dynamic versioning from `src/_version.py`
-- Enhanced startup logging with detailed version information
-- Updated Docker image tagging strategy for better version management
+### Added
+- **New `/api/embed` endpoint**: Added support for Ollama SDK's new `embed()` method
+  - Created `OllamaEmbedRequest` model to handle the new format
+  - Maps 'input' field from new format to existing embedding logic
+  - Returns response in new format: `{"embeddings": [[...]], "model": "..."}`
 
 ### Fixed
-- Codecov badge integration and CI configuration improvements
-- Code quality issues: unused imports, variables, and formatting
-- Black code formatting consistency across the codebase
+- **Ollama SDK compatibility**: Fixed show model validation to accept both 'name' and 'model' fields
+  - Modified `OllamaShowRequest` to support both field names
+  - Added model validator for backwards compatibility
+  - Enables Ollama SDK's `client.show()` method to work without errors
+
+### Changed
+- Updated version to 0.6.9 to reflect Ollama SDK compatibility improvements
+
+## [0.6.8] - 2025-07-17
+
+### Fixed
+- Docker Hub authentication and token management improvements
+- Enhanced token handling for Docker image publishing
+
+## [0.6.7] - 2025-07-17
+
+### Fixed
+- Enable version tags for Docker images on release
+- Improved Docker image tagging strategy
+
+## [0.6.6] - 2025-07-17
+
+### Fixed
+- All failing tests and enhanced development infrastructure
+- Improved test reliability and coverage
+
+### Added
+- Enhanced Docker Compose integration with auto-detection
+- New Docker Compose configurations for easier deployment
+
+## [0.6.5] - 2025-07-17
+
+### Fixed
+- Improve PyPI authentication with trusted publishing support
+- Enhanced release pipeline reliability
 
 ## [0.6.0] - 2025-07-16
 

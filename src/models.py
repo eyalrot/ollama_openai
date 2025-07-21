@@ -144,6 +144,20 @@ class OllamaEmbeddingRequest(BaseModel):
     )
 
 
+class OllamaEmbedRequest(BaseModel):
+    """Request model for new Ollama embed endpoint (/api/embed)."""
+
+    model: str = Field(..., description="Model name to use")
+    input: Union[str, List[str]] = Field(
+        ..., description="Input text to embed (single string or list of strings)"
+    )
+    truncate: Optional[bool] = Field(None, description="Truncate the input to the maximum token length")
+    options: Optional[OllamaOptions] = Field(None, description="Model options")
+    keep_alive: Optional[Union[str, int]] = Field(
+        "5m", description="Model keep-alive duration"
+    )
+
+
 class OllamaPullRequest(BaseModel):
     """Request model for pulling models."""
 
@@ -185,8 +199,20 @@ class OllamaDeleteRequest(BaseModel):
 class OllamaShowRequest(BaseModel):
     """Request model for showing model information."""
 
-    name: str = Field(..., description="Model name to show")
+    # Support both 'name' (original) and 'model' (Ollama SDK) fields
+    name: Optional[str] = Field(None, description="Model name to show")
+    model: Optional[str] = Field(None, description="Model name (Ollama SDK field)")
     verbose: bool = Field(False, description="Show verbose information")
+
+    @model_validator(mode="after")
+    def validate_model_name(self):
+        """Ensure we have either 'name' or 'model' field."""
+        if not self.name and not self.model:
+            raise ValueError("Either 'name' or 'model' field is required")
+        # If model is provided but not name, copy it to name for backwards compatibility
+        if self.model and not self.name:
+            self.name = self.model
+        return self
 
 
 # Ollama Response Models
