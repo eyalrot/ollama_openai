@@ -88,8 +88,7 @@ def test_ollama_sdk():
     print("\n" + "=" * 60)
     print("Summary: The proxy server is compatible with Ollama SDK!")
     print("Note: Some operations may fail due to OpenAI API billing issues.")
-    return True
 
 if __name__ == "__main__":
-    success = test_ollama_sdk()
-    sys.exit(0 if success else 1)
+    test_ollama_sdk()
+    sys.exit(0)

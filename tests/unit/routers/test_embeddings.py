@@ -17,8 +17,8 @@ from src.models import (
     OpenAIUsage,
 )
 from src.routers.embeddings import (
-    create_embeddings_ollama_style,
     create_embed_ollama_style,
+    create_embeddings_ollama_style,
     router,
 )
 from src.utils.exceptions import ValidationError
@@ -283,16 +283,14 @@ class TestEmbedEndpoint:
     def sample_embed_request(self):
         """Create a sample Ollama embed request."""
         return OllamaEmbedRequest(
-            model="text-embedding-ada-002", 
-            input="Test embedding text"
+            model="text-embedding-ada-002", input="Test embedding text"
         )
 
     @pytest.fixture
     def sample_embed_request_list(self):
         """Create a sample Ollama embed request with list input."""
         return OllamaEmbedRequest(
-            model="text-embedding-ada-002", 
-            input=["Text one", "Text two", "Text three"]
+            model="text-embedding-ada-002", input=["Text one", "Text two", "Text three"]
         )
 
     @pytest.fixture
@@ -338,7 +336,9 @@ class TestEmbedEndpoint:
         # Create a proper OllamaEmbeddingResponse mock
         from src.models import OllamaEmbeddingResponse
 
-        mock_ollama_response = OllamaEmbeddingResponse(embedding=[0.1, 0.2, 0.3, 0.4, 0.5])
+        mock_ollama_response = OllamaEmbeddingResponse(
+            embedding=[0.1, 0.2, 0.3, 0.4, 0.5]
+        )
         mock_translator.translate_response.return_value = mock_ollama_response
 
         # Call the endpoint
@@ -349,7 +349,7 @@ class TestEmbedEndpoint:
         # Verify result
         assert isinstance(result, JSONResponse)
         assert result.headers["X-Request-ID"] == "test-embed-123"
-        
+
         # The response should have the new format
         content = result.body
         assert b'"embeddings"' in content  # Check for embeddings field
@@ -404,7 +404,7 @@ class TestEmbedEndpoint:
         # Verify result
         assert isinstance(result, JSONResponse)
         assert result.headers["X-Request-ID"] == "test-embed-123"
-        
+
         # The response should have the new format
         content = result.body
         assert b'"embeddings"' in content  # Check for embeddings field
@@ -415,7 +415,9 @@ class TestEmbedEndpoint:
         """Test embed endpoint with validation error."""
         # Invalid request without required fields
         with patch("src.routers.embeddings.get_body_json") as mock_get_body:
-            mock_get_body.return_value = {"model": "text-embedding-ada-002"}  # Missing 'input'
+            mock_get_body.return_value = {
+                "model": "text-embedding-ada-002"
+            }  # Missing 'input'
             with pytest.raises(HTTPException) as exc_info:
                 await create_embed_ollama_style(mock_request)
 
@@ -478,7 +480,7 @@ class TestEmbedEndpoint:
             "input": "Test text",
             "truncate": True,
             "options": {"temperature": 0.5},
-            "keep_alive": "10m"
+            "keep_alive": "10m",
         }
 
         with (
@@ -507,6 +509,7 @@ class TestEmbedEndpoint:
             mock_translator.translate_request.return_value = Mock()
 
             from src.models import OllamaEmbeddingResponse
+
             mock_ollama_response = OllamaEmbeddingResponse(embedding=[0.1, 0.2])
             mock_translator.translate_response.return_value = mock_ollama_response
 
@@ -519,5 +522,5 @@ class TestEmbedEndpoint:
             assert isinstance(result, JSONResponse)
             # Verify the request was properly converted to OllamaEmbeddingRequest
             call_args = mock_translator.translate_request.call_args[0][0]
-            assert hasattr(call_args, 'options')
-            assert hasattr(call_args, 'keep_alive')
+            assert hasattr(call_args, "options")
+            assert hasattr(call_args, "keep_alive")

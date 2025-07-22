@@ -35,7 +35,7 @@ settings = get_settings()
 
 @router.get("/tags")
 @router.get("/models")  # OpenAI-style endpoint
-async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
+async def list_models(fastapi_request: Request) -> JSONResponse:
     """
     List available models from the OpenAI-compatible backend.
 
@@ -116,7 +116,11 @@ async def list_models(fastapi_request: Request) -> OllamaModelsResponse:
                 )
                 ollama_models.append(ollama_model)
 
-            return OllamaModelsResponse(models=ollama_models)
+            models_response = OllamaModelsResponse(models=ollama_models)
+            return JSONResponse(
+                content=models_response.model_dump(),
+                headers={"X-Request-ID": request_id},
+            )
 
     except UpstreamError:
         raise
@@ -225,7 +229,7 @@ async def delete_model(
 
 
 @router.get("/version")
-async def get_version(fastapi_request: Request) -> OllamaVersionResponse:
+async def get_version(fastapi_request: Request) -> JSONResponse:
     """
     Return API version information.
 
@@ -238,8 +242,12 @@ async def get_version(fastapi_request: Request) -> OllamaVersionResponse:
         extra={"extra_data": {"request_id": request_id}},
     )
 
-    return OllamaVersionResponse(
+    response = OllamaVersionResponse(
         version="0.1.42",  # Ollama version we're emulating
+    )
+    return JSONResponse(
+        content=response.model_dump(),
+        headers={"X-Request-ID": request_id},
     )
 
 
@@ -247,7 +255,7 @@ async def get_version(fastapi_request: Request) -> OllamaVersionResponse:
 async def show_model(
     request: OllamaShowRequest,
     fastapi_request: Request,
-) -> OllamaShowResponse:
+) -> JSONResponse:
     """
     Show model information.
 
@@ -329,16 +337,17 @@ num_predict 128"""
 {{ end }}<|im_start|>assistant
 """
 
+    model_name = request.name or ""
     details = {
         "parent_model": "",
         "format": "gguf",
-        "family": "llama" if "llama" in request.name.lower() else "unknown",
-        "families": ["llama"] if "llama" in request.name.lower() else None,
-        "parameter_size": "7B" if "7b" in request.name.lower() else "unknown",
+        "family": "llama" if "llama" in model_name.lower() else "unknown",
+        "families": ["llama"] if "llama" in model_name.lower() else None,
+        "parameter_size": "7B" if "7b" in model_name.lower() else "unknown",
         "quantization_level": "Q4_0",
     }
 
-    return OllamaShowResponse(
+    show_response = OllamaShowResponse(
         modelfile=modelfile if request.verbose else "",
         parameters=parameters,
         template=template,
@@ -346,15 +355,19 @@ num_predict 128"""
         model_info=(
             {
                 "general.architecture": (
-                    "llama" if "llama" in request.name.lower() else "unknown"
+                    "llama" if "llama" in model_name.lower() else "unknown"
                 ),
                 "general.file_type": 2,
                 "general.parameter_count": (
-                    7000000000 if "7b" in request.name.lower() else 0
+                    7000000000 if "7b" in model_name.lower() else 0
                 ),
                 "general.quantization_version": 2,
             }
             if request.verbose
             else {}
         ),
+    )
+    return JSONResponse(
+        content=show_response.model_dump(),
+        headers={"X-Request-ID": request_id},
     )

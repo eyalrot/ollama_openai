@@ -153,7 +153,7 @@ class ChatTranslator(
 
     def translate_streaming_response(
         self,
-        openai_chunk: Dict[str, Any],
+        openai_chunk: Union[Dict[str, Any], str],
         original_request: Union[OllamaGenerateRequest, OllamaChatRequest],
         is_first_chunk: bool = False,
         is_last_chunk: bool = False,
@@ -204,22 +204,27 @@ class ChatTranslator(
             finish_reason = None
             tool_calls = None
 
-            if "choices" in openai_chunk and openai_chunk["choices"]:
-                choice = openai_chunk["choices"][0]
-                delta = choice.get("delta", {})
-                content = delta.get("content", "")
-                finish_reason = choice.get("finish_reason")
+            if isinstance(openai_chunk, dict):
+                if "choices" in openai_chunk and openai_chunk["choices"]:
+                    choice = openai_chunk["choices"][0]
+                    delta = choice.get("delta", {})
+                    content = delta.get("content", "")
+                    finish_reason = choice.get("finish_reason")
 
-                # Handle tool calls in streaming (Phase 2 feature)
-                if "tool_calls" in delta and delta["tool_calls"]:
-                    tool_calls = self._translate_tool_calls(delta["tool_calls"])
-                elif "function_call" in delta and delta["function_call"]:
-                    tool_calls = self._translate_function_call(delta["function_call"])
+                    # Handle tool calls in streaming (Phase 2 feature)
+                    if "tool_calls" in delta and delta["tool_calls"]:
+                        tool_calls = self._translate_tool_calls(delta["tool_calls"])
+                    elif "function_call" in delta and delta["function_call"]:
+                        tool_calls = self._translate_function_call(
+                            delta["function_call"]
+                        )
 
             # Build Ollama streaming response
             response = {
                 "model": self.reverse_map_model_name(
                     openai_chunk.get("model", original_request.model)
+                    if isinstance(openai_chunk, dict)
+                    else original_request.model
                 ),
                 "created_at": self.get_iso_timestamp(),
                 "response": content,
@@ -356,7 +361,7 @@ class ChatTranslator(
             List with single Ollama tool call object
         """
         try:
-            ollama_tool_call = {
+            ollama_tool_call: Dict[str, Any] = {
                 "id": "call_legacy",
                 "type": "function",
                 "function": {
@@ -398,7 +403,7 @@ class ChatTranslator(
             # Check if message has images (multimodal)
             if hasattr(message, "images") and message.images:
                 # Create multimodal content array
-                content_parts = []
+                content_parts: List[Dict[str, Any]] = []
 
                 # Add text content if present
                 if message.content:
@@ -498,8 +503,15 @@ class ChatTranslator(
                     tool_calls = msg.tool_calls
 
                 messages.append(
-                    OpenAIMessage(role=role, content=content, tool_calls=tool_calls)
-                )  # type: ignore[call-arg]
+                    OpenAIMessage(
+                        role=role,
+                        content=content,
+                        tool_calls=tool_calls,
+                        name=None,
+                        function_call=None,
+                        tool_call_id=None,
+                    )
+                )
 
         return messages
 
@@ -581,28 +593,30 @@ class ChatTranslator(
 
             finish_reason = choice.finish_reason or "stop"
 
-        # Build response - use appropriate response type
-        if tool_calls:
-            # For responses with tool calls, use OllamaChatResponse with message
+        # Build response - use appropriate response type based on request type
+        if isinstance(original_request, OllamaChatRequest):
+            # For chat requests, always use OllamaChatResponse with message
             message = OllamaChatMessage(
-                role="assistant", content=content, tool_calls=tool_calls
+                role="assistant", content=content, tool_calls=tool_calls, images=None
             )
-            response = OllamaChatResponse(  # type: ignore[call-arg]
+            chat_response = OllamaChatResponse(  # type: ignore[call-arg]
                 model=self.reverse_map_model_name(openai_response.model),
                 created_at=self.get_iso_timestamp(),
                 message=message,
                 done=True,
                 done_reason=finish_reason,
             )
+            response: Union[OllamaChatResponse, OllamaGenerateResponse] = chat_response
         else:
-            # For regular responses, use OllamaGenerateResponse
-            response = OllamaGenerateResponse(  # type: ignore[call-arg]
+            # For generate requests, use OllamaGenerateResponse
+            gen_response = OllamaGenerateResponse(  # type: ignore[call-arg]
                 model=self.reverse_map_model_name(openai_response.model),
                 created_at=self.get_iso_timestamp(),
                 response=content,
                 done=True,
                 done_reason=finish_reason,
             )
+            response = gen_response
 
         # Add token usage if available
         if openai_response.usage:

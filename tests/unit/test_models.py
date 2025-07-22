@@ -18,8 +18,8 @@ from src.models import (
     OllamaCreateRequest,
     OllamaDeleteRequest,
     OllamaEmbeddingRequest,
-    OllamaEmbedRequest,
     OllamaEmbeddingResponse,
+    OllamaEmbedRequest,
     OllamaGenerateRequest,
     # Ollama Response Models
     OllamaGenerateResponse,
@@ -309,8 +309,7 @@ class TestOllamaEmbedRequest:
     def test_minimal_request_single_input(self):
         """Test minimal embed request with single string input."""
         req = OllamaEmbedRequest(
-            model="text-embedding-ada-002", 
-            input="Test embedding text"
+            model="text-embedding-ada-002", input="Test embedding text"
         )
         assert req.model == "text-embedding-ada-002"
         assert req.input == "Test embedding text"
@@ -320,8 +319,7 @@ class TestOllamaEmbedRequest:
     def test_minimal_request_list_input(self):
         """Test minimal embed request with list input."""
         req = OllamaEmbedRequest(
-            model="text-embedding-ada-002", 
-            input=["Text one", "Text two", "Text three"]
+            model="text-embedding-ada-002", input=["Text one", "Text two", "Text three"]
         )
         assert req.model == "text-embedding-ada-002"
         assert isinstance(req.input, list)
@@ -335,7 +333,7 @@ class TestOllamaEmbedRequest:
             input="Test text",
             truncate=True,
             options=OllamaOptions(temperature=0.5, top_p=0.9),
-            keep_alive="10m"
+            keep_alive="10m",
         )
         assert req.model == "text-embedding-ada-002"
         assert req.input == "Test text"

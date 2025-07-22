@@ -13,12 +13,9 @@ from starlette.responses import JSONResponse
 
 from src.models import (
     OllamaDeleteRequest,
-    OllamaModelsResponse,
     OllamaPullRequest,
     OllamaPushRequest,
     OllamaShowRequest,
-    OllamaShowResponse,
-    OllamaVersionResponse,
 )
 from src.utils.exceptions import UpstreamError
 
@@ -121,16 +118,24 @@ class TestModelListing:
             result = await list_models(mock_request)
 
             # Verify result
-            assert isinstance(result, OllamaModelsResponse)
-            assert len(result.models) == 3
+            assert isinstance(result, JSONResponse)
+
+            # Get the response content
+            response_data = result.body.decode("utf-8")
+            import json
+
+            response_dict = json.loads(response_data)
+
+            assert "models" in response_dict
+            assert len(response_dict["models"]) == 3
 
             # Check first model
-            model = result.models[0]
-            assert model.name == "gpt-3.5-turbo"
-            assert model.model == "gpt-3.5-turbo"
-            assert model.size == 0
-            assert model.digest.startswith("sha256:")
-            assert model.details["family"] == "openai"
+            model = response_dict["models"][0]
+            assert model["name"] == "gpt-3.5-turbo"
+            assert model["model"] == "gpt-3.5-turbo"
+            assert model["size"] == 0
+            assert model["digest"].startswith("sha256:")
+            assert model["details"]["family"] == "openai"
 
             # Verify API call
             mock_client.get.assert_called_once_with(
@@ -156,8 +161,16 @@ class TestModelListing:
 
             result = await list_models(mock_request)
 
-            assert isinstance(result, OllamaModelsResponse)
-            assert len(result.models) == 0
+            assert isinstance(result, JSONResponse)
+
+            # Get the response content
+            response_data = result.body.decode("utf-8")
+            import json
+
+            response_dict = json.loads(response_data)
+
+            assert "models" in response_dict
+            assert len(response_dict["models"]) == 0
 
     @pytest.mark.asyncio
     async def test_list_models_openrouter_without_owned_by(
@@ -181,18 +194,26 @@ class TestModelListing:
             result = await list_models(mock_request)
 
             # Verify result
-            assert isinstance(result, OllamaModelsResponse)
-            assert len(result.models) == 3
+            assert isinstance(result, JSONResponse)
+
+            # Get the response content
+            response_data = result.body.decode("utf-8")
+            import json
+
+            response_dict = json.loads(response_data)
+
+            assert "models" in response_dict
+            assert len(response_dict["models"]) == 3
 
             # Check first model (should handle missing owned_by gracefully)
-            model = result.models[0]
-            assert model.name == "anthropic/claude-3-sonnet"
-            assert model.model == "anthropic/claude-3-sonnet"
-            assert model.size == 0
-            assert model.digest.startswith("sha256:")
+            model = response_dict["models"][0]
+            assert model["name"] == "anthropic/claude-3-sonnet"
+            assert model["model"] == "anthropic/claude-3-sonnet"
+            assert model["size"] == 0
+            assert model["digest"].startswith("sha256:")
             # Should default to "unknown" when owned_by is missing
-            assert model.details["family"] == "unknown"
-            assert model.details["families"] == ["unknown"]
+            assert model["details"]["family"] == "unknown"
+            assert model["details"]["families"] == ["unknown"]
 
     @pytest.mark.asyncio
     async def test_list_models_upstream_error(self, mock_settings, mock_request):
@@ -300,9 +321,17 @@ class TestVersionEndpoint:
 
         result = await get_version(mock_request)
 
-        assert isinstance(result, OllamaVersionResponse)
-        assert result.version == "0.1.42"
-        assert isinstance(result.version, str)
+        assert isinstance(result, JSONResponse)
+
+        # Get the response content
+        response_data = result.body.decode("utf-8")
+        import json
+
+        response_dict = json.loads(response_data)
+
+        assert "version" in response_dict
+        assert response_dict["version"] == "0.1.42"
+        assert isinstance(response_dict["version"], str)
 
 
 class TestShowModel:
@@ -331,13 +360,20 @@ class TestShowModel:
             result = await show_model(request, mock_request)
 
             # Verify result
-            assert isinstance(result, OllamaShowResponse)
-            assert result.modelfile == ""  # Not verbose
-            assert result.parameters is not None
-            assert "temperature 0.7" in result.parameters
-            assert result.template is not None
-            assert result.details["format"] == "gguf"
-            assert result.model_info == {}  # Not verbose
+            assert isinstance(result, JSONResponse)
+
+            # Get the response content
+            response_data = result.body.decode("utf-8")
+            import json
+
+            response_dict = json.loads(response_data)
+
+            assert response_dict["modelfile"] == ""  # Not verbose
+            assert response_dict["parameters"] is not None
+            assert "temperature 0.7" in response_dict["parameters"]
+            assert response_dict["template"] is not None
+            assert response_dict["details"]["format"] == "gguf"
+            assert response_dict["model_info"] == {}  # Not verbose
 
     @pytest.mark.asyncio
     async def test_show_model_verbose(
@@ -372,13 +408,21 @@ class TestShowModel:
             result = await show_model(request, mock_request)
 
             # Verify verbose output
-            assert result.modelfile != ""
-            assert "FROM llama2:7b" in result.modelfile
-            assert result.details["family"] == "llama"
-            assert result.details["parameter_size"] == "7B"
-            assert result.model_info != {}
-            assert result.model_info["general.architecture"] == "llama"
-            assert result.model_info["general.parameter_count"] == 7000000000
+            assert isinstance(result, JSONResponse)
+
+            # Get the response content
+            response_data = result.body.decode("utf-8")
+            import json
+
+            response_dict = json.loads(response_data)
+
+            assert response_dict["modelfile"] != ""
+            assert "FROM llama2:7b" in response_dict["modelfile"]
+            assert response_dict["details"]["family"] == "llama"
+            assert response_dict["details"]["parameter_size"] == "7B"
+            assert response_dict["model_info"] != {}
+            assert response_dict["model_info"]["general.architecture"] == "llama"
+            assert response_dict["model_info"]["general.parameter_count"] == 7000000000
 
     @pytest.mark.asyncio
     async def test_show_model_not_found(
@@ -424,9 +468,16 @@ class TestShowModel:
             result = await show_model(request, mock_request)
 
             # Should still return basic info
-            assert isinstance(result, OllamaShowResponse)
-            assert result.parameters is not None
-            assert result.template is not None
+            assert isinstance(result, JSONResponse)
+
+            # Get the response content
+            response_data = result.body.decode("utf-8")
+            import json
+
+            response_dict = json.loads(response_data)
+
+            assert response_dict["parameters"] is not None
+            assert response_dict["template"] is not None
 
 
 class TestModelTransformation:
@@ -461,16 +512,24 @@ class TestModelTransformation:
             result = await list_models(mock_request)
 
             # Check timestamp format
-            model = result.models[0]
+            assert isinstance(result, JSONResponse)
+
+            # Get the response content
+            response_data = result.body.decode("utf-8")
+            import json
+
+            response_dict = json.loads(response_data)
+
+            model = response_dict["models"][0]
             # Should be ISO format with timezone
-            assert "T" in model.modified_at
-            assert model.modified_at.endswith("+00:00") or model.modified_at.endswith(
-                "Z"
-            )
+            assert "T" in model["modified_at"]
+            assert model["modified_at"].endswith("+00:00") or model[
+                "modified_at"
+            ].endswith("Z")
 
             # Verify it's the correct timestamp
             parsed_time = datetime.fromisoformat(
-                model.modified_at.replace("Z", "+00:00")
+                model["modified_at"].replace("Z", "+00:00")
             )
             assert parsed_time.timestamp() == 1677649963
 
@@ -509,5 +568,16 @@ class TestModelTransformation:
             result = await list_models(mock_request)
 
             # Both instances of same model should have same digest
-            assert result.models[0].digest == result.models[1].digest
-            assert result.models[0].digest.startswith("sha256:")
+            assert isinstance(result, JSONResponse)
+
+            # Get the response content
+            response_data = result.body.decode("utf-8")
+            import json
+
+            response_dict = json.loads(response_data)
+
+            assert (
+                response_dict["models"][0]["digest"]
+                == response_dict["models"][1]["digest"]
+            )
+            assert response_dict["models"][0]["digest"].startswith("sha256:")

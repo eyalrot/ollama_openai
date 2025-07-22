@@ -12,7 +12,7 @@ services:
       - OPENAI_API_BASE_URL=https://api.openai.com/v1
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - PROXY_PORT=11434
-      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - LOG_LEVEL=DEBUG
       - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
       - MAX_RETRIES=${MAX_RETRIES:-3}
       - DEBUG=${DEBUG:-true}

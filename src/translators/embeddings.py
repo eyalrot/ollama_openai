@@ -65,6 +65,7 @@ class EmbeddingsTranslator(
 
         except Exception as e:
             self.handle_translation_error(e, "translate_request")
+            raise  # This line will never be reached, but satisfies mypy
 
     def translate_response(
         self,
@@ -102,6 +103,7 @@ class EmbeddingsTranslator(
 
         except Exception as e:
             self.handle_translation_error(e, "translate_response")
+            raise  # This line will never be reached, but satisfies mypy
 
     def translate_streaming_response(
         self,

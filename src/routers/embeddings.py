@@ -345,7 +345,7 @@ async def create_embed_ollama_style(
 ) -> JSONResponse:
     """
     Create embeddings using the new Ollama embed endpoint format.
-    
+
     This is the new endpoint that replaces /embeddings.
     It uses 'input' instead of 'prompt' field.
     """
@@ -409,14 +409,16 @@ async def create_embed_ollama_style(
                 service="openai",
             )
 
-        # Translate response back to Ollama format
-        # Note: For the new embed endpoint, the response format is slightly different
-        ollama_response = translator.translate_response(openai_response, embedding_request)
-        
-        # Convert to new format: {"embeddings": [[...], [...]]} instead of {"embedding": [...]}
+        # For the new embed endpoint, we need to handle batch embeddings properly
+        # The issue is that the old translator approach was being used
+        # Let's directly extract embeddings from the OpenAI response
+        embeddings = []
+        for item in openai_response.data:
+            # OpenAI returns embeddings as lists of floats
+            embeddings.append(item.embedding)
+
         response_data = {
-            "embeddings": [ollama_response.embedding] if isinstance(embedding_request.prompt, str) 
-                         else [emb for emb in ollama_response.embedding],
+            "embeddings": embeddings,
             "model": request.model,  # Use the model from the original request
         }
 

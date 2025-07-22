@@ -151,7 +151,9 @@ class OllamaEmbedRequest(BaseModel):
     input: Union[str, List[str]] = Field(
         ..., description="Input text to embed (single string or list of strings)"
     )
-    truncate: Optional[bool] = Field(None, description="Truncate the input to the maximum token length")
+    truncate: Optional[bool] = Field(
+        None, description="Truncate the input to the maximum token length"
+    )
     options: Optional[OllamaOptions] = Field(None, description="Model options")
     keep_alive: Optional[Union[str, int]] = Field(
         "5m", description="Model keep-alive duration"

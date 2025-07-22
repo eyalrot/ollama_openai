@@ -183,6 +183,19 @@ def is_valid_model_list_response(response: Dict[str, Any]) -> bool:
     Returns:
         True if valid, False otherwise
     """
+    # Handle SDK response objects (ListResponse)
+    if hasattr(response, 'models'):
+        models = response.models
+        # Check if models is a list
+        if not isinstance(models, list):
+            return False
+        # Check each model entry
+        for model in models:
+            if not hasattr(model, 'model'):
+                return False
+        return True
+    
+    # Handle dict responses
     if not isinstance(response, dict):
         return False
     

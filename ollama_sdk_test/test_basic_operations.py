@@ -57,11 +57,17 @@ class TestBasicOperations:
         assert is_valid_model_list_response(response), \
             "Invalid model list response structure"
         
-        models = response["models"]
+        # Handle both SDK objects and dict responses
+        if hasattr(response, 'models'):
+            models = response.models
+            model_names = [model.model for model in models]
+        else:
+            models = response["models"]
+            model_names = [model["name"] for model in models]
+            
         assert len(models) > 0, "Should have at least one model available"
         
         # Log available models
-        model_names = [model["name"] for model in models]
         logger.info(f"Available models: {', '.join(model_names)}")
         
         # Check if our test models are available
@@ -93,7 +99,12 @@ class TestBasicOperations:
     def test_model_availability(self):
         """Test which models from our test list are actually available."""
         response = self.client.list()
-        available_models = [model["name"] for model in response["models"]]
+        
+        # Handle both SDK objects and dict responses
+        if hasattr(response, 'models'):
+            available_models = [model.model for model in response.models]
+        else:
+            available_models = [model["name"] for model in response["models"]]
         
         results = {}
         for test_model in TEST_CHAT_MODELS:
@@ -111,8 +122,8 @@ class TestBasicOperations:
     
     def test_error_handling_connection(self):
         """Test error handling for connection failures."""
-        # Create client with invalid host
-        bad_client = Client(host="http://localhost:99999")
+        # Create client with invalid host (use valid port range)
+        bad_client = Client(host="http://localhost:59999")
         
         with pytest.raises(Exception) as exc_info:
             bad_client.list()
@@ -187,7 +198,12 @@ class TestAsyncBasicOperations:
         assert is_valid_model_list_response(response), \
             "Invalid model list response structure"
         
-        models = response["models"]
+        # Handle both SDK objects and dict responses
+        if hasattr(response, 'models'):
+            models = response.models
+        else:
+            models = response["models"]
+            
         assert len(models) > 0, "Should have at least one model available"
         
         logger.info(f"Async list found {len(models)} models")
@@ -195,7 +211,7 @@ class TestAsyncBasicOperations:
     @pytest.mark.asyncio
     async def test_async_error_handling(self):
         """Test async error handling."""
-        bad_client = AsyncClient(host="http://localhost:99999")
+        bad_client = AsyncClient(host="http://localhost:59999")
         
         with pytest.raises(Exception) as exc_info:
             await bad_client.list()
