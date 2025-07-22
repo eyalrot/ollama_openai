@@ -1,0 +1,32 @@
+
+
+services:
+  
+
+  ollama-proxy:
+    image: ollamaopenai:latest
+    container_name: ollama-proxy
+    ports:
+      - "11434:11434"
+    environment:
+      - OPENAI_API_BASE_URL=https://api.openai.com/v1
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROXY_PORT=11434
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - DEBUG=${DEBUG:-true}
+      - DISABLE_SSL_VERIFICATION=${DISABLE_SSL_VERIFICATION:-false}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; import sys; sys.exit(0 if httpx.get('http://localhost:11434/health').status_code == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - ollama-network
+
+networks:
+  ollama-network:
+    driver: bridge

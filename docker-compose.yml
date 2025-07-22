@@ -37,4 +37,6 @@ services:
 
 networks:
   ollama-network:
-    driver: bridge
+    #driver: bridge
+    external: true  # Use the existing ollama-network from docker-compose.yml
+

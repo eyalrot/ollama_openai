@@ -1,0 +1,44 @@
+model_list:
+  # Chat models
+  - model_name: gpt-3.5-turbo
+    litellm_params:
+      model: openai/gpt-3.5-turbo
+      api_key: os.environ/OPENAI_API_KEY
+  
+  - model_name: gpt-4
+    litellm_params:
+      model: openai/gpt-4
+      api_key: os.environ/OPENAI_API_KEY
+  
+  # Embedding models
+  - model_name: text-embedding-ada-002
+    litellm_params:
+      model: openai/text-embedding-ada-002
+      api_key: os.environ/OPENAI_API_KEY
+      
+  - model_name: text-embedding-3-small
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_key: os.environ/OPENAI_API_KEY
+      
+  - model_name: text-embedding-3-large
+    litellm_params:
+      model: openai/text-embedding-3-large
+      api_key: os.environ/OPENAI_API_KEY
+
+# General settings
+general_settings:
+  # Enable debug logging
+  debug: false
+  
+  # Disable telemetry
+  telemetry: false
+  
+  # Set default timeout
+  request_timeout: 600
+  
+  
+litellm_settings:
+  # Drop unmapped params instead of erroring
+  drop_params: true
+  

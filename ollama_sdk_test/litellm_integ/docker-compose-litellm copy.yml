@@ -1,0 +1,54 @@
+
+
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm-ollama-test
+    ports:
+      - "4000:4000"  # Match the PROXY_HOST port from config.py
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LITELLM_LOG=INFO
+      - LITELLM_TELEMETRY=False
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml
+    command: --config /app/config.yaml --port 4000 --host 0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - ollama-network
+
+  ollama-proxy:
+    image: ollamaopenai:latest
+    container_name: ollama-proxy
+    ports:
+      - "11434:11434"
+    environment:
+      - OPENAI_API_BASE_URL=http://litellm:4000/v1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-not_required_for_litellm}
+      - PROXY_PORT=11434
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-60}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - DEBUG=${DEBUG:-false}
+      - DISABLE_SSL_VERIFICATION=${DISABLE_SSL_VERIFICATION:-false}
+    depends_on:
+      - litellm
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; import sys; sys.exit(0 if httpx.get('http://localhost:11434/health').status_code == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - ollama-network
+
+networks:
+  ollama-network:
+    driver: bridge
