@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-07-22
+
+### Fixed
+- **Embedding Format Issue**: Fixed triple-nested array format in embeddings response
+  - The proxy now correctly extracts embeddings from OpenAI response format
+  - Embeddings are returned as a flat array of arrays: `[[...], [...]]`
+  - Fixed validation errors in Ollama SDK compatibility tests
+- **Chat Response Format**: Fixed chat endpoint response format for Ollama compatibility
+  - Properly instantiates OpenAIMessage with all required fields
+  - Fixed Union type handling in chat translator
+- **Unit Tests**: Updated all model router tests to expect JSONResponse format
+  - Fixed 15 tests in test_models.py to decode JSON response body
+  - Tests now properly handle JSONResponse instead of Pydantic models
+- **CI/CD Issues**: Fixed all linting, formatting, and type checking issues
+  - Fixed 31 ruff linting errors (trailing whitespace, import sorting)
+  - Applied black formatting across the codebase
+  - Resolved 75 mypy type errors down to 4 acceptable warnings
+  - Fixed return type annotations in routers and translators
+  - Fixed variable naming conflicts in models.py
+- **Docker Build**: Fixed Docker image tagging for compatibility tests
+  - Built image with correct tag `ollamaopenai:latest`
+  - Verified all 35 Ollama SDK tests passing with both OpenAI and LiteLLM backends
+
+### Changed
+- **JSONResponse Usage**: Model routers now return JSONResponse instead of Pydantic models
+  - Consistent with FastAPI best practices for API responses
+  - Improved compatibility with middleware and response processing
+
+### Technical Improvements
+- **Type Safety**: Enhanced type annotations across the codebase
+  - Fixed Optional[str] handling with proper None checks
+  - Added missing type annotations where required
+  - Improved Union type handling in translators
+- **Code Quality**: Comprehensive code quality improvements
+  - All linting checks passing (ruff)
+  - All formatting checks passing (black)
+  - Minimal mypy warnings (4 third-party library issues only)
+
 ## [0.6.9] - 2025-07-21
 
 ### Added

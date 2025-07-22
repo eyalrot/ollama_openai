@@ -444,16 +444,19 @@ class TestChatTranslatorErrorHandling:
 
     def test_translate_streaming_chunk_error(self, chat_translator):
         """Test error handling in streaming chunk translation."""
-        chunk = Mock()
-        chunk.side_effect = ValueError("Test error")
-        request = Mock()
+        # Create a chunk that will cause an error when processed
+        chunk = {"invalid": "data"}  # This will cause an error when looking for 'choices'
+        request = Mock(spec=OllamaChatRequest)
+        request.model = "test-model"
 
-        with pytest.raises(TranslationError) as exc_info:
-            chat_translator.translate_streaming_response(chunk, request)
+        # Mock the method to raise an exception
+        with patch.object(chat_translator, 'get_iso_timestamp', side_effect=ValueError("Test error")):
+            with pytest.raises(TranslationError) as exc_info:
+                chat_translator.translate_streaming_response(chunk, request)
 
-        assert "Failed to translate in translate_streaming_response" in str(
-            exc_info.value
-        )
+            assert "Failed to translate in translate_streaming_response" in str(
+                exc_info.value
+            )
 
 
 class TestChatTranslatorIntegration:
