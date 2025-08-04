@@ -10,4 +10,4 @@ python-dotenv==1.0.0
 # Additional required dependencies
 aiofiles==23.2.1
 python-multipart==0.0.6
-psutil==5.9.6
+psutil==7.0.0
