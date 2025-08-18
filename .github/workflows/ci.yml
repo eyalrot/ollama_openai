@@ -17,7 +17,7 @@ jobs:
       image-tag: ${{ steps.meta.outputs.tags }}
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -55,7 +55,7 @@ jobs:
     needs: build-ci-image
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Download CI Docker image
       uses: actions/download-artifact@v4
@@ -99,7 +99,7 @@ jobs:
     needs: build-ci-image
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Download CI Docker image
       uses: actions/download-artifact@v4
@@ -216,7 +216,7 @@ jobs:
     needs: [build-ci-image, test]
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Download CI Docker image
       uses: actions/download-artifact@v4
@@ -243,7 +243,7 @@ jobs:
     needs: [lint-and-format, test]
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -299,7 +299,7 @@ jobs:
     needs: build-ci-image
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Create test .env file
       run: |
@@ -334,7 +334,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0  # Fetch all history for proper versioning
     
