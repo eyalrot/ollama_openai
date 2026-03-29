@@ -272,7 +272,7 @@ class OllamaModelInfo(BaseModel):
 
     name: str = Field(..., description="Model name")
     model: str = Field(..., description="Model identifier")
-    modified_at: str = Field(..., description="Last modified timestamp")
+    modified_at: Optional[str] = Field(None, description="Last modified timestamp")
     size: int = Field(..., description="Model size in bytes")
     digest: str = Field(..., description="Model digest")
     details: Optional[Dict[str, Any]] = Field(None, description="Model details")
@@ -540,7 +540,7 @@ class OpenAIModel(BaseModel):
 
     id: str = Field(..., description="Model ID")
     object: Literal["model"] = Field("model", description="Object type")
-    created: int = Field(..., description="Creation timestamp")
+    created: Optional[int] = Field(None, description="Creation timestamp")
     owned_by: Optional[str] = Field(None, description="Model owner")
     permission: Optional[List[Dict[str, Any]]] = Field(
         None, description="Model permissions"

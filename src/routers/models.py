@@ -95,10 +95,13 @@ async def list_models(fastapi_request: Request) -> JSONResponse:
                 # Generate a consistent digest from model ID
                 digest_hash = hashlib.sha256(model.id.encode()).hexdigest()
 
-                # Convert created timestamp to ISO format
-                modified_at = datetime.fromtimestamp(
-                    model.created, tz=timezone.utc
-                ).isoformat()
+                # Convert created timestamp to ISO format if present
+                if model.created:
+                    modified_at = datetime.fromtimestamp(
+                        model.created, tz=timezone.utc
+                    ).isoformat()
+                else:
+                    modified_at = None
 
                 ollama_model = OllamaModelInfo(  # type: ignore[call-arg]
                     name=model.id,
