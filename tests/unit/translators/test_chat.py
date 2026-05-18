@@ -416,6 +416,63 @@ class TestChatTranslatorStreamingChunks:
         assert result["response"] == "Test"
         assert result["model"] == "llama2"
 
+    def test_translate_streaming_chunk_chat_with_content(
+        self, chat_translator, ollama_chat_request
+    ):
+        """Chat request streaming chunk uses message field, not response."""
+        chunk = {
+            "id": "chatcmpl-123",
+            "object": "chat.completion.chunk",
+            "created": 1234567890,
+            "model": "gpt-4",
+            "choices": [
+                {"index": 0, "delta": {"content": "Hello"}, "finish_reason": None}
+            ],
+        }
+
+        result = chat_translator.translate_streaming_response(
+            chunk, ollama_chat_request
+        )
+
+        assert result is not None
+        assert "message" in result
+        assert result["message"]["role"] == "assistant"
+        assert result["message"]["content"] == "Hello"
+        assert "response" not in result
+        assert result["done"] is False
+
+    def test_translate_streaming_chunk_chat_done(
+        self, chat_translator, ollama_chat_request
+    ):
+        """[DONE] with chat request yields message field, not response."""
+        result = chat_translator.translate_streaming_response(
+            "[DONE]", ollama_chat_request
+        )
+
+        assert result is not None
+        assert "message" in result
+        assert result["message"]["role"] == "assistant"
+        assert result["message"]["content"] == ""
+        assert "response" not in result
+        assert result["done"] is True
+        assert result["done_reason"] == "stop"
+
+    def test_translate_streaming_chunk_generate_still_uses_response(
+        self, chat_translator, ollama_generate_request
+    ):
+        """Generate request streaming still uses response field (unchanged)."""
+        chunk = {
+            "choices": [{"delta": {"content": "Hi"}, "finish_reason": None}]
+        }
+
+        result = chat_translator.translate_streaming_response(
+            chunk, ollama_generate_request
+        )
+
+        assert result is not None
+        assert result["response"] == "Hi"
+        assert "message" not in result
+
 
 class TestChatTranslatorErrorHandling:
     """Test error handling in the translator."""
@@ -543,10 +600,10 @@ class TestChatTranslatorIntegration:
             if result:
                 responses.append(result)
 
-        # Check responses
+        # Check responses — chat endpoint uses message field, not response
         assert len(responses) == 4
-        assert responses[0]["response"] == "Hello"
-        assert responses[1]["response"] == " there"
-        assert responses[2]["response"] == "!"
+        assert responses[0]["message"]["content"] == "Hello"
+        assert responses[1]["message"]["content"] == " there"
+        assert responses[2]["message"]["content"] == "!"
         assert responses[3]["done"] is True
         assert all(r["model"] == "mistral" for r in responses)

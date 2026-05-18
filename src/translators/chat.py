@@ -178,6 +178,14 @@ class ChatTranslator(
             if isinstance(openai_chunk, str):
                 if openai_chunk.strip() == "[DONE]":
                     # Final chunk - return done response
+                    if isinstance(original_request, OllamaChatRequest):
+                        return {
+                            "model": original_request.model,
+                            "created_at": self.get_iso_timestamp(),
+                            "message": {"role": "assistant", "content": ""},
+                            "done": True,
+                            "done_reason": "stop",
+                        }
                     return {
                         "model": original_request.model,
                         "created_at": self.get_iso_timestamp(),
@@ -219,17 +227,27 @@ class ChatTranslator(
                             delta["function_call"]
                         )
 
-            # Build Ollama streaming response
-            response = {
-                "model": self.reverse_map_model_name(
-                    openai_chunk.get("model", original_request.model)
-                    if isinstance(openai_chunk, dict)
-                    else original_request.model
-                ),
-                "created_at": self.get_iso_timestamp(),
-                "response": content,
-                "done": finish_reason is not None,
-            }
+            model_name = self.reverse_map_model_name(
+                openai_chunk.get("model", original_request.model)
+                if isinstance(openai_chunk, dict)
+                else original_request.model
+            )
+
+            # Build Ollama streaming response — format differs by endpoint type
+            if isinstance(original_request, OllamaChatRequest):
+                response = {
+                    "model": model_name,
+                    "created_at": self.get_iso_timestamp(),
+                    "message": {"role": "assistant", "content": content or ""},
+                    "done": finish_reason is not None,
+                }
+            else:
+                response = {
+                    "model": model_name,
+                    "created_at": self.get_iso_timestamp(),
+                    "response": content,
+                    "done": finish_reason is not None,
+                }
 
             # Add finish reason if present
             if finish_reason:

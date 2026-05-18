@@ -98,7 +98,7 @@ class OllamaChatMessage(BaseModel):
     role: Literal["system", "user", "assistant", "tool"] = Field(
         ..., description="Message role"
     )
-    content: str = Field(..., description="Message content")
+    content: str = Field("", description="Message content")
     images: Optional[List[str]] = Field(None, description="Base64 encoded images")
     tool_calls: Optional[List[Dict[str, Any]]] = Field(
         None, description="Tool calls made by assistant"

@@ -123,6 +123,7 @@ async def stream_response(
     url = f"{settings.OPENAI_API_BASE_URL}/chat/completions"
 
     try:
+        done_emitted = False
         # Use stream_with_retry for streaming requests
         async for chunk in client.stream_with_retry(
             "POST",
@@ -137,14 +138,16 @@ async def stream_response(
                     continue
 
                 if line == "data: [DONE]":
-                    # Send final chunk
-                    final_chunk = translator.translate_streaming_response(
-                        "[DONE]",  # type: ignore
-                        original_request,
-                        is_last_chunk=True,
-                    )
-                    if final_chunk:
-                        yield json.dumps(final_chunk) + "\n"
+                    # Only emit the sentinel done chunk if no finish_reason
+                    # chunk already signalled done (avoids duplicate done chunks)
+                    if not done_emitted:
+                        final_chunk = translator.translate_streaming_response(
+                            "[DONE]",  # type: ignore
+                            original_request,
+                            is_last_chunk=True,
+                        )
+                        if final_chunk:
+                            yield json.dumps(final_chunk) + "\n"
                     return
 
                 if line.startswith("data: "):
@@ -158,6 +161,8 @@ async def stream_response(
                         )
 
                         if ollama_chunk:
+                            if ollama_chunk.get("done"):
+                                done_emitted = True
                             yield json.dumps(ollama_chunk) + "\n"
 
                     except json.JSONDecodeError as e:
